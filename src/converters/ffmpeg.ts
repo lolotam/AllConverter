@@ -3,6 +3,7 @@ import {
   type ChildProcess,
   type ExecFileOptions,
 } from "node:child_process";
+import { createFfmpegProgressParser, type ProgressOptions } from "./progress";
 
 // ffmpeg streams continuous progress to stderr, so a long conversion overflows
 // execFile's 1 MB default maxBuffer and fails with "stderr maxBuffer length
@@ -757,8 +758,10 @@ export async function convert(
     ? process.env.FFMPEG_OUTPUT_ARGS.split(/\s+/)
     : [];
 
+  const onProgress = (options as ProgressOptions | undefined)?.onProgress;
+
   return new Promise((resolve, reject) => {
-    execFile(
+    const child = execFile(
       "ffmpeg",
       [...ffmpegArgs, "-i", filePath, ...ffmpegOutputArgs, ...extraArgs, targetPath],
       { maxBuffer: FFMPEG_MAX_BUFFER },
@@ -778,5 +781,9 @@ export async function convert(
         resolve(message);
       },
     );
+
+    if (onProgress && child?.stderr) {
+      child.stderr.on("data", createFfmpegProgressParser(onProgress));
+    }
   });
 }

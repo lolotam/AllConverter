@@ -82,6 +82,8 @@ export const convert = new Elysia().use(userService).post(
       jobId.value,
     );
 
+    const jobKey = jobId.value;
+
     // Start the conversion process in the background
     handleConvert(
       fileNames,
@@ -92,17 +94,12 @@ export const convert = new Elysia().use(userService).post(
       jobId,
       tier.priority_queue,
     )
-      .then(() => {
-        // All conversions are done, update the job status to 'completed'
-        if (jobId.value) {
-          db.query("UPDATE jobs SET status = 'completed' WHERE id = ?1").run(jobId.value);
-        }
-
-        // Delete all uploaded files in userUploadsDir
-        // rmSync(userUploadsDir, { recursive: true, force: true });
-      })
       .catch((error) => {
         console.error("Error in conversion process:", error);
+      })
+      .finally(() => {
+        // Always finish the job, even after an error: the results page waits for this
+        db.query("UPDATE jobs SET status = 'completed' WHERE id = ?1").run(jobKey);
       });
 
     // Redirect the client immediately

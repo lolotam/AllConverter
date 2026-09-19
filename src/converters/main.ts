@@ -3,6 +3,7 @@ import { Cookie } from "elysia";
 import db from "../db/db";
 import { normalizeFiletype, normalizeOutputFiletype } from "../helpers/normalizeFiletype";
 import { conversionQueue } from "../helpers/queue";
+import { forgetJob, trackFinished, trackPercent, trackQueued, trackStarted } from "./progress";
 import { convert as convertassimp, properties as propertiesassimp } from "./assimp";
 import { convert as convertCalibre, properties as propertiesCalibre } from "./calibre";
 import { convert as convertDasel, properties as propertiesDasel } from "./dasel";
@@ -158,11 +159,18 @@ export async function handleConvert(
     "INSERT INTO file_names (job_id, file_name, output_file_name, status) VALUES (?1, ?2, ?3, ?4)",
   );
 
+  const jobKey = jobId.value ?? "";
+  trackQueued(
+    jobKey,
+    fileNames.map((file) => ({ file, sizeBytes: Bun.file(`${userUploadsDir}${file}`).size })),
+  );
+
   // Every file goes through the shared queue, so paid tiers (higher priority)
   // jump ahead of free users when the server is busy.
   await Promise.all(
     fileNames.map((fileName) =>
       conversionQueue.run(async () => {
+        trackStarted(jobKey, fileName);
         const filePath = `${userUploadsDir}${fileName}`;
         const fileTypeOrig = fileName.includes(".") ? (fileName.split(".").pop() ?? "") : "";
         const fileType = normalizeFiletype(fileTypeOrig);
@@ -177,7 +185,14 @@ export async function handleConvert(
           );
         }
         const targetPath = `${userOutputDir}${newFileName}`;
-        const r = await mainConverter(filePath, fileType, convertTo, targetPath, {}, converterName);
+        const r = await mainConverter(
+          filePath,
+          fileType,
+          convertTo,
+          targetPath,
+          { onProgress: (percent: number) => trackPercent(jobKey, fileName, percent) },
+          converterName,
+        );
         const outputs = r === "Done" ? await findOutputFiles(userOutputDir, newFileName) : [];
         // A converter that exits cleanly but writes nothing would otherwise show "Done"
         // next to a download link that 404s
@@ -187,10 +202,11 @@ export async function handleConvert(
             query.run(jobId.value, fileName, output, status);
           }
         }
+        trackFinished(jobKey, fileName, status.startsWith("Done"));
         return status;
       }, priority),
     ),
-  );
+  ).finally(() => forgetJob(jobKey));
 }
 
 /**

@@ -1,4 +1,5 @@
 import { randomInt } from "node:crypto";
+import { assetUrl } from "../helpers/assetUrl";
 import { JWTPayloadSpec } from "@elysiajs/jwt";
 import { Elysia, t } from "elysia";
 import { BaseHtml } from "../components/base";
@@ -834,7 +835,7 @@ export const root = new Elysia().use(userService).get(
             </div>
           </footer>
 
-          <script src="script.js" defer />
+          <script src={assetUrl(WEBROOT, "script.js")} defer />
           {checkout && (
             <>
               <div
@@ -848,7 +849,7 @@ export const root = new Elysia().use(userService).get(
                 data-success-url={`${WEBROOT}/account?checkout=success`}
               />
               <script src="https://cdn.paddle.com/paddle/v2/paddle.js" defer />
-              <script src="billing.js" defer />
+              <script src={assetUrl(WEBROOT, "billing.js")} defer />
             </>
           )}
         </>

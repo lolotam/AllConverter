@@ -1,4 +1,5 @@
 import { Elysia } from "elysia";
+import { assetUrl } from "../helpers/assetUrl";
 import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
 import db from "../db/db";
@@ -187,7 +188,7 @@ export const results = new Elysia()
             >
               <ResultsArticle job={job} files={files} outputPath={outputPath} />
             </main>
-            <script src={`${WEBROOT}/results.js`} defer />
+            <script src={assetUrl(WEBROOT, "results.js")} defer />
           </>
         </BaseHtml>
       );

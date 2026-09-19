@@ -3,7 +3,8 @@ import { html } from "@elysiajs/html";
 import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
 import "./helpers/printVersions";
-import db from "./db/db";
+import { unavailableConverters } from "./converters/availability";
+import db, { getTiers } from "./db/db";
 import { Jobs } from "./db/types";
 import { AUTO_DELETE_EVERY_N_HOURS, WEBROOT } from "./helpers/env";
 import { chooseConverter } from "./pages/chooseConverter";
@@ -18,6 +19,10 @@ import { root } from "./pages/root";
 import { upload } from "./pages/upload";
 import { user } from "./pages/user";
 import { healthcheck } from "./pages/healthcheck";
+import { admin } from "./pages/admin";
+import { billing } from "./pages/billing";
+import { legal } from "./pages/legal";
+import { MB, pruneUsage } from "./services/quota";
 
 export const uploadsDir = "./data/uploads/";
 export const outputDir = "./data/output/";
@@ -27,7 +32,9 @@ process.getBuiltinModule = require;
 
 const app = new Elysia({
   serve: {
-    maxRequestBodySize: Number.MAX_SAFE_INTEGER,
+    // Reject bodies larger than the biggest plan allows before they are buffered.
+    // Tier limits are read at startup, so restart after raising one in /admin.
+    maxRequestBodySize: (Math.max(100, ...getTiers().map((t) => t.max_file_size_mb)) + 1) * MB,
   },
   prefix: WEBROOT,
 })
@@ -50,6 +57,9 @@ const app = new Elysia({
   .use(listConverters)
   .use(chooseConverter)
   .use(healthcheck)
+  .use(admin)
+  .use(billing)
+  .use(legal)
   .onError(({ error, code, request }) => {
     if (code === "NOT_FOUND") {
       console.warn(`404: ${request.method} ${new URL(request.url).pathname}`);
@@ -71,6 +81,10 @@ if (process.env.NODE_ENV !== "production") {
 
 app.listen(process.env.PORT || 3000);
 
+for (const { converter, missing } of unavailableConverters()) {
+  console.warn(`Converter "${converter}" is disabled: ${missing.join(", ")} not found in PATH.`);
+}
+
 console.log(`🦊 Elysia is running at http://${app.server?.hostname}:${app.server?.port}${WEBROOT}`);
 
 const clearJobs = () => {
@@ -91,12 +105,19 @@ const clearJobs = () => {
     });
 
     // delete the job
+    db.query("DELETE FROM file_names WHERE job_id = ?").run(job.id);
     db.query("DELETE FROM jobs WHERE id = ?").run(job.id);
   }
 
-  setTimeout(clearJobs, AUTO_DELETE_EVERY_N_HOURS * 60 * 60 * 1000);
+  // Check at least every 15 minutes so files don't outlive the retention
+  // window by up to another full N hours.
+  setTimeout(clearJobs, Math.min(AUTO_DELETE_EVERY_N_HOURS * 60 * 60 * 1000, 15 * 60 * 1000));
 };
 
 if (AUTO_DELETE_EVERY_N_HOURS > 0) {
   clearJobs();
 }
+
+// Guest quota counters hold IP addresses; drop old ones even if file auto-delete is off
+pruneUsage();
+setInterval(pruneUsage, 6 * 60 * 60 * 1000);

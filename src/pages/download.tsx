@@ -31,6 +31,7 @@ export const download = new Elysia()
         return { message: "Converted file not found." };
       }
 
+      set.headers["content-disposition"] = `attachment; filename="${encodeURIComponent(fileName)}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
       return file;
     },
     {

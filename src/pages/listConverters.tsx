@@ -1,6 +1,7 @@
 import Elysia from "elysia";
 import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
+import { onlyAvailable } from "../converters/availability";
 import { getAllInputs, getAllTargets } from "../converters/main";
 import { ALLOW_UNAUTHENTICATED, WEBROOT, BRANDING } from "../helpers/env";
 import { userService } from "./user";
@@ -41,7 +42,7 @@ export const listConverters = new Elysia().use(userService).get(
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(getAllTargets()).map(([converter, targets]) => {
+                  {Object.entries(onlyAvailable(getAllTargets())).map(([converter, targets]) => {
                     const inputs = getAllInputs(converter);
                     return (
                       <tr>

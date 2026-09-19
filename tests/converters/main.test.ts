@@ -15,7 +15,7 @@ import { Database } from "bun:sqlite";
 
 // dynamic import ensures that the module is loaded after the environment variable is set
 const converterModule = await import("../../src/converters/main");
-const { getPossibleTargets, getAllTargets, getAllInputs, handleConvert, mainConverter, chunks } =
+const { getPossibleTargets, getAllTargets, getAllInputs, handleConvert, mainConverter } =
   converterModule;
 
 // Isolated test database: avoids mutation of ./data/mydb.sqlite
@@ -241,34 +241,6 @@ END:VCARD
   for (const f of files) {
     await rm(`${uploadsDir}${f}`);
   }
-});
-
-test("chunks with size 0 returns entire array as single chunk", () => {
-  const arr = [1, 2, 3, 4, 5];
-  const result = chunks(arr, 0);
-  expect(result).toEqual([[1, 2, 3, 4, 5]]);
-});
-
-test("chunks with negative size returns entire array as single chunk", () => {
-  const arr = ["a", "b", "c"];
-  const result = chunks(arr, -1);
-  expect(result).toEqual([["a", "b", "c"]]);
-});
-
-test("chunks with size larger than array returns single chunk", () => {
-  const arr = [1, 2];
-  const result = chunks(arr, 10);
-  expect(result).toEqual([[1, 2]]);
-});
-
-test("chunks with exact division returns equal-sized chunks", () => {
-  const arr = [1, 2, 3, 4, 5, 6];
-  const result = chunks(arr, 2);
-  expect(result).toEqual([
-    [1, 2],
-    [3, 4],
-    [5, 6],
-  ]);
 });
 
 test("mainConverter returns 'File type not supported' for unsupported combination", async () => {

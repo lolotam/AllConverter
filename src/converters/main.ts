@@ -1,7 +1,8 @@
+import { readdir } from "node:fs/promises";
 import { Cookie } from "elysia";
 import db from "../db/db";
-import { MAX_CONVERT_PROCESS } from "../helpers/env";
 import { normalizeFiletype, normalizeOutputFiletype } from "../helpers/normalizeFiletype";
+import { conversionQueue } from "../helpers/queue";
 import { convert as convertassimp, properties as propertiesassimp } from "./assimp";
 import { convert as convertCalibre, properties as propertiesCalibre } from "./calibre";
 import { convert as convertDasel, properties as propertiesDasel } from "./dasel";
@@ -144,15 +145,6 @@ const properties: Record<
   },
 };
 
-function chunks<T>(arr: T[], size: number): T[][] {
-  if (size <= 0) {
-    return [arr];
-  }
-  return Array.from({ length: Math.ceil(arr.length / size) }, (_: T, i: number) =>
-    arr.slice(i * size, i * size + size),
-  );
-}
-
 export async function handleConvert(
   fileNames: string[],
   userUploadsDir: string,
@@ -160,43 +152,75 @@ export async function handleConvert(
   convertTo: string,
   converterName: string,
   jobId: Cookie<string | undefined>,
+  priority = 0,
 ) {
   const query = db.query(
     "INSERT INTO file_names (job_id, file_name, output_file_name, status) VALUES (?1, ?2, ?3, ?4)",
   );
 
-  for (const chunk of chunks(fileNames, MAX_CONVERT_PROCESS)) {
-    const toProcess: Promise<string>[] = [];
-    for (const fileName of chunk) {
-      const filePath = `${userUploadsDir}${fileName}`;
-      const fileTypeOrig = fileName.includes(".") ? (fileName.split(".").pop() ?? "") : "";
-      const fileType = normalizeFiletype(fileTypeOrig);
-      const newFileExt = normalizeOutputFiletype(convertTo);
-      let newFileName: string;
-      if (fileTypeOrig === "") {
-        newFileName = `${fileName}.${newFileExt}`;
-      } else {
-        newFileName = fileName.replace(
-          new RegExp(`${fileTypeOrig}(?!.*${fileTypeOrig})`),
-          newFileExt,
-        );
-      }
-      const targetPath = `${userOutputDir}${newFileName}`;
-      toProcess.push(
-        new Promise((resolve, reject) => {
-          mainConverter(filePath, fileType, convertTo, targetPath, {}, converterName)
-            .then((r) => {
-              if (jobId.value) {
-                query.run(jobId.value, fileName, newFileName, r);
-              }
-              resolve(r);
-            })
-            .catch((c) => reject(c));
-        }),
-      );
-    }
-    await Promise.all(toProcess);
+  // Every file goes through the shared queue, so paid tiers (higher priority)
+  // jump ahead of free users when the server is busy.
+  await Promise.all(
+    fileNames.map((fileName) =>
+      conversionQueue.run(async () => {
+        const filePath = `${userUploadsDir}${fileName}`;
+        const fileTypeOrig = fileName.includes(".") ? (fileName.split(".").pop() ?? "") : "";
+        const fileType = normalizeFiletype(fileTypeOrig);
+        const newFileExt = normalizeOutputFiletype(convertTo);
+        let newFileName: string;
+        if (fileTypeOrig === "") {
+          newFileName = `${fileName}.${newFileExt}`;
+        } else {
+          newFileName = fileName.replace(
+            new RegExp(`${fileTypeOrig}(?!.*${fileTypeOrig})`),
+            newFileExt,
+          );
+        }
+        const targetPath = `${userOutputDir}${newFileName}`;
+        const r = await mainConverter(filePath, fileType, convertTo, targetPath, {}, converterName);
+        const outputs = r === "Done" ? await findOutputFiles(userOutputDir, newFileName) : [];
+        // A converter that exits cleanly but writes nothing would otherwise show "Done"
+        // next to a download link that 404s
+        const status = r === "Done" && outputs.length === 0 ? "Failed, check logs" : r;
+        if (jobId.value) {
+          for (const output of outputs.length > 0 ? outputs : [newFileName]) {
+            query.run(jobId.value, fileName, output, status);
+          }
+        }
+        return status;
+      }, priority),
+    ),
+  );
+}
+
+/**
+ * Returns the files a conversion produced. Multi-page inputs (e.g. a PDF to JPG
+ * with ImageMagick) are written as name-0.jpg, name-1.jpg, ... instead of name.jpg,
+ * so each page gets its own result row.
+ */
+async function findOutputFiles(outputDir: string, fileName: string): Promise<string[]> {
+  if (await Bun.file(`${outputDir}${fileName}`).exists()) {
+    return [fileName];
   }
+
+  const dot = fileName.lastIndexOf(".");
+  const stem = dot === -1 ? fileName : fileName.slice(0, dot);
+  const extension = dot === -1 ? "" : fileName.slice(dot);
+  const pageNumber = (name: string) => {
+    if (!name.startsWith(`${stem}-`) || !name.endsWith(extension)) {
+      return null;
+    }
+    const digits = name.slice(stem.length + 1, name.length - extension.length);
+    return /^\d+$/.test(digits) ? Number(digits) : null;
+  };
+
+  const pages = (await readdir(outputDir).catch(() => [] as string[]))
+    .map((name) => ({ name, page: pageNumber(name) }))
+    .filter((entry): entry is { name: string; page: number } => entry.page !== null)
+    .sort((a, b) => a.page - b.page);
+
+  // Page numbering starts at 0; without it these are unrelated files
+  return pages[0]?.page === 0 ? pages.map((entry) => entry.name) : [];
 }
 
 async function mainConverter(
@@ -352,4 +376,4 @@ export const getAllInputs = (converter: string) => {
  * @internal For testing only. Do not use in production.
  * Tests need direct access to cover all branches of converter discovery and chunking logic.
  */
-export { chunks, mainConverter };
+export { findOutputFiles, mainConverter };

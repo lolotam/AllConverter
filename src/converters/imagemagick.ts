@@ -441,6 +441,8 @@ export const properties = {
   },
 };
 
+const DOCUMENT_INPUTS = new Set(["pdf", "epdf", "ps", "eps", "epi", "epsi", "ai"]);
+
 export function convert(
   filePath: string,
   fileType: string,
@@ -466,6 +468,13 @@ export function convert(
     // Use direct conversion without delegates for EMF files
     inputArgs.push("-define", "emf:delegate=false", "-density", "300");
     outputArgs.push("-background", "white", "-alpha", "remove");
+  }
+
+  // Documents are rasterised by Ghostscript: the default 72 DPI is blurry, and the
+  // transparent page background turns black in formats without alpha, like JPG
+  if (DOCUMENT_INPUTS.has(fileType)) {
+    inputArgs.push("-density", "150");
+    outputArgs.push("-background", "white", "-alpha", "remove", "-alpha", "off");
   }
 
   // Apply EXIF orientation so photos (e.g. from phones) don't end up sideways

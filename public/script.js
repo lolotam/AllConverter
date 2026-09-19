@@ -6,6 +6,28 @@ const fileNames = [];
 let fileType;
 let pendingFiles = 0;
 let formatSelected = false;
+// Plan limits rendered by the server; the server enforces them too
+const maxFileSizeMb = Number(dropZone.dataset.maxFileSizeMb) || Infinity;
+const batchLimit = Number(dropZone.dataset.batchLimit) || Infinity;
+
+const showRejectedFile = (file, reason) => {
+  const row = document.createElement("tr");
+  const name = document.createElement("td");
+  name.textContent = file.name;
+  const message = document.createElement("td");
+  message.colSpan = 2;
+  message.className = "text-amber-400";
+  message.textContent = reason;
+  const action = document.createElement("td");
+  const dismiss = document.createElement("button");
+  dismiss.type = "button";
+  dismiss.className = "text-accent-500 hover:underline";
+  dismiss.textContent = "Dismiss";
+  dismiss.addEventListener("click", () => row.remove());
+  action.appendChild(dismiss);
+  row.append(name, message, action);
+  document.querySelector("#file-list").appendChild(row);
+};
 
 dropZone.addEventListener("dragover", (e) => {
   e.preventDefault();
@@ -35,6 +57,15 @@ dropZone.addEventListener("drop", (e) => {
 
 // Extracted handleFile function for reusability in drag-and-drop and file input
 function handleFile(file) {
+  if (file.size > maxFileSizeMb * 1024 * 1024) {
+    showRejectedFile(file, `Larger than your plan's ${maxFileSizeMb} MB limit`);
+    return;
+  }
+  if (!fileNames.includes(file.name) && fileNames.length >= batchLimit) {
+    showRejectedFile(file, `Your plan allows ${batchLimit} files at once`);
+    return;
+  }
+
   const fileList = document.querySelector("#file-list");
 
   const row = document.createElement("tr");
@@ -69,6 +100,62 @@ function handleFile(file) {
   uploadFile(file);
 }
 
+function saveRecentTarget(target, converter, value) {
+  try {
+    let recent = JSON.parse(localStorage.getItem("convertx_recent_targets") || "[]");
+    recent = recent.filter((r) => r.target !== target);
+    recent.unshift({ target, converter, value });
+    if (recent.length > 8) recent = recent.slice(0, 8);
+    localStorage.setItem("convertx_recent_targets", JSON.stringify(recent));
+    renderRecentPills();
+  } catch (e) {}
+}
+
+function renderRecentPills() {
+  const container = document.getElementById("quick-recent-pills");
+  if (!container) return;
+  try {
+    const recent = JSON.parse(localStorage.getItem("convertx_recent_targets") || "[]");
+    if (recent.length === 0) {
+      container.classList.add("hidden");
+      return;
+    }
+    container.classList.remove("hidden");
+    const list = container.querySelector(".recent-pills-list");
+    if (!list) return;
+    list.innerHTML = "";
+    recent.slice(0, 6).forEach((item) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "rounded-md bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 text-xs font-bold hover:bg-accent-500 hover:text-neutral-950 transition-colors cursor-pointer";
+      btn.textContent = item.target.toUpperCase();
+      btn.onclick = () => {
+        selectTarget(item.target, item.converter, item.value);
+      };
+      list.appendChild(btn);
+    });
+  } catch (e) {}
+}
+
+function selectTarget(targetName, converterName, fullValue) {
+  const convertToInput = document.querySelector("input[name='convert_to_search']");
+  const convertToElement = document.querySelector("select[name='convert_to']");
+  if (!convertToElement || !convertToInput) return;
+
+  const finalVal = fullValue || `${targetName},${converterName}`;
+  convertToElement.value = finalVal;
+  convertToInput.value = `${targetName.toUpperCase()}${converterName ? ` (${converterName})` : ""}`;
+  formatSelected = true;
+  if (pendingFiles === 0 && fileNames.length > 0) {
+    convertButton.disabled = false;
+  }
+  saveRecentTarget(targetName, converterName, finalVal);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  renderRecentPills();
+});
+
 const selectContainer = document.querySelector("form .select_container");
 
 const updateSearchBar = () => {
@@ -77,6 +164,35 @@ const updateSearchBar = () => {
   const convertToGroupElements = document.querySelectorAll(".convert_to_group");
   const convertToGroups = {};
   const convertToElement = document.querySelector("select[name='convert_to']");
+
+  // Populate recent formats group inside popup if present
+  const recentGroup = document.getElementById("recent-formats-group");
+  const recentList = document.getElementById("recent-formats-list");
+  if (recentGroup && recentList) {
+    try {
+      const recent = JSON.parse(localStorage.getItem("convertx_recent_targets") || "[]");
+      if (recent.length > 0) {
+        recentList.innerHTML = "";
+        recent.forEach((r) => {
+          const btn = document.createElement("button");
+          btn.tabIndex = 0;
+          btn.type = "button";
+          btn.className = "target rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-600 dark:text-blue-300 hover:bg-accent-500 hover:text-neutral-950 transition-colors";
+          btn.dataset.value = r.value || `${r.target},${r.converter}`;
+          btn.dataset.target = r.target;
+          btn.dataset.converter = r.converter;
+          btn.textContent = r.target.toUpperCase();
+          btn.onmousedown = () => {
+            selectTarget(r.target, r.converter, r.value);
+            showMatching("");
+          };
+          recentList.appendChild(btn);
+        });
+        recentGroup.classList.remove("hidden");
+        recentGroup.classList.add("flex");
+      }
+    } catch (e) {}
+  }
 
   const showMatching = (search) => {
     for (const [targets, groupElement] of Object.values(convertToGroups)) {
@@ -110,12 +226,7 @@ const updateSearchBar = () => {
 
     for (const target of targets) {
       target.onmousedown = () => {
-        convertToElement.value = target.dataset.value;
-        convertToInput.value = `${target.dataset.target} using ${target.dataset.converter}`;
-        formatSelected = true;
-        if (pendingFiles === 0 && fileNames.length > 0) {
-          convertButton.disabled = false;
-        }
+        selectTarget(target.dataset.target, target.dataset.converter, target.dataset.value);
         showMatching("");
       };
     }
@@ -209,20 +320,38 @@ const uploadFile = (file) => {
   xhr.open("POST", `${webroot}/upload`, true);
 
   xhr.onload = () => {
-    let data = JSON.parse(xhr.responseText);
-
-    pendingFiles -= 1;
-    if (pendingFiles === 0) {
-      if (formatSelected) {
-        convertButton.disabled = false;
-      }
-      convertButton.textContent = "Convert";
+    let data = {};
+    try {
+      data = JSON.parse(xhr.responseText);
+    } catch {
+      // e.g. a plain-text 413 from the server's body size cap
     }
 
-    //Remove the progress bar when upload is done
-    let progressbar = file.htmlRow.getElementsByTagName("progress");
-    progressbar[0].parentElement.remove();
-    console.log(data);
+    pendingFiles -= 1;
+
+    if (xhr.status >= 400) {
+      const index = fileNames.indexOf(file.name);
+      if (index !== -1) {
+        fileNames.splice(index, 1);
+      }
+      file.htmlRow.remove();
+      showRejectedFile(file, data.message || "Upload failed");
+      if (fileNames.length === 0) {
+        fileType = null;
+        fileInput.removeAttribute("accept");
+        setTitle();
+      }
+    } else {
+      //Remove the progress bar when upload is done
+      let progressbar = file.htmlRow.getElementsByTagName("progress");
+      progressbar[0].parentElement.remove();
+      console.log(data);
+    }
+
+    if (pendingFiles === 0) {
+      convertButton.disabled = !(formatSelected && fileNames.length > 0);
+      convertButton.textContent = "Convert";
+    }
   };
 
   xhr.upload.onprogress = (e) => {

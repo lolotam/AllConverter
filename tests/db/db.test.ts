@@ -98,13 +98,14 @@ afterEach(() => {
 });
 
 afterAll(() => {
-  // Close the module-level default database before cleanup to prevent file lock errors
-  if (defaultDb) {
-    defaultDb.close();
-  }
-  // Cleanup of the isolated test database after the test run
+  // The module-level default database is shared with every other test file in this
+  // bun process, so it must stay open; cleanup is best-effort (Windows keeps it locked).
   if (existsSync("./data/test-isolated.sqlite")) {
-    unlinkSync("./data/test-isolated.sqlite");
+    try {
+      unlinkSync("./data/test-isolated.sqlite");
+    } catch {
+      // still open by the shared connection
+    }
   }
   if (existsSync("./data/test-isolated.sqlite-wal")) {
     try {

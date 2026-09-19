@@ -1,13 +1,15 @@
+import { readdir } from "node:fs/promises";
 import { Elysia, t } from "elysia";
 import db from "../db/db";
 import { WEBROOT } from "../helpers/env";
 import { uploadsDir } from "../index";
 import { userService } from "./user";
 import sanitize from "sanitize-filename";
+import { getQuotaContext, MB } from "../services/quota";
 
 export const upload = new Elysia().use(userService).post(
   "/upload",
-  async ({ body, redirect, user, cookie: { jobId } }) => {
+  async ({ body, redirect, user, request, server, status, cookie: { jobId } }) => {
     if (!jobId?.value) {
       return redirect(`${WEBROOT}/`, 302);
     }
@@ -22,16 +24,27 @@ export const upload = new Elysia().use(userService).post(
 
     const userUploadsDir = `${uploadsDir}${user.id}/${jobId.value}/`;
 
-    if (body?.file) {
-      if (Array.isArray(body.file)) {
-        for (const file of body.file) {
-          const santizedFileName = sanitize(file.name);
-          await Bun.write(`${userUploadsDir}${santizedFileName}`, file);
-        }
-      } else {
-        const santizedFileName = sanitize(body.file["name"]);
-        await Bun.write(`${userUploadsDir}${santizedFileName}`, body.file);
-      }
+    const files = Array.isArray(body.file) ? body.file : [body.file];
+    const { tier } = getQuotaContext(user.id, request, server);
+
+    const tooLarge = files.find((file) => file.size > tier.max_file_size_mb * MB);
+    if (tooLarge) {
+      return status(413, {
+        message: `"${tooLarge.name}" exceeds the ${tier.max_file_size_mb} MB limit of the ${tier.name} plan.`,
+      });
+    }
+
+    // Re-uploading an existing name overwrites it, so count unique names only
+    const existing = await readdir(userUploadsDir).catch(() => [] as string[]);
+    const fileCount = new Set([...existing, ...files.map((file) => sanitize(file.name))]).size;
+    if (fileCount > tier.batch_limit) {
+      return status(429, {
+        message: `The ${tier.name} plan allows up to ${tier.batch_limit} files per conversion.`,
+      });
+    }
+
+    for (const file of files) {
+      await Bun.write(`${userUploadsDir}${sanitize(file.name)}`, file);
     }
 
     return {

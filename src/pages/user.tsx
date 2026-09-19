@@ -1,7 +1,7 @@
 import { Elysia, t } from "elysia";
 import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
-import db from "../db/db";
+import db, { getTierById } from "../db/db";
 import { User } from "../db/types";
 import {
   ACCOUNT_REGISTRATION,
@@ -11,6 +11,7 @@ import {
   WEBROOT,
   BRANDING,
 } from "../helpers/env";
+import { PADDLE_ENABLED, PADDLE_PORTAL_ENABLED } from "../services/paddle";
 import { userService } from "../services/user";
 
 export { userService } from "../services/user";
@@ -127,6 +128,17 @@ export const user = new Elysia()
                     />
                   </label>
                 </fieldset>
+                <p class="text-sm text-neutral-400">
+                  By creating an account you agree to the{" "}
+                  <a href={`${WEBROOT}/terms`} class="text-accent-500 underline">
+                    Terms of Service
+                  </a>{" "}
+                  and{" "}
+                  <a href={`${WEBROOT}/privacy`} class="text-accent-500 underline">
+                    Privacy Policy
+                  </a>
+                  .
+                </p>
                 <input type="submit" value="Register" class="w-full btn-primary" />
               </form>
             </article>
@@ -333,7 +345,7 @@ export const user = new Elysia()
   })
   .get(
     "/account",
-    async ({ user, redirect }) => {
+    async ({ user, redirect, query }) => {
       if (!user) {
         return redirect(`${WEBROOT}/`, 302);
       }
@@ -343,6 +355,14 @@ export const user = new Elysia()
       if (!userData) {
         return redirect(`${WEBROOT}/`, 302);
       }
+
+      const tier = getTierById(userData.tier ?? "free");
+      const notice =
+        query.checkout === "success"
+          ? "Payment received. Your plan updates within a few seconds; refresh if it still shows the old plan."
+          : query.billing === "unavailable"
+            ? "The billing portal is unavailable right now. Please try again later."
+            : undefined;
 
       return (
         <BaseHtml webroot={WEBROOT} title="ConvertX | Account">
@@ -361,6 +381,27 @@ export const user = new Elysia()
                 sm:px-4
               `}
             >
+              <article class="article">
+                <h2 class="mb-2 text-xl font-bold">Your plan</h2>
+                {notice && (
+                  <p role="status" class="mb-3 text-sm text-accent-400" safe>
+                    {notice}
+                  </p>
+                )}
+                <p class="mb-4" safe>
+                  {tier?.name ?? userData.tier}
+                  {userData.subscription_status ? ` · ${userData.subscription_status}` : ""}
+                </p>
+                {PADDLE_PORTAL_ENABLED && userData.paddle_customer_id ? (
+                  <a href={`${WEBROOT}/billing/portal`} class="btn-secondary">
+                    Manage billing
+                  </a>
+                ) : PADDLE_ENABLED && userData.tier === "free" ? (
+                  <a href={`${WEBROOT}/#pricing`} class="btn-primary">
+                    Upgrade
+                  </a>
+                ) : null}
+              </article>
               <article class="article">
                 <form method="post" class="flex flex-col gap-4">
                   <fieldset class="mb-4 flex flex-col gap-4">

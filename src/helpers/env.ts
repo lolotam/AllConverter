@@ -27,3 +27,40 @@ export const UNAUTHENTICATED_USER_SHARING =
   process.env.UNAUTHENTICATED_USER_SHARING?.toLowerCase() === "true" || false;
 
 export const TIMEZONE = process.env.TZ || undefined;
+
+// Header carrying the real client IP when behind a proxy, e.g. "cf-connecting-ip"
+// for Cloudflare. Leave unset when exposed directly: the header is client-spoofable.
+export const CLIENT_IP_HEADER = process.env.CLIENT_IP_HEADER?.toLowerCase() || undefined;
+
+// Paddle Billing. Checkout stays hidden until the token, webhook secret and at
+// least one price are set. Prices map to tiers by name: PADDLE_PRICE_PRO=pri_...
+export const PADDLE_ENVIRONMENT =
+  process.env.PADDLE_ENVIRONMENT?.toLowerCase() === "production" ? "production" : "sandbox";
+
+export const PADDLE_CLIENT_TOKEN = process.env.PADDLE_CLIENT_TOKEN || undefined;
+
+export const PADDLE_WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET || undefined;
+
+// Optional: only needed for the "Manage billing" customer portal link.
+export const PADDLE_API_KEY = process.env.PADDLE_API_KEY || undefined;
+
+export const PADDLE_PRICES: Record<string, string> = Object.fromEntries(
+  Object.entries(process.env)
+    .filter(([key, value]) => key.startsWith("PADDLE_PRICE_") && value)
+    .map(([key, value]) => [key.slice("PADDLE_PRICE_".length).toLowerCase(), value as string]),
+);
+
+// Legal pages (/terms, /privacy, /refunds). Unset values render as visible
+// [placeholders] so a missing detail is noticed before launch.
+export const LEGAL_ENTITY_NAME = process.env.LEGAL_ENTITY_NAME || undefined;
+
+export const LEGAL_CONTACT_EMAIL = process.env.LEGAL_CONTACT_EMAIL || undefined;
+
+export const LEGAL_GOVERNING_LAW = process.env.LEGAL_GOVERNING_LAW || undefined;
+
+export const LEGAL_EFFECTIVE_DATE = process.env.LEGAL_EFFECTIVE_DATE || undefined;
+
+export const REFUND_WINDOW_DAYS =
+  process.env.REFUND_WINDOW_DAYS && Number(process.env.REFUND_WINDOW_DAYS) >= 0
+    ? Number(process.env.REFUND_WINDOW_DAYS)
+    : 14;

@@ -52,6 +52,9 @@ RUN apt-get update && apt-get install -y \
   dcraw \
   dvisvgm \
   ffmpeg \
+  fonts-dejavu-core \
+  fonts-hosny-amiri \
+  fonts-noto-core \
   ghostscript \
   graphicsmagick \
   imagemagick-7.q16 \

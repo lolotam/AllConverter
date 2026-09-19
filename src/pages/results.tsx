@@ -137,70 +137,72 @@ function ResultsArticle({
         <p class="mb-6 text-sm text-slate-500 dark:text-neutral-400">Converting your files…</p>
       )}
 
-      <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900 shadow-sm">
-        <table class="w-full table-auto text-left text-sm">
-          <thead class="border-b border-slate-200 dark:border-neutral-800 bg-slate-100/80 dark:bg-neutral-850/80 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-400">
-            <tr>
-              <th class="p-4">Converted File Name</th>
-              <th class="p-4">Status</th>
-              <th class="p-4 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-slate-200 dark:divide-neutral-800/80">
-            {files.map((file) => {
-              const isFailed = ["Failed, check logs", "File type not supported"].includes(file.status);
-              const isDone = file.status === "Done";
+      {finished && (
+        <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900 shadow-sm">
+          <table class="w-full table-auto text-left text-sm">
+            <thead class="border-b border-slate-200 dark:border-neutral-800 bg-slate-100/80 dark:bg-neutral-850/80 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-400">
+              <tr>
+                <th class="p-4">Converted File Name</th>
+                <th class="p-4">Status</th>
+                <th class="p-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 dark:divide-neutral-800/80">
+              {files.map((file) => {
+                const isFailed = ["Failed, check logs", "File type not supported"].includes(file.status);
+                const isDone = file.status === "Done";
 
-              return (
-                <tr class="hover:bg-slate-100/50 dark:hover:bg-neutral-800/40 transition-colors">
-                  <td safe class="p-4 font-medium text-slate-900 dark:text-white max-w-[28vw] truncate" title={file.output_file_name}>
-                    {file.output_file_name}
-                  </td>
-                  <td class="p-4">
-                    {isDone ? (
-                      <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                        ✓ Ready
-                      </span>
-                    ) : isFailed ? (
-                      <span class="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400 border border-rose-500/20" title={file.status}>
-                        ✕ Failed
-                      </span>
-                    ) : (
-                      <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                        ⏳ {file.status}
-                      </span>
-                    )}
-                  </td>
-                  <td class="p-4 text-right">
-                    {isFailed ? (
-                      <span class="text-xs text-slate-400 dark:text-neutral-500">Unavailable</span>
-                    ) : (
-                      <div class="inline-flex items-center justify-end gap-2">
-                        <a
-                          class="inline-flex size-8 items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 transition-colors"
-                          href={buildDownloadUrl(WEBROOT, outputPath, file.output_file_name)}
-                          target="_blank"
-                          title="Preview"
-                        >
-                          <EyeIcon />
-                        </a>
-                        <a
-                          class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-accent-500 to-lime-400 px-3 py-1.5 text-xs font-bold text-neutral-950 shadow hover:from-accent-400 hover:to-lime-300 transition-all cursor-pointer"
-                          href={buildDownloadUrl(WEBROOT, outputPath, file.output_file_name)}
-                          download={file.output_file_name}
-                          title={`Download ${file.output_file_name}`}
-                        >
-                          <DownloadIcon /> <span>Download</span>
-                        </a>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                return (
+                  <tr class="hover:bg-slate-100/50 dark:hover:bg-neutral-800/40 transition-colors">
+                    <td safe class="p-4 font-medium text-slate-900 dark:text-white max-w-[28vw] truncate" title={file.output_file_name}>
+                      {file.output_file_name}
+                    </td>
+                    <td class="p-4">
+                      {isDone ? (
+                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          ✓ Ready
+                        </span>
+                      ) : isFailed ? (
+                        <span class="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400 border border-rose-500/20" title={file.status}>
+                          ✕ Failed
+                        </span>
+                      ) : (
+                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          ⏳ {file.status}
+                        </span>
+                      )}
+                    </td>
+                    <td class="p-4 text-right">
+                      {isFailed ? (
+                        <span class="text-xs text-slate-400 dark:text-neutral-500">Unavailable</span>
+                      ) : (
+                        <div class="inline-flex items-center justify-end gap-2">
+                          <a
+                            class="inline-flex size-8 items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 transition-colors"
+                            href={buildDownloadUrl(WEBROOT, outputPath, file.output_file_name)}
+                            target="_blank"
+                            title="Preview"
+                          >
+                            <EyeIcon />
+                          </a>
+                          <a
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-accent-500 to-lime-400 px-3 py-1.5 text-xs font-bold text-neutral-950 shadow hover:from-accent-400 hover:to-lime-300 transition-all cursor-pointer"
+                            href={buildDownloadUrl(WEBROOT, outputPath, file.output_file_name)}
+                            download={file.output_file_name}
+                            title={`Download ${file.output_file_name}`}
+                          >
+                            <DownloadIcon /> <span>Download</span>
+                          </a>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </article>
   );
 }

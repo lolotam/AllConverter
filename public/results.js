@@ -41,11 +41,13 @@ const render = () => {
       const percent = Math.floor(shown[index]);
       total += shown[index];
 
-      row.dataset.state = file.state;
+      // Keep showing "Converting…" until the bar has visibly reached 100%
+      const state = file.state === "done" && shown[index] < 99.5 ? "converting" : file.state;
+      row.dataset.state = state;
       row.querySelector("[data-progress-fill]").style.width = `${shown[index]}%`;
       row.querySelector("[data-progress-label]").textContent =
         file.state === "failed" ? "Failed" : `${percent}%`;
-      row.querySelector("[data-progress-state]").textContent = STATE_LABELS[file.state];
+      row.querySelector("[data-progress-state]").textContent = STATE_LABELS[state];
       row.querySelector("[data-progress-bar]").setAttribute("aria-valuenow", String(percent));
     }
     const overall = document.querySelector("[data-progress-overall]");

@@ -76,12 +76,16 @@ export const convert = new Elysia().use(userService).post(
       return redirect(`${WEBROOT}/?limit=upload`, 302);
     }
 
-    const { tier, subject } = getQuotaContext(user.id, request, server);
+    const { tier, subject, isGuest, dailyLimit } = getQuotaContext(user.id, request, server);
     if (fileNames.length > tier.batch_limit) {
       return redirect(`${WEBROOT}/?limit=batch#pricing`, 302);
     }
-    if (!consumeConversions(subject, tier, fileNames.length)) {
-      return redirect(`${WEBROOT}/?limit=daily#pricing`, 302);
+    if (!consumeConversions(subject, dailyLimit, fileNames.length)) {
+      // A visitor who used their free conversion is asked to create an account,
+      // which is free; a signed-in user has genuinely reached their plan's limit
+      return isGuest
+        ? redirect(`${WEBROOT}/register?reason=free-used`, 302)
+        : redirect(`${WEBROOT}/?limit=daily#pricing`, 302);
     }
 
     db.query("UPDATE jobs SET num_files = ?1, status = 'pending' WHERE id = ?2").run(

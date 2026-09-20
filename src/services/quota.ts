@@ -1,6 +1,6 @@
 import db, { getTierById, getUserById } from "../db/db";
 import { Tier } from "../db/types";
-import { CLIENT_IP_HEADER } from "../helpers/env";
+import { CLIENT_IP_HEADER, GUEST_FREE_CONVERSIONS } from "../helpers/env";
 
 export const MB = 1024 * 1024;
 
@@ -40,11 +40,18 @@ export function getQuotaContext(
   userId: string,
   request: Request,
   server: RequestIpSource,
-): { tier: Tier; subject: string } {
+): { tier: Tier; subject: string; isGuest: boolean; dailyLimit: number } {
   const user = getUserById(userId);
   const tier = getTierById(user?.tier ?? "free") ?? getTierById("free") ?? FREE_FALLBACK;
   const subject = user ? `user:${user.id}` : `ip:${clientIp(request, server)}`;
-  return { tier, subject };
+  const isGuest = !user;
+  return {
+    tier,
+    subject,
+    isGuest,
+    // Visitors without an account get a taste of the service, then sign up
+    dailyLimit: isGuest ? GUEST_FREE_CONVERSIONS : tier.daily_conversions,
+  };
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -58,8 +65,8 @@ export function getConversionsToday(subject: string): number {
 
 /** Atomically checks the daily limit and records `count` conversions if it fits. */
 export const consumeConversions = db.transaction(
-  (subject: string, tier: Tier, count: number): boolean => {
-    if (getConversionsToday(subject) + count > tier.daily_conversions) {
+  (subject: string, dailyLimit: number, count: number): boolean => {
+    if (getConversionsToday(subject) + count > dailyLimit) {
       return false;
     }
     db.query(

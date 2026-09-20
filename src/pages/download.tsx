@@ -18,7 +18,7 @@ export const download = new Elysia()
         .get(user.id, params.jobId);
 
       if (!job) {
-        return redirect(`${WEBROOT}/results`, 302);
+        return redirect(`${WEBROOT}/history`, 302);
       }
       // parse from URL encoded string
       const jobId = decodeURIComponent(params.jobId);
@@ -47,7 +47,7 @@ export const download = new Elysia()
         .get(user.id, params.jobId);
 
       if (!job) {
-        return redirect(`${WEBROOT}/results`, 302);
+        return redirect(`${WEBROOT}/history`, 302);
       }
 
       const jobId = decodeURIComponent(params.jobId);

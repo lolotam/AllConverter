@@ -81,9 +81,9 @@ export const user = new Elysia()
       </BaseHtml>
     );
   })
-  .get("/register", ({ redirect }) => {
+  .get("/register", ({ redirect, query }) => {
     if (!ACCOUNT_REGISTRATION) {
-      return redirect(`${WEBROOT}/login`, 302);
+      return redirect(`${WEBROOT}/login?reason=${query.reason ?? ""}`, 302);
     }
 
     return (
@@ -103,6 +103,19 @@ export const user = new Elysia()
             `}
           >
             <article class="article">
+              {query.reason === "free-used" && (
+                <p
+                  role="status"
+                  class="mb-4 rounded-lg border border-accent-500/40 bg-accent-500/10 p-3 text-sm"
+                >
+                  You've used your free conversion for today. Create a free account to keep
+                  converting, or{" "}
+                  <a href={`${WEBROOT}/login?reason=free-used`} class="text-accent-500 underline">
+                    sign in
+                  </a>{" "}
+                  if you already have one.
+                </p>
+              )}
               <form method="post" class="flex flex-col gap-4">
                 <fieldset class="mb-4 flex flex-col gap-4">
                   <label class="flex flex-col gap-1">
@@ -204,7 +217,7 @@ export const user = new Elysia()
   )
   .get(
     "/login",
-    async ({ jwt, redirect, cookie: { auth } }) => {
+    async ({ jwt, redirect, query, cookie: { auth } }) => {
       if (FIRST_RUN) {
         return redirect(`${WEBROOT}/setup`, 302);
       }
@@ -237,6 +250,28 @@ export const user = new Elysia()
               `}
             >
               <article class="article">
+                {query.reason === "free-used" && (
+                  <p
+                    role="status"
+                    class="mb-4 rounded-lg border border-accent-500/40 bg-accent-500/10 p-3 text-sm"
+                  >
+                    You've used your free conversion for today. Sign in to keep converting
+                    {ACCOUNT_REGISTRATION ? (
+                      <>
+                        , or{" "}
+                        <a
+                          href={`${WEBROOT}/register?reason=free-used`}
+                          class="text-accent-500 underline"
+                        >
+                          create a free account
+                        </a>
+                      </>
+                    ) : (
+                      ""
+                    )}
+                    .
+                  </p>
+                )}
                 <form method="post" class="flex flex-col gap-4">
                   <fieldset class="mb-4 flex flex-col gap-4">
                     <label class="flex flex-col gap-1">

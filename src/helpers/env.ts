@@ -72,6 +72,12 @@ export const TUS_UPLOAD_EXPIRY_HOURS = process.env.TUS_UPLOAD_EXPIRY_HOURS
   ? Number(process.env.TUS_UPLOAD_EXPIRY_HOURS)
   : 24;
 
+// How many conversions a visitor without an account may run per day before the
+// app asks them to sign up. Registered users follow their plan's daily limit.
+export const GUEST_FREE_CONVERSIONS = process.env.GUEST_FREE_CONVERSIONS
+  ? Number(process.env.GUEST_FREE_CONVERSIONS)
+  : 1;
+
 export const UPLOAD_CHUNK_SIZE_MB =
   process.env.UPLOAD_CHUNK_SIZE_MB && Number(process.env.UPLOAD_CHUNK_SIZE_MB) > 0
     ? Number(process.env.UPLOAD_CHUNK_SIZE_MB)

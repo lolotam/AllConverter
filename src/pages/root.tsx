@@ -139,11 +139,11 @@ export const root = new Elysia().use(userService).get(
     const currentUser = user && user.id ? getUserById(user.id) : null;
     const checkout = checkoutConfig(currentUser);
     const isAdmin = currentUser?.role === "admin";
-    const { tier, subject } = getQuotaContext(user.id, request, server);
+    const { tier, subject, dailyLimit } = getQuotaContext(user.id, request, server);
     const conversionsLeft =
-      tier.daily_conversions >= UNLIMITED_THRESHOLD
+      dailyLimit >= UNLIMITED_THRESHOLD
         ? null
-        : Math.max(0, tier.daily_conversions - getConversionsToday(subject));
+        : Math.max(0, dailyLimit - getConversionsToday(subject));
     const limitMessage =
       query.limit && Object.hasOwn(LIMIT_MESSAGES, query.limit)
         ? LIMIT_MESSAGES[query.limit]

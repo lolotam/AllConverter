@@ -79,9 +79,12 @@ current password to change it.
 
 ---
 
-## Phase 2 — Make the pricing honest · TODO
+## Phase 2 — Make the pricing honest · PARTLY DONE
 
-Full audit in [pricing-audit.md](pricing-audit.md). Two pieces of work:
+Full audit in [pricing-audit.md](pricing-audit.md). The **copy is fixed** (2026-09-20):
+every plan now lists only what the app does, the Business plan sells file size, batch
+size and queue priority instead of an API that does not exist, and a test fails if the
+old claims ever come back. What remains is the code change:
 
 1. **Per-tier retention.** The table sells "2-hour file retention" (free) against
    "24-hour file storage" (Pro), but `AUTO_DELETE_EVERY_N_HOURS` is one global number.
@@ -89,10 +92,9 @@ Full audit in [pricing-audit.md](pricing-audit.md). Two pieces of work:
    `src/index.tsx` delete each job according to the tier of the user who owns it, falling
    back to the global value for guests. Roughly half a day, and it turns a false claim into
    a genuine reason to pay.
-2. **Rewrite the Business plan** around what exists (file size, batch size, queue
-   priority, retention) or hide it until the API exists. Selling "50,000 API credits",
-   "webhooks", "99.9% SLA" and "24/7 support" that do not exist invites chargebacks and
-   is the kind of claim a payment provider suspends accounts over.
+2. ~~Rewrite the Business plan around what exists.~~ **Done.** Until per-tier retention
+   lands, all three plans truthfully say files are kept for 24 hours, which means
+   storage is not yet a reason to upgrade.
 
 ---
 

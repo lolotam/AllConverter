@@ -1,5 +1,10 @@
 # Pricing audit — what the plans promise vs what the code does
 
+> **Status 2026-09-20: the copy below has been rewritten** (see "What the plans say now").
+> The table of old claims is kept because it is the reason the wording changed.
+> One thing is still outstanding: retention is a single global setting, so no plan can
+> sell a longer window than another until phase 2 of the implementation plan is done.
+
 Checked against `src/db/db.ts` (tier seed data), `src/services/quota.ts`,
 `src/helpers/queue.ts` and `src/index.tsx` on 2026-09-20.
 
@@ -64,3 +69,37 @@ runs today:
 
 The waiting-list line is honest, costs nothing, and tells you whether the API is worth
 building before you build it.
+
+---
+
+## What the plans say now
+
+Rewritten in the seed data, and migrated for databases that already held the old text —
+but only where the wording was untouched, so anything edited in the admin dashboard is
+left alone.
+
+**Free** — Up to 100 MB max file size · 10 conversions per day · Standard processing
+queue · Files kept for 24 hours · No account required
+
+**Pro** — Up to 2 GB max file size · Unlimited conversions · Priority queue, your files
+convert first · Batch upload up to 50 files · Files kept for 24 hours · No ads, ever
+
+**Business** — Up to 5 GB max file size · Batch upload up to 100 files · Priority queue,
+your files convert first · Files kept for 24 hours · Email support · API access, join the
+waiting list. The button now reads "Join the waiting list" instead of "Get API Access".
+
+Every line is checked against the code by `tests/db/tierCopy.test.ts`, which fails if a
+plan ever again promises API credits, webhooks, an SLA, 24/7 support, dedicated workers,
+"5x faster" or a two-hour retention window.
+
+### Two judgement calls worth knowing
+
+- **Retention is the same on every plan** (24 hours, from `AUTO_DELETE_EVERY_N_HOURS`),
+  so all three now say so. It stops being a false claim, but it also stops being a reason
+  to pay until per-tier retention exists.
+- **Business and Pro run at the same queue priority**, because the queue only knows
+  "priority" and "standard". Business therefore makes the same queue promise as Pro
+  rather than claiming to be above it. Give the queue a third level if Business should
+  genuinely come first.
+- **"Email support" is a promise only a person can keep.** It is the one line the code
+  cannot enforce; remove it in the admin Tiers tab if you would rather not commit to it.

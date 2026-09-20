@@ -113,8 +113,8 @@ export function initializeDatabase(db: Database): void {
       JSON.stringify([
         "Up to 100 MB max file size",
         "10 conversions per day",
-        "Standard cloud processing speed",
-        "2-hour file retention",
+        "Standard processing queue",
+        "Files kept for 24 hours",
         "No account required",
       ]),
       "Start Free",
@@ -137,10 +137,10 @@ export function initializeDatabase(db: Database): void {
       JSON.stringify([
         "Up to 2 GB max file size",
         "Unlimited conversions",
-        "Priority Turbo Queue (5x faster)",
+        "Priority queue — your files convert first",
         "Batch upload up to 50 files",
-        "24-hour file storage",
-        "100% Ad-free experience",
+        "Files kept for 24 hours",
+        "No ads, ever",
       ]),
       "Upgrade to Pro",
       "/register",
@@ -160,14 +160,15 @@ export function initializeDatabase(db: Database): void {
       0,
       "Enterprise",
       JSON.stringify([
-        "50,000 API credits / month",
-        "Dedicated conversion workers",
-        "Webhooks & Cloudflare R2 export",
-        "99.9% Uptime SLA",
-        "24/7 Priority support",
+        "Up to 5 GB max file size",
+        "Batch upload up to 100 files",
+        "Priority queue — your files convert first",
+        "Files kept for 24 hours",
+        "Email support",
+        "API access — join the waiting list",
       ]),
-      "Get API Access",
-      "/login",
+      "Join the waiting list",
+      "/register",
       "blue",
     );
   }
@@ -194,6 +195,106 @@ export function initializeDatabase(db: Database): void {
         // Everyone who existed before this column registered with a password
         db.exec("UPDATE users SET password_set = '1';");
       }
+    }
+  }
+
+  // The seeded plans promised things the code never did: a retention window that is not
+  // per-tier, an unmeasured "5x", and a Business plan of API credits, webhooks, an SLA
+  // and 24/7 support that do not exist. Rewrite those rows to what the app really does,
+  // but only while they still hold the original text, so edits made in the admin
+  // dashboard are never overwritten.
+  const honestTierCopy: {
+    id: string;
+    wasFeatures: string[];
+    features: string[];
+    button?: { wasText: string; text: string; wasLink: string; link: string };
+  }[] = [
+    {
+      id: "free",
+      wasFeatures: [
+        "Up to 100 MB max file size",
+        "10 conversions per day",
+        "Standard cloud processing speed",
+        "2-hour file retention",
+        "No account required",
+      ],
+      features: [
+        "Up to 100 MB max file size",
+        "10 conversions per day",
+        "Standard processing queue",
+        "Files kept for 24 hours",
+        "No account required",
+      ],
+    },
+    {
+      id: "pro",
+      wasFeatures: [
+        "Up to 2 GB max file size",
+        "Unlimited conversions",
+        "Priority Turbo Queue (5x faster)",
+        "Batch upload up to 50 files",
+        "24-hour file storage",
+        "100% Ad-free experience",
+      ],
+      features: [
+        "Up to 2 GB max file size",
+        "Unlimited conversions",
+        "Priority queue — your files convert first",
+        "Batch upload up to 50 files",
+        "Files kept for 24 hours",
+        "No ads, ever",
+      ],
+    },
+    {
+      id: "business",
+      wasFeatures: [
+        "50,000 API credits / month",
+        "Dedicated conversion workers",
+        "Webhooks & Cloudflare R2 export",
+        "99.9% Uptime SLA",
+        "24/7 Priority support",
+      ],
+      features: [
+        "Up to 5 GB max file size",
+        "Batch upload up to 100 files",
+        "Priority queue — your files convert first",
+        "Files kept for 24 hours",
+        "Email support",
+        "API access — join the waiting list",
+      ],
+      button: {
+        wasText: "Get API Access",
+        text: "Join the waiting list",
+        wasLink: "/login",
+        link: "/register",
+      },
+    },
+  ];
+
+  for (const tier of honestTierCopy) {
+    const row = db
+      .query("SELECT features, button_text, button_link FROM tiers WHERE id = ?")
+      .get(tier.id) as { features: string; button_text: string; button_link: string } | undefined;
+    if (!row) {
+      continue;
+    }
+
+    if (row.features === JSON.stringify(tier.wasFeatures)) {
+      db.query("UPDATE tiers SET features = ? WHERE id = ?").run(
+        JSON.stringify(tier.features),
+        tier.id,
+      );
+    }
+    if (
+      tier.button &&
+      row.button_text === tier.button.wasText &&
+      row.button_link === tier.button.wasLink
+    ) {
+      db.query("UPDATE tiers SET button_text = ?, button_link = ? WHERE id = ?").run(
+        tier.button.text,
+        tier.button.link,
+        tier.id,
+      );
     }
   }
 

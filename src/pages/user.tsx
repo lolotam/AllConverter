@@ -3,7 +3,7 @@ import { Elysia, t } from "elysia";
 import { BaseHtml } from "../components/base";
 import { AuthTabs, GoogleButton } from "../components/authTabs";
 import { Header } from "../components/header";
-import db, { getTierById } from "../db/db";
+import db from "../db/db";
 import { User } from "../db/types";
 import {
   ACCOUNT_REGISTRATION,
@@ -14,7 +14,6 @@ import {
   BRANDING,
 } from "../helpers/env";
 import { GOOGLE_ENABLED, authorizationUrl, exchangeCode, redirectUri } from "../services/google";
-import { PADDLE_ENABLED, PADDLE_PORTAL_ENABLED } from "../services/paddle";
 import { userService } from "../services/user";
 
 export { userService } from "../services/user";
@@ -489,180 +488,4 @@ export const user = new Elysia()
     }
 
     return redirect(`${WEBROOT}/login`, 302);
-  })
-  .get(
-    "/account",
-    async ({ user, redirect, query }) => {
-      if (!user) {
-        return redirect(`${WEBROOT}/`, 302);
-      }
-
-      const userData = db.query("SELECT * FROM users WHERE id = ?").as(User).get(user.id);
-
-      if (!userData) {
-        return redirect(`${WEBROOT}/`, 302);
-      }
-
-      const tier = getTierById(userData.tier ?? "free");
-      const notice =
-        query.checkout === "success"
-          ? "Payment received. Your plan updates within a few seconds; refresh if it still shows the old plan."
-          : query.billing === "unavailable"
-            ? "The billing portal is unavailable right now. Please try again later."
-            : undefined;
-
-      return (
-        <BaseHtml webroot={WEBROOT} title="ConvertX | Account">
-          <>
-            <Header
-              webroot={WEBROOT}
-              branding={BRANDING}
-              accountRegistration={ACCOUNT_REGISTRATION}
-              allowUnauthenticated={ALLOW_UNAUTHENTICATED}
-              hideHistory={HIDE_HISTORY}
-              loggedIn
-            />
-            <main
-              class={`
-                w-full flex-1 px-2
-                sm:px-4
-              `}
-            >
-              <article class="article">
-                <h2 class="mb-2 text-xl font-bold">Your plan</h2>
-                {notice && (
-                  <p role="status" class="mb-3 text-sm text-accent-400" safe>
-                    {notice}
-                  </p>
-                )}
-                <p class="mb-4" safe>
-                  {tier?.name ?? userData.tier}
-                  {userData.subscription_status ? ` · ${userData.subscription_status}` : ""}
-                </p>
-                {PADDLE_PORTAL_ENABLED && userData.paddle_customer_id ? (
-                  <a href={`${WEBROOT}/billing/portal`} class="btn-secondary">
-                    Manage billing
-                  </a>
-                ) : PADDLE_ENABLED && userData.tier === "free" ? (
-                  <a href={`${WEBROOT}/#pricing`} class="btn-primary">
-                    Upgrade
-                  </a>
-                ) : null}
-              </article>
-              <article class="article">
-                <form method="post" class="flex flex-col gap-4">
-                  <fieldset class="mb-4 flex flex-col gap-4">
-                    <label class="flex flex-col gap-1">
-                      Email
-                      <input
-                        type="email"
-                        name="email"
-                        class="rounded-sm bg-neutral-800 p-3"
-                        placeholder="Email"
-                        autocomplete="email"
-                        value={userData.email}
-                        required
-                      />
-                    </label>
-                    <label class="flex flex-col gap-1">
-                      Password (leave blank for unchanged)
-                      <input
-                        type="password"
-                        name="newPassword"
-                        class="rounded-sm bg-neutral-800 p-3"
-                        placeholder="Password"
-                        autocomplete="new-password"
-                      />
-                    </label>
-                    <label class="flex flex-col gap-1">
-                      Current Password
-                      <input
-                        type="password"
-                        name="password"
-                        class="rounded-sm bg-neutral-800 p-3"
-                        placeholder="Password"
-                        autocomplete="current-password"
-                        required
-                      />
-                    </label>
-                  </fieldset>
-                  <div role="group">
-                    <input type="submit" value="Update" class="w-full btn-primary" />
-                  </div>
-                </form>
-              </article>
-            </main>
-          </>
-        </BaseHtml>
-      );
-    },
-    {
-      auth: true,
-    },
-  )
-  .post(
-    "/account",
-    async function handler({ body, set, redirect, jwt, cookie: { auth } }) {
-      if (!auth?.value) {
-        return redirect(`${WEBROOT}/login`, 302);
-      }
-
-      const user = await jwt.verify(auth.value);
-      if (!user) {
-        return redirect(`${WEBROOT}/login`, 302);
-      }
-      const existingUser = db.query("SELECT * FROM users WHERE id = ?").as(User).get(user.id);
-
-      if (!existingUser) {
-        if (auth?.value) {
-          auth.remove();
-        }
-        return redirect(`${WEBROOT}/login`, 302);
-      }
-
-      const validPassword = await Bun.password.verify(body.password, existingUser.password);
-
-      if (!validPassword) {
-        set.status = 403;
-        return {
-          message: "Invalid credentials.",
-        };
-      }
-
-      const fields = [];
-      const values = [];
-
-      if (body.email) {
-        const existingUser = await db
-          .query("SELECT id FROM users WHERE email = ?")
-          .as(User)
-          .get(body.email);
-        if (existingUser && existingUser.id.toString() !== user.id) {
-          set.status = 409;
-          return { message: "Email already in use." };
-        }
-        fields.push("email");
-        values.push(body.email);
-      }
-      if (body.newPassword) {
-        fields.push("password");
-        values.push(await Bun.password.hash(body.newPassword));
-      }
-
-      if (fields.length > 0) {
-        db.query(
-          `UPDATE users SET ${fields.map((field) => `${field}=?`).join(", ")} WHERE id=?`,
-        ).run(...values, user.id);
-      }
-
-      return redirect(`${WEBROOT}/`, 302);
-    },
-    {
-      body: t.Object({
-        email: t.MaybeEmpty(t.String()),
-        newPassword: t.MaybeEmpty(t.String()),
-        password: t.String(),
-      }),
-      cookie: "session",
-    },
-  );
+  });

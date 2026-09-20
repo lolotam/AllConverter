@@ -28,6 +28,9 @@ export class User {
   subscription_status!: string | null;
   subscription_event_at!: string | null;
   google_id!: string | null;
+  display_name!: string | null;
+  avatar_path!: string | null;
+  password_set!: string | null;
 }
 
 export class Tier {

@@ -8,6 +8,7 @@ import db from "../db/db";
 import { Filename, Jobs } from "../db/types";
 import { jobProgress, type FileProgress, type FileState } from "../converters/progress";
 import { buildDownloadUrl } from "../helpers/buildDownloadUrl";
+import { headerAccount } from "../helpers/headerUser";
 import { createDownloadToken } from "../services/downloadToken";
 import { outputDir } from "../helpers/paths";
 import { ALLOW_UNAUTHENTICATED, WEBROOT, BRANDING } from "../helpers/env";
@@ -502,6 +503,7 @@ export const results = new Elysia()
               allowUnauthenticated={ALLOW_UNAUTHENTICATED}
               loggedIn
               branding={BRANDING}
+              {...headerAccount(user.id)}
             />
             <main
               class={`

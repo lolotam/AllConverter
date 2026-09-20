@@ -60,6 +60,23 @@ reset by email cannot be added later without a verification step.
 **Fix:** move the `#file-list` table below `#dropzone` in `src/pages/root.tsx`, so files
 appear under the box that accepted them and the dropzone stays where the eye expects it.
 
+### 1.4 No profile area · DONE
+
+The header only had text links and there was nowhere to manage the account. Added an
+avatar button in the header opening a menu (profile, history, change password, admin
+dashboard for admins, sign out), and `/account` is now a profile dashboard: profile
+picture upload, display name and email, change or set a password, plan, recent
+conversions and a sign-out button.
+
+Profile pictures live in `data/avatars/`, one file per user, inside the same volume as
+everything else. They are raster only (PNG, JPEG, WebP, GIF), at most 2 MB, checked by
+their actual bytes rather than by the name or the type the browser claims, served with
+`X-Content-Type-Options: nosniff`, and readable only by the account they belong to.
+
+Accounts created through Google have a random password nobody was ever told, so they may
+set their first password without proving the old one; everyone else must enter the
+current password to change it.
+
 ---
 
 ## Phase 2 — Make the pricing honest · TODO

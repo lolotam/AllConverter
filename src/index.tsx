@@ -19,6 +19,7 @@ import { root } from "./pages/root";
 import { resumableUpload, upload } from "./pages/upload";
 import { user } from "./pages/user";
 import { healthcheck } from "./pages/healthcheck";
+import { account } from "./pages/account";
 import { admin } from "./pages/admin";
 import { billing } from "./pages/billing";
 import { legal } from "./pages/legal";
@@ -53,6 +54,7 @@ const app = new Elysia({
     }),
   )
   .use(user)
+  .use(account)
   .use(root)
   .use(upload)
   .use(resumableUpload)

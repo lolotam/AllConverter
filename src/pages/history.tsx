@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
+import { headerAccount } from "../helpers/headerUser";
 import db from "../db/db";
 import { Filename, Jobs } from "../db/types";
 import {
@@ -47,6 +48,7 @@ export const history = new Elysia().use(userService).get(
             allowUnauthenticated={ALLOW_UNAUTHENTICATED}
             hideHistory={HIDE_HISTORY}
             loggedIn
+            {...headerAccount(user.id)}
           />
           <main
             class={`

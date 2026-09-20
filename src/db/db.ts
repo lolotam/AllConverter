@@ -181,9 +181,19 @@ export function initializeDatabase(db: Database): void {
     "subscription_status",
     "subscription_event_at",
     "google_id",
+    "display_name",
+    "avatar_path",
+    // "1" once the person has chosen a password themselves. Accounts created through
+    // Google have a random one they were never told, so they may set one without
+    // proving the old one.
+    "password_set",
   ]) {
     if (!billingColumns.some((c) => c.name.toLowerCase() === column)) {
       db.exec(`ALTER TABLE users ADD COLUMN ${column} TEXT;`);
+      if (column === "password_set") {
+        // Everyone who existed before this column registered with a password
+        db.exec("UPDATE users SET password_set = '1';");
+      }
     }
   }
 

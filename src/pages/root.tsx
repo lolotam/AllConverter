@@ -4,6 +4,7 @@ import { JWTPayloadSpec } from "@elysiajs/jwt";
 import { Elysia, t } from "elysia";
 import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
+import { headerAccount } from "../helpers/headerUser";
 import { onlyAvailable } from "../converters/availability";
 import { getAllTargets } from "../converters/main";
 import db, { getTiers, getUserById } from "../db/db";
@@ -138,7 +139,6 @@ export const root = new Elysia().use(userService).get(
     const dbTiers = getTiers();
     const currentUser = user && user.id ? getUserById(user.id) : null;
     const checkout = checkoutConfig(currentUser);
-    const isAdmin = currentUser?.role === "admin";
     const { tier, subject, dailyLimit } = getQuotaContext(user.id, request, server);
     const conversionsLeft =
       dailyLimit >= UNLIMITED_THRESHOLD
@@ -163,7 +163,7 @@ export const root = new Elysia().use(userService).get(
             allowUnauthenticated={ALLOW_UNAUTHENTICATED}
             hideHistory={HIDE_HISTORY}
             loggedIn={Boolean(user)}
-            isAdmin={isAdmin}
+            {...headerAccount(user?.id)}
           />
 
           <main class="w-full flex-1">

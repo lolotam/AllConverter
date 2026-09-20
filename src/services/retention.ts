@@ -3,6 +3,7 @@
 // editable in the admin Tiers tab, so anything that states it in words has to ask.
 import db from "../db/db";
 import { AUTO_DELETE_EVERY_N_HOURS } from "../helpers/env";
+import { cleanupEnabled, cleanupOverrideHours } from "./cleanup";
 
 export type TierRetention = { id: string; name: string; hours: number };
 
@@ -18,10 +19,19 @@ export function tierRetention(): TierRetention[] {
     .sort((a, b) => a.hours - b.hours);
 }
 
-/** The window a visitor without an account gets, which is the free plan's. */
+/** The window a visitor without an account gets: the override, or the free plan's. */
 export function guestRetentionHours(): number {
+  const override = cleanupOverrideHours();
+  if (override !== null) {
+    return override;
+  }
   const free = tierRetention().find((tier) => tier.id === "free");
   return free?.hours ?? (AUTO_DELETE_EVERY_N_HOURS > 0 ? AUTO_DELETE_EVERY_N_HOURS : 2);
+}
+
+/** Whether anything is deleted automatically at all, for pages that describe it. */
+export function deletionIsAutomatic(): boolean {
+  return cleanupEnabled();
 }
 
 export function formatHours(hours: number): string {
@@ -34,8 +44,15 @@ export function formatHours(hours: number): string {
   return `${hours} hour${hours === 1 ? "" : "s"}`;
 }
 
-/** "2 hours on Free Tier, 24 hours on ConvertX Pro and 7 days on Business & API" */
+/**
+ * "2 hours on Free Tier, 24 hours on ConvertX Pro and 7 days on Business & API", or the
+ * single window when an admin has set one for everybody.
+ */
 export function describeRetention(): string {
+  const override = cleanupOverrideHours();
+  if (override !== null) {
+    return formatHours(override);
+  }
   const parts = tierRetention().map((tier) => `${formatHours(tier.hours)} on ${tier.name}`);
   if (parts.length === 0) {
     return formatHours(AUTO_DELETE_EVERY_N_HOURS);
@@ -46,8 +63,23 @@ export function describeRetention(): string {
   return `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }
 
+/**
+ * How to finish a sentence such as "files are deleted …", in whichever way is true:
+ * one window for everybody, or each plan's own.
+ */
+export function retentionSentence(): string {
+  const override = cleanupOverrideHours();
+  return override !== null
+    ? `after ${formatHours(override)}`
+    : `according to your plan — ${describeRetention()}`;
+}
+
 /** Short form for the admin dashboard: "2h Free / 24h Pro / 7d Business". */
 export function shortRetention(): string {
+  const override = cleanupOverrideHours();
+  if (override !== null) {
+    return `${formatHours(override)} for everyone`;
+  }
   return (
     tierRetention()
       .map((tier) => {

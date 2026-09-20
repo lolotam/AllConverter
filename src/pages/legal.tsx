@@ -4,7 +4,6 @@ import { Header } from "../components/header";
 import {
   ACCOUNT_REGISTRATION,
   ALLOW_UNAUTHENTICATED,
-  AUTO_DELETE_EVERY_N_HOURS,
   BRANDING,
   HIDE_HISTORY,
   HTTP_ALLOWED,
@@ -17,7 +16,7 @@ import {
   WEBROOT,
 } from "../helpers/env";
 import { USAGE_RETENTION_DAYS } from "../services/quota";
-import { describeRetention } from "../services/retention";
+import { deletionIsAutomatic, retentionSentence } from "../services/retention";
 import { userService } from "./user";
 
 const SOURCE_CODE_URL = "https://github.com/C4illin/ConvertX";
@@ -97,8 +96,8 @@ const List = ({ children }: { children: JSX.Element[] }) => (
 );
 
 const fileRetention = () =>
-  AUTO_DELETE_EVERY_N_HOURS > 0
-    ? `automatically deleted according to your plan (${describeRetention()}; the cleanup runs every 15 minutes)`
+  deletionIsAutomatic()
+    ? `automatically deleted ${retentionSentence()} (the cleanup runs every 15 minutes)`
     : "kept until you delete them from your conversion history";
 
 const LegalPage = ({

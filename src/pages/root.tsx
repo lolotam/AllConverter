@@ -7,13 +7,12 @@ import { Header } from "../components/header";
 import { headerAccount } from "../helpers/headerUser";
 import { onlyAvailable } from "../converters/availability";
 import { visibleTargets } from "../services/features";
-import { describeRetention } from "../services/retention";
+import { deletionIsAutomatic, retentionSentence } from "../services/retention";
 import { getAllTargets } from "../converters/main";
 import db, { getTiers, getUserById } from "../db/db";
 import { User } from "../db/types";
 import {
   ACCOUNT_REGISTRATION,
-  AUTO_DELETE_EVERY_N_HOURS,
   UPLOAD_CHUNK_SIZE_MB,
   ALLOW_UNAUTHENTICATED,
   HIDE_HISTORY,
@@ -29,8 +28,8 @@ import { FIRST_RUN, userService } from "./user";
 // Must match the real cleanup schedule; the privacy policy states the same retention.
 // Read per request, because retention is per tier and editable in the admin dashboard.
 const fileDeletionPromise = () =>
-  AUTO_DELETE_EVERY_N_HOURS > 0
-    ? `Uploaded and converted files are permanently deleted from our servers after ${describeRetention()}.`
+  deletionIsAutomatic()
+    ? `Uploaded and converted files are permanently deleted from our servers ${retentionSentence()}.`
     : "You can permanently delete your uploaded and converted files at any time.";
 
 const LIMIT_MESSAGES: Record<string, string> = {
@@ -854,7 +853,7 @@ export const root = new Elysia().use(userService).get(
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
                   {dbTiers.map((t) => {
-                    let featuresList: string[] = [];
+                    let featuresList: string[];
                     try {
                       featuresList = JSON.parse(t.features);
                     } catch {

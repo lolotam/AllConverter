@@ -4,7 +4,7 @@ import { Elysia } from "elysia";
 import "./helpers/printVersions";
 import { unavailableConverters } from "./converters/availability";
 import db from "./db/db";
-import { UPLOAD_CHUNK_SIZE_MB, WEBROOT } from "./helpers/env";
+import { CANONICAL_HOST, UPLOAD_CHUNK_SIZE_MB, WEBROOT } from "./helpers/env";
 import { chooseConverter } from "./pages/chooseConverter";
 import { convert } from "./pages/convert";
 import { deleteFile } from "./pages/deleteFile";
@@ -45,6 +45,22 @@ const app = new Elysia({
   },
   prefix: WEBROOT,
 })
+  // Keep every visitor on one hostname, so a session is not lost between www and apex
+  .onRequest(({ request }) => {
+    if (!CANONICAL_HOST) {
+      return;
+    }
+    const url = new URL(request.url);
+    const host = request.headers.get("x-forwarded-host") ?? url.host;
+    if (host !== `www.${CANONICAL_HOST}`) {
+      return;
+    }
+    url.host = CANONICAL_HOST;
+    url.protocol = "https:";
+    url.port = "";
+    // 308 so a POST stays a POST
+    return new Response(null, { status: 308, headers: { location: url.toString() } });
+  })
   .use(html())
   .use(
     staticPlugin({

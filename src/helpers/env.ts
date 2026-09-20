@@ -100,3 +100,8 @@ export const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? "";
 // registration from someone who passes this token, so an empty instance cannot be
 // claimed by whoever finds it first.
 export const SETUP_TOKEN = process.env.SETUP_TOKEN ?? "";
+
+// The one hostname the site should be reached on. When set, requests to "www." of it are
+// redirected, so a session started on one is not invisible on the other: cookies set on
+// www.example.com are never sent to example.com.
+export const CANONICAL_HOST = process.env.CANONICAL_HOST ?? "";

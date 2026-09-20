@@ -24,7 +24,7 @@ export function deleteExpiredJobs(olderThanHours?: number): number {
     return 0;
   }
 
-  let expired: ExpiredJob[] = [];
+  let expired: ExpiredJob[];
 
   if (typeof olderThanHours === "number" && olderThanHours >= 0) {
     const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000).toISOString();
@@ -36,7 +36,17 @@ export function deleteExpiredJobs(olderThanHours?: number): number {
     // Guests or users without a tier default to the Free tier retention (or AUTO_DELETE_EVERY_N_HOURS fallback).
     const fallbackHours = AUTO_DELETE_EVERY_N_HOURS > 0 ? AUTO_DELETE_EVERY_N_HOURS : 2;
 
-    const allJobs = db
+    // Nothing can expire before the shortest window has passed, so let SQLite drop the
+    // jobs that are obviously too young instead of loading every job ever run
+    const shortestHours = Math.min(
+      fallbackHours,
+      ...(db.query("SELECT retention_hours FROM tiers").all() as { retention_hours: number }[]).map(
+        (tier) => tier.retention_hours,
+      ),
+    );
+    const earliestCutoff = new Date(Date.now() - shortestHours * 60 * 60 * 1000).toISOString();
+
+    const candidates = db
       .query(
         `
       SELECT j.id, j.user_id, j.date_created,
@@ -45,12 +55,13 @@ export function deleteExpiredJobs(olderThanHours?: number): number {
       LEFT JOIN users u ON CAST(u.id AS TEXT) = CAST(j.user_id AS TEXT)
       LEFT JOIN tiers t ON t.id = u.tier
       LEFT JOIN tiers free_tier ON free_tier.id = 'free'
+      WHERE j.date_created < ?
     `,
       )
-      .all(fallbackHours) as ExpiredJob[];
+      .all(fallbackHours, earliestCutoff) as ExpiredJob[];
 
     const now = Date.now();
-    expired = allJobs.filter((job) => {
+    expired = candidates.filter((job) => {
       const created = new Date(job.date_created).getTime();
       const retentionMs = (job.retention_hours ?? fallbackHours) * 60 * 60 * 1000;
       return now - created >= retentionMs;

@@ -28,7 +28,10 @@ export function StoragePanel({ usage, webroot }: { usage: StorageUsage; webroot:
         <div>
           <h2 class={title}>Storage</h2>
           <p class={subtle}>
-            Files are deleted automatically {usage.retentionHours} hours after a conversion starts.
+            <span safe>
+              Files are deleted automatically after {usage.retentionDescription}, counted from when
+              the conversion started.
+            </span>
           </p>
         </div>
         <form method="post" action={`${webroot}/admin/storage/cleanup`}>

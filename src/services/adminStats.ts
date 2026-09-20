@@ -5,9 +5,10 @@ import { join } from "node:path";
 import { unavailableConverters } from "../converters/availability";
 import { activeJobs } from "../converters/progress";
 import db from "../db/db";
-import { AUTO_DELETE_EVERY_N_HOURS, GUEST_FREE_CONVERSIONS } from "../helpers/env";
+import { GUEST_FREE_CONVERSIONS } from "../helpers/env";
 import { avatarsDir, incompleteUploadsDir, outputDir, uploadsDir } from "../helpers/paths";
 import { conversionQueue } from "../helpers/queue";
+import { describeRetention, shortRetention } from "./retention";
 
 export const FAILED_STATUSES = ["Failed, check logs", "File type not supported"];
 
@@ -51,7 +52,7 @@ export type StorageUsage = {
   totalBytes: number;
   disk: { totalBytes: number; freeBytes: number; usedPercent: number } | null;
   biggestJobs: { jobId: number; userId: number; bytes: number; files: number }[];
-  retentionHours: number;
+  retentionDescription: string;
 };
 
 export function storageUsage(): StorageUsage {
@@ -93,7 +94,7 @@ export function storageUsage(): StorageUsage {
     totalBytes: areas.reduce((total, area) => total + area.bytes, 0),
     disk,
     biggestJobs,
-    retentionHours: AUTO_DELETE_EVERY_N_HOURS,
+    retentionDescription: describeRetention(),
   };
 }
 
@@ -261,7 +262,7 @@ export function systemHealth(features: { label: string; value: string }[] = []):
     databaseBytes: existsSync(dbPath) ? statSync(dbPath).size : 0,
     missingConverters: unavailableConverters(),
     settings: [
-      { label: "File retention", value: "Per-tier (2h Free / 24h Pro / 7d Business)" },
+      { label: "File retention", value: `Per tier — ${shortRetention()}` },
       { label: "Free conversions for visitors", value: String(GUEST_FREE_CONVERSIONS) },
       { label: "Conversions at once", value: String(conversionQueue.stats().concurrency) },
       ...features,

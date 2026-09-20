@@ -17,6 +17,7 @@ import {
   WEBROOT,
 } from "../helpers/env";
 import { USAGE_RETENTION_DAYS } from "../services/quota";
+import { describeRetention } from "../services/retention";
 import { userService } from "./user";
 
 const SOURCE_CODE_URL = "https://github.com/C4illin/ConvertX";
@@ -95,9 +96,9 @@ const List = ({ children }: { children: JSX.Element[] }) => (
   <ul class="list-disc space-y-1.5 pl-6">{children}</ul>
 );
 
-const fileRetention =
+const fileRetention = () =>
   AUTO_DELETE_EVERY_N_HOURS > 0
-    ? "automatically deleted according to your plan's retention period (2 hours for free conversions, 24 hours for Pro, and 7 days for Business; the cleanup runs every 15 minutes)"
+    ? `automatically deleted according to your plan (${describeRetention()}; the cleanup runs every 15 minutes)`
     : "kept until you delete them from your conversion history";
 
 const LegalPage = ({
@@ -216,9 +217,9 @@ export const legal = new Elysia()
       <Section title="5. Your files">
         <p>
           You keep all rights to the files you upload. You give us permission to store and process
-          them only to perform the conversions you request. Files are {fileRetention}, as described
-          in the <LegalLink path="/privacy">Privacy Policy</LegalLink>. We do not keep backups of
-          your files, so keep your own copies.
+          them only to perform the conversions you request. Files are {fileRetention()}, as
+          described in the <LegalLink path="/privacy">Privacy Policy</LegalLink>. We do not keep
+          backups of your files, so keep your own copies.
         </p>
       </Section>
 
@@ -376,7 +377,7 @@ export const legal = new Elysia()
 
       <Section title="How long we keep it">
         <List>
-          <li>Uploaded and converted files, and their file names, are {fileRetention}.</li>
+          <li>Uploaded and converted files, and their file names, are {fileRetention()}.</li>
           <li>Usage counters are deleted after {String(USAGE_RETENTION_DAYS)} days.</li>
           <li>
             Account and subscription details are kept until you ask us to delete your account.

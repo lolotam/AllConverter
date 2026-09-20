@@ -7,6 +7,7 @@ import { Header } from "../components/header";
 import { headerAccount } from "../helpers/headerUser";
 import { onlyAvailable } from "../converters/availability";
 import { onlyVisible } from "../services/features";
+import { describeRetention } from "../services/retention";
 import { getAllTargets } from "../converters/main";
 import db, { getTiers, getUserById } from "../db/db";
 import { User } from "../db/types";
@@ -25,10 +26,11 @@ import { checkoutConfig, priceIdForTier } from "../services/paddle";
 import { getConversionsToday, getQuotaContext, UNLIMITED_THRESHOLD } from "../services/quota";
 import { FIRST_RUN, userService } from "./user";
 
-// Must match the real cleanup schedule; the privacy policy states the same retention
-const fileDeletionPromise =
+// Must match the real cleanup schedule; the privacy policy states the same retention.
+// Read per request, because retention is per tier and editable in the admin dashboard.
+const fileDeletionPromise = () =>
   AUTO_DELETE_EVERY_N_HOURS > 0
-    ? `Uploaded and converted files are permanently deleted from our servers within ${AUTO_DELETE_EVERY_N_HOURS} hour${AUTO_DELETE_EVERY_N_HOURS === 1 ? "" : "s"}.`
+    ? `Uploaded and converted files are permanently deleted from our servers after ${describeRetention()}.`
     : "You can permanently delete your uploaded and converted files at any time.";
 
 const LIMIT_MESSAGES: Record<string, string> = {
@@ -945,7 +947,7 @@ export const root = new Elysia().use(userService).get(
                     </h2>
                     <p class="text-slate-600 dark:text-neutral-300 text-base mb-8 leading-relaxed">
                       Unlike other services that sell or retain your documents, ConvertX operates
-                      under a strict privacy-first architecture. {fileDeletionPromise}
+                      under a strict privacy-first architecture. {fileDeletionPromise()}
                     </p>
                     <div class="space-y-4">
                       <div class="flex items-start gap-4">
@@ -957,7 +959,7 @@ export const root = new Elysia().use(userService).get(
                             Automatic File Deletion
                           </h4>
                           <p class="text-sm text-slate-600 dark:text-neutral-400">
-                            {fileDeletionPromise}
+                            {fileDeletionPromise()}
                           </p>
                         </div>
                       </div>

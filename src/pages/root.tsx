@@ -6,7 +6,7 @@ import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
 import { headerAccount } from "../helpers/headerUser";
 import { onlyAvailable } from "../converters/availability";
-import { onlyVisible } from "../services/features";
+import { visibleTargets } from "../services/features";
 import { describeRetention } from "../services/retention";
 import { getAllTargets } from "../converters/main";
 import db, { getTiers, getUserById } from "../db/db";
@@ -138,7 +138,7 @@ export const root = new Elysia().use(userService).get(
       sameSite: "strict",
     });
 
-    const allTargets = onlyVisible(onlyAvailable(getAllTargets()));
+    const allTargets = visibleTargets(onlyAvailable(getAllTargets()));
     // Offering a shortcut to a format no visible converter produces would only fail later
     const offeredFormats = new Set(
       Object.values(allTargets)

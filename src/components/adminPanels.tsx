@@ -20,7 +20,15 @@ function Bar({ percent, danger }: { percent: number; danger?: boolean | undefine
   );
 }
 
-export function StoragePanel({ usage, webroot }: { usage: StorageUsage; webroot: string }) {
+export function StoragePanel({
+  usage,
+  webroot,
+  cleanup,
+}: {
+  usage: StorageUsage;
+  webroot: string;
+  cleanup: { enabled: boolean; overrideHours: number | null; choices: number[] };
+}) {
   const lowOnSpace = usage.disk !== null && usage.disk.usedPercent >= 80;
   return (
     <div class="space-y-6">
@@ -34,11 +42,76 @@ export function StoragePanel({ usage, webroot }: { usage: StorageUsage; webroot:
             </span>
           </p>
         </div>
-        <form method="post" action={`${webroot}/admin/storage/cleanup`}>
-          <button type="submit" class="btn-secondary px-4 py-2 text-sm">
-            Run cleanup now
+        <div class="flex flex-wrap items-center gap-2">
+          <form method="post" action={`${webroot}/admin/storage/cleanup`}>
+            <button type="submit" class="btn-secondary px-4 py-2 text-sm">
+              Delete expired now
+            </button>
+          </form>
+          <form
+            method="post"
+            action={`${webroot}/admin/storage/purge`}
+            onsubmit="return confirm('Delete every stored file for every user, including files that have not expired? This cannot be undone.')"
+          >
+            <button
+              type="submit"
+              class="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm font-bold text-red-600 transition-colors hover:bg-red-500/20 dark:text-red-400"
+            >
+              Delete all files now
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class={panel}>
+        <h3 class="mb-1 font-bold text-slate-900 dark:text-white">Automatic deletion</h3>
+        <p class={`${subtle} mb-4`}>
+          The sweep runs every 15 minutes. Each plan has its own window, or you can set one window
+          for everybody.
+        </p>
+        <form
+          method="post"
+          action={`${webroot}/admin/storage/schedule`}
+          class="flex flex-wrap items-end gap-4"
+        >
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium text-slate-900 dark:text-white">Delete files after</span>
+            <select
+              name="hours"
+              class="rounded-lg border border-slate-300 bg-white p-2.5 text-sm dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+            >
+              <option value="" selected={cleanup.overrideHours === null}>
+                Each plan's own window
+              </option>
+              {cleanup.choices.map((hours) => (
+                <option value={String(hours)} selected={cleanup.overrideHours === hours}>
+                  {hours} hours (everyone)
+                </option>
+              ))}
+            </select>
+          </label>
+          <label class="flex items-center gap-2 pb-2.5 text-sm">
+            <input
+              type="checkbox"
+              name="enabled"
+              value="1"
+              checked={cleanup.enabled}
+              class="size-4 accent-accent-500"
+            />
+            <span class="font-medium text-slate-900 dark:text-white">
+              Delete files automatically
+            </span>
+          </label>
+          <button type="submit" class="btn-primary px-5 py-2.5 text-sm">
+            Save schedule
           </button>
         </form>
+        {!cleanup.enabled ? (
+          <p class="mt-3 text-sm font-medium text-amber-600 dark:text-amber-400">
+            Automatic deletion is off. Nothing is removed until you delete it here, and the volume
+            will keep filling.
+          </p>
+        ) : null}
       </div>
 
       {usage.disk ? (
@@ -373,21 +446,56 @@ export function SitePanel({
   webroot,
   logoUrl,
   faviconUrl,
+  siteName,
+  siteTagline,
   converters,
 }: {
   webroot: string;
   logoUrl: string | null;
   faviconUrl: string | null;
-  converters: { name: string; formats: number; visible: boolean }[];
+  siteName: string;
+  siteTagline: string;
+  converters: { name: string; visible: boolean; formats: { format: string; visible: boolean }[] }[];
 }) {
   const uploadField = `text-sm file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-2 file:text-sm file:font-semibold dark:file:bg-neutral-700 dark:file:text-white`;
+  const input = `w-full rounded-lg border border-slate-300 bg-white p-2.5 text-sm text-slate-900 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white`;
   return (
     <div class="space-y-6">
       <div>
         <h2 class={title}>Site</h2>
         <p class={subtle}>
-          Artwork and which converters the site offers. Changes apply on the next page load.
+          Name, artwork and which converters the site offers. Changes apply on the next page load.
         </p>
+      </div>
+
+      <div class={panel}>
+        <h3 class="mb-3 font-bold text-slate-900 dark:text-white">Name</h3>
+        <form
+          method="post"
+          action={`${webroot}/admin/site/name`}
+          class="grid gap-4 sm:grid-cols-2 sm:items-end"
+        >
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium text-slate-900 dark:text-white">Site name</span>
+            <input type="text" name="siteName" value={siteName} maxlength="40" class={input} />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span class="font-medium text-slate-900 dark:text-white">Tagline under the name</span>
+            <input
+              type="text"
+              name="siteTagline"
+              value={siteTagline}
+              maxlength="30"
+              placeholder="e.g. Cloud Pro"
+              class={input}
+            />
+          </label>
+          <div class="sm:col-span-2">
+            <button type="submit" class="btn-primary px-5 py-2.5 text-sm">
+              Save name
+            </button>
+          </div>
+        </form>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">
@@ -495,32 +603,92 @@ export function SitePanel({
       <div class={panel}>
         <h3 class="mb-1 font-bold text-slate-900 dark:text-white">Converters offered</h3>
         <p class={`${subtle} mb-4`}>
-          Unticking one removes its formats from the landing page and from the converter chooser, so
-          nobody can start a conversion with it. Converters whose tools are missing from the image
-          never appear here at all.
+          Open a converter to choose which of its formats the site offers. A format you untick
+          disappears from the landing page and the converter chooser, so nobody can start a
+          conversion into it. Converters whose tools are missing from the image never appear here at
+          all.
         </p>
-        <form method="post" action={`${webroot}/admin/features`}>
-          <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {converters.map((converter) => (
-              <label class="flex items-center gap-2.5 rounded-xl border border-slate-200 p-2.5 text-sm dark:border-neutral-800">
-                <input
-                  type="checkbox"
-                  name="visible"
-                  value={converter.name}
-                  checked={converter.visible}
-                  class="size-4 accent-accent-500"
-                />
-                <span class="font-medium text-slate-900 dark:text-white" safe>
-                  {converter.name}
-                </span>
-                <span class={`${subtle} ml-auto`}>{converter.formats} formats</span>
-              </label>
-            ))}
-          </div>
-          <button type="submit" class="btn-primary mt-4 px-5 py-2.5 text-sm">
-            Save converters
-          </button>
-        </form>
+
+        <div class="space-y-2">
+          {converters.map((converter) => {
+            const shown = converter.formats.filter((format) => format.visible).length;
+            return (
+              <details class="group rounded-xl border border-slate-200 dark:border-neutral-800">
+                <summary class="flex cursor-pointer list-none items-center gap-3 p-3 text-sm hover:bg-slate-50 dark:hover:bg-neutral-800/50">
+                  <span
+                    class={`size-2.5 shrink-0 rounded-full ${converter.visible ? "bg-lime-500" : "bg-slate-300 dark:bg-neutral-700"}`}
+                  />
+                  <span class="font-bold text-slate-900 dark:text-white" safe>
+                    {converter.name}
+                  </span>
+                  <span class={subtle}>
+                    {converter.visible
+                      ? `${shown} of ${converter.formats.length} formats offered`
+                      : "switched off"}
+                  </span>
+                  <span class={`${subtle} ml-auto group-open:hidden`}>Open</span>
+                </summary>
+
+                <form
+                  method="post"
+                  action={`${webroot}/admin/features/${converter.name}`}
+                  class="border-t border-slate-200 p-3 dark:border-neutral-800"
+                >
+                  <div class="mb-3 flex flex-wrap items-center gap-4">
+                    <label class="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        name="converterVisible"
+                        value="1"
+                        checked={converter.visible}
+                        class="size-4 accent-accent-500"
+                      />
+                      <span class="font-medium text-slate-900 dark:text-white">
+                        Offer this converter
+                      </span>
+                    </label>
+                    <span class={subtle}>
+                      Tick the formats to offer. Unticking them all switches the converter off.
+                    </span>
+                  </div>
+
+                  <div class="max-h-72 overflow-y-auto rounded-lg border border-slate-200 p-2 dark:border-neutral-800">
+                    <div class="grid gap-1 sm:grid-cols-3 lg:grid-cols-5">
+                      {converter.formats.map((format) => (
+                        <label class="flex items-center gap-2 rounded px-1.5 py-1 text-xs hover:bg-slate-50 dark:hover:bg-neutral-800/60">
+                          <input
+                            type="checkbox"
+                            name="format"
+                            value={format.format}
+                            checked={format.visible}
+                            class="size-3.5 accent-accent-500"
+                          />
+                          <span class="truncate text-slate-700 dark:text-neutral-200" safe>
+                            {format.format}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    <button type="submit" class="btn-primary px-4 py-2 text-sm">
+                      Save {converter.name}
+                    </button>
+                    <button
+                      type="submit"
+                      name="all"
+                      value="1"
+                      class="btn-secondary px-4 py-2 text-sm"
+                    >
+                      Offer every format
+                    </button>
+                  </div>
+                </form>
+              </details>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

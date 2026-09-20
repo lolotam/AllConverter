@@ -1,10 +1,56 @@
 // Deleting jobs whose files have outlived the retention window. Shared by the timer in
 // index.tsx and the "run cleanup now" button in the admin dashboard.
-import { rmSync } from "node:fs";
+import { readdirSync, rmSync } from "node:fs";
 import path from "node:path";
 import db from "../db/db";
 import { AUTO_DELETE_EVERY_N_HOURS } from "../helpers/env";
-import { outputDir, uploadsDir } from "../helpers/paths";
+import { incompleteUploadsDir, outputDir, uploadsDir } from "../helpers/paths";
+import { getSetting, setSetting } from "./settings";
+
+const ENABLED_KEY = "cleanup.enabled";
+const OVERRIDE_KEY = "cleanup.overrideHours";
+
+/** Hours an admin may pick instead of each plan's own window. */
+export const CLEANUP_INTERVAL_CHOICES = [2, 4, 6, 12, 24];
+
+/**
+ * Whether files are deleted automatically at all. The dashboard setting wins; with no
+ * setting saved, AUTO_DELETE_EVERY_N_HOURS decides, as it always did.
+ */
+export function cleanupEnabled(): boolean {
+  const stored = getSetting(ENABLED_KEY);
+  return stored === null ? AUTO_DELETE_EVERY_N_HOURS > 0 : stored === "1";
+}
+
+export function setCleanupEnabled(enabled: boolean): void {
+  setSetting(ENABLED_KEY, enabled ? "1" : "0");
+}
+
+/** One window for everybody, or null to use each plan's retention. */
+export function cleanupOverrideHours(): number | null {
+  const raw = getSetting(OVERRIDE_KEY);
+  const hours = raw ? Number(raw) : Number.NaN;
+  return Number.isFinite(hours) && hours > 0 ? hours : null;
+}
+
+export function setCleanupOverrideHours(hours: number | null): void {
+  setSetting(OVERRIDE_KEY, hours === null ? null : String(hours));
+}
+
+/**
+ * On a server that has been running with one global window, per-tier retention would
+ * silently start deleting free users' files much sooner. So the first start after this
+ * change keeps the window it already had, and the dashboard offers the switch to
+ * per-plan retention as a deliberate choice.
+ */
+export function ensureCleanupDefaults(): void {
+  if (getSetting(OVERRIDE_KEY) === null && getSetting(ENABLED_KEY) === null) {
+    if (AUTO_DELETE_EVERY_N_HOURS > 0) {
+      setCleanupOverrideHours(AUTO_DELETE_EVERY_N_HOURS);
+    }
+    setCleanupEnabled(AUTO_DELETE_EVERY_N_HOURS > 0);
+  }
+}
 
 type ExpiredJob = {
   id: number;
@@ -20,8 +66,16 @@ type ExpiredJob = {
  * Returns how many were deleted.
  */
 export function deleteExpiredJobs(olderThanHours?: number): number {
-  if (olderThanHours === undefined && AUTO_DELETE_EVERY_N_HOURS === 0) {
-    return 0;
+  // A caller with an explicit window (the admin dashboard) overrides the settings;
+  // the timer passes nothing and follows them
+  if (olderThanHours === undefined) {
+    if (!cleanupEnabled()) {
+      return 0;
+    }
+    const override = cleanupOverrideHours();
+    if (override !== null) {
+      olderThanHours = override;
+    }
   }
 
   let expired: ExpiredJob[];
@@ -77,4 +131,35 @@ export function deleteExpiredJobs(olderThanHours?: number): number {
   }
 
   return expired.length;
+}
+
+/**
+ * Deletes every stored job and its files, for every user, whether or not it has expired.
+ * Nothing is recoverable afterwards, so only the admin dashboard calls this, behind a
+ * confirmation.
+ */
+export function purgeAllJobs(): number {
+  const jobs = db.query("SELECT id, user_id FROM jobs").all() as { id: number; user_id: number }[];
+
+  for (const job of jobs) {
+    rmSync(path.resolve(`${outputDir}${job.user_id}/${job.id}`), { recursive: true, force: true });
+    rmSync(path.resolve(`${uploadsDir}${job.user_id}/${job.id}`), { recursive: true, force: true });
+  }
+
+  db.query("DELETE FROM file_names").run();
+  db.query("DELETE FROM jobs").run();
+
+  // Folders left behind by jobs the database no longer knows about — an older database,
+  // a failed delete — are still storage, and "delete everything" has to mean everything
+  for (const directory of [outputDir, uploadsDir, incompleteUploadsDir]) {
+    try {
+      for (const entry of readdirSync(path.resolve(directory))) {
+        rmSync(path.resolve(directory, entry), { recursive: true, force: true });
+      }
+    } catch {
+      // The directory may not exist yet; nothing to remove either way
+    }
+  }
+
+  return jobs.length;
 }

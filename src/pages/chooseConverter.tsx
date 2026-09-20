@@ -1,6 +1,6 @@
 import Elysia, { t } from "elysia";
 import { onlyAvailable } from "../converters/availability";
-import { onlyVisible } from "../services/features";
+import { visibleTargets } from "../services/features";
 import { getPossibleTargets } from "../converters/main";
 import { userService } from "./user";
 
@@ -24,7 +24,7 @@ const POPULAR_FORMATS = [
 export const chooseConverter = new Elysia().use(userService).post(
   "/conversions",
   ({ body }) => {
-    const possibleTargets = onlyVisible(onlyAvailable(getPossibleTargets(body.fileType)));
+    const possibleTargets = visibleTargets(onlyAvailable(getPossibleTargets(body.fileType)));
     const allUniqueTargets = Array.from(new Set(Object.values(possibleTargets).flat()));
     const popularTargets = POPULAR_FORMATS.filter((p) => allUniqueTargets.includes(p));
 

@@ -1,4 +1,5 @@
 import { brandingUrl } from "../services/branding";
+import { siteName, siteTagline } from "../services/siteName";
 
 /** The avatar button and the menu it opens. Only shown for a real account. */
 const AccountMenu = ({
@@ -138,8 +139,10 @@ export const Header = ({
   accountInitials?: string | undefined;
   accountTier?: string | undefined;
 }) => {
-  // Uploaded in the admin dashboard; null keeps the artwork that ships with the app
+  // Set in the admin dashboard; null or empty keeps what the app ships with
   const logo = brandingUrl(webroot, "logo");
+  const name = siteName() || branding;
+  const tagline = siteTagline();
   return (
     <header class="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/85 text-slate-800 dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:text-neutral-100 backdrop-blur-xl transition-colors duration-200">
       <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
@@ -178,11 +181,16 @@ export const Header = ({
                 class="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white group-hover:text-accent-500 transition-colors"
                 safe
               >
-                {branding.length < 20 ? branding : branding.slice(0, 20)}
+                {name.length < 24 ? name : name.slice(0, 24)}
               </span>
-              <span class="text-[10px] font-semibold uppercase tracking-wider text-lime-600 dark:text-accent-400/90 -mt-1">
-                Cloud Pro
-              </span>
+              {tagline ? (
+                <span
+                  safe
+                  class="text-[10px] font-semibold uppercase tracking-wider text-lime-600 dark:text-accent-400/90 -mt-1"
+                >
+                  {tagline}
+                </span>
+              ) : null}
             </div>
           </a>
 

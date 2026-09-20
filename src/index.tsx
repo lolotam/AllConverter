@@ -4,7 +4,7 @@ import { Elysia } from "elysia";
 import "./helpers/printVersions";
 import { unavailableConverters } from "./converters/availability";
 import db from "./db/db";
-import { AUTO_DELETE_EVERY_N_HOURS, UPLOAD_CHUNK_SIZE_MB, WEBROOT } from "./helpers/env";
+import { UPLOAD_CHUNK_SIZE_MB, WEBROOT } from "./helpers/env";
 import { chooseConverter } from "./pages/chooseConverter";
 import { convert } from "./pages/convert";
 import { deleteFile } from "./pages/deleteFile";
@@ -23,7 +23,7 @@ import { admin } from "./pages/admin";
 import { billing } from "./pages/billing";
 import { legal } from "./pages/legal";
 import { MB, pruneUsage } from "./services/quota";
-import { deleteExpiredJobs } from "./services/cleanup";
+import { deleteExpiredJobs, ensureCleanupDefaults } from "./services/cleanup";
 import { cleanUpExpiredUploads } from "./services/tus";
 
 export { outputDir, uploadsDir } from "./helpers/paths";
@@ -97,17 +97,18 @@ for (const { converter, missing } of unavailableConverters()) {
 
 console.log(`🦊 Elysia is running at http://${app.server?.hostname}:${app.server?.port}${WEBROOT}`);
 
+ensureCleanupDefaults();
+
 const clearJobs = () => {
   deleteExpiredJobs();
 
-  // Check at least every 15 minutes so files don't outlive the retention
-  // window by up to another full N hours.
-  setTimeout(clearJobs, Math.min(AUTO_DELETE_EVERY_N_HOURS * 60 * 60 * 1000, 15 * 60 * 1000));
+  // Every 15 minutes, so a two-hour window is honoured closely enough. The sweep itself
+  // decides whether anything should go, so switching deletion on in the admin dashboard
+  // takes effect without a restart.
+  setTimeout(clearJobs, 15 * 60 * 1000);
 };
 
-if (AUTO_DELETE_EVERY_N_HOURS > 0) {
-  clearJobs();
-}
+clearJobs();
 
 // Abandoned partial uploads are not tied to a job yet, so they need their own sweep
 cleanUpExpiredUploads();

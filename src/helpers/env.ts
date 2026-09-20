@@ -95,3 +95,8 @@ export const DOWNLOAD_TOKEN_TTL_MINUTES =
 export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
 export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
 export const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? "";
+
+// When set, the first-run setup page (which creates the admin account) only accepts a
+// registration from someone who passes this token, so an empty instance cannot be
+// claimed by whoever finds it first.
+export const SETUP_TOKEN = process.env.SETUP_TOKEN ?? "";

@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomUUID, timingSafeEqual } from "node:crypto";
 import { Elysia, t } from "elysia";
 import { BaseHtml } from "../components/base";
 import { AuthTabs, GoogleButton } from "../components/authTabs";
@@ -7,6 +7,7 @@ import db from "../db/db";
 import { User } from "../db/types";
 import {
   ACCOUNT_REGISTRATION,
+  SETUP_TOKEN,
   ALLOW_UNAUTHENTICATED,
   HIDE_HISTORY,
   HTTP_ALLOWED,
@@ -20,11 +21,45 @@ export { userService } from "../services/user";
 
 export let FIRST_RUN = db.query("SELECT * FROM users").get() === null || false;
 
+/**
+ * Whether this request may claim the very first (admin) account. With SETUP_TOKEN unset
+ * the setup page is open, as it always was; with it set, only someone holding the token
+ * can take an empty instance.
+ */
+export function setupAllowed(token: unknown, configured: string = SETUP_TOKEN): boolean {
+  if (!configured) {
+    return true;
+  }
+  const given = typeof token === "string" ? token : "";
+  const expected = Buffer.from(configured);
+  const provided = Buffer.from(given);
+  return expected.length === provided.length && timingSafeEqual(expected, provided);
+}
+
 export const user = new Elysia()
   .use(userService)
-  .get("/setup", ({ redirect }) => {
+  .get("/setup", ({ redirect, query, set }) => {
     if (!FIRST_RUN) {
       return redirect(`${WEBROOT}/login`, 302);
+    }
+
+    if (!setupAllowed(query.token)) {
+      set.status = 403;
+      return (
+        <BaseHtml title="ConvertX | Setup" webroot={WEBROOT}>
+          <main class="mx-auto w-full max-w-2xl flex-1 px-4">
+            <h1 class="my-8 text-3xl">Setup is locked</h1>
+            <article class="article">
+              <p>
+                This instance has no accounts yet, and the first one can only be created by someone
+                holding the setup token. Open this page as
+                <code class="mx-1">/setup?token=YOUR_TOKEN</code>
+                using the <code>SETUP_TOKEN</code> value from the server environment.
+              </p>
+            </article>
+          </main>
+        </BaseHtml>
+      );
     }
 
     return (
@@ -63,6 +98,9 @@ export const user = new Elysia()
                   />
                 </label>
               </fieldset>
+              {SETUP_TOKEN ? (
+                <input type="hidden" name="setupToken" value={String(query.token ?? "")} />
+              ) : null}
               <input type="submit" value="Create account" class="btn-primary" />
             </form>
             <footer class="p-4">
@@ -173,12 +211,18 @@ export const user = new Elysia()
   })
   .post(
     "/register",
-    async ({ body: { email, password }, set, redirect, jwt, cookie: { auth } }) => {
+    async ({ body, set, redirect, jwt, cookie: { auth } }) => {
+      const { email, password } = body;
       if (!ACCOUNT_REGISTRATION && !FIRST_RUN) {
         return redirect(`${WEBROOT}/login`, 302);
       }
 
       if (FIRST_RUN) {
+        // The first account becomes the admin, so it is the one worth protecting
+        if (!setupAllowed(body.setupToken)) {
+          set.status = 403;
+          return { message: "A valid setup token is required to create the first account." };
+        }
         FIRST_RUN = false;
       }
 
@@ -224,7 +268,13 @@ export const user = new Elysia()
 
       return redirect(`${WEBROOT}/`, 302);
     },
-    { body: "signIn" },
+    {
+      body: t.Object({
+        email: t.String(),
+        password: t.String(),
+        setupToken: t.Optional(t.String()),
+      }),
+    },
   )
   .get(
     "/login",
@@ -296,7 +346,9 @@ export const user = new Elysia()
                   >
                     {query.error === "closed"
                       ? "Registration is closed, so that Google account cannot be used to create an account here."
-                      : "Signing in with Google did not work. Please try again."}
+                      : query.error === "setup"
+                        ? "This instance has no accounts yet. The first one must be created on the setup page with the setup token."
+                        : "Signing in with Google did not work. Please try again."}
                   </p>
                 ) : null}
                 {GOOGLE_ENABLED ? (
@@ -444,6 +496,10 @@ export const user = new Elysia()
     } else {
       if (!ACCOUNT_REGISTRATION && !FIRST_RUN) {
         return redirect(`${WEBROOT}/login?error=closed`, 302);
+      }
+      // Google cannot carry the setup token, so it must not create the admin account
+      if (FIRST_RUN && SETUP_TOKEN) {
+        return redirect(`${WEBROOT}/login?error=setup`, 302);
       }
       FIRST_RUN = false;
 

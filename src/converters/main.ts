@@ -154,6 +154,7 @@ export async function handleConvert(
   converterName: string,
   jobId: Cookie<string | undefined>,
   priority = 0,
+  options: { density?: number } = {},
 ) {
   const query = db.query(
     "INSERT INTO file_names (job_id, file_name, output_file_name, status) VALUES (?1, ?2, ?3, ?4)",
@@ -190,7 +191,7 @@ export async function handleConvert(
           fileType,
           convertTo,
           targetPath,
-          { onProgress: (percent: number) => trackPercent(jobKey, fileName, percent) },
+          { ...options, onProgress: (percent: number) => trackPercent(jobKey, fileName, percent) },
           converterName,
         );
         const outputs = r === "Done" ? await findOutputFiles(userOutputDir, newFileName) : [];

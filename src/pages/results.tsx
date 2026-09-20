@@ -1,4 +1,6 @@
-import { Elysia } from "elysia";
+import { statSync } from "node:fs";
+import { unlink } from "node:fs/promises";
+import { Elysia, t } from "elysia";
 import { assetUrl } from "../helpers/assetUrl";
 import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
@@ -6,10 +8,12 @@ import db from "../db/db";
 import { Filename, Jobs } from "../db/types";
 import { jobProgress, type FileProgress, type FileState } from "../converters/progress";
 import { buildDownloadUrl } from "../helpers/buildDownloadUrl";
+import { outputDir } from "../helpers/paths";
 import { ALLOW_UNAUTHENTICATED, WEBROOT, BRANDING } from "../helpers/env";
 import { DownloadIcon } from "../icons/download";
 import { DeleteIcon } from "../icons/delete";
 import { EyeIcon } from "../icons/eye";
+import sanitize from "sanitize-filename";
 import { userService } from "./user";
 
 const STATE_LABELS: Record<FileState, string> = {
@@ -18,6 +22,67 @@ const STATE_LABELS: Record<FileState, string> = {
   done: "Done",
   failed: "Failed",
 };
+
+const IMAGE_EXTENSIONS = new Set([
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "avif",
+  "bmp",
+  "tiff",
+  "tif",
+  "svg",
+  "heic",
+]);
+
+const FAILED_STATUSES = ["Failed, check logs", "File type not supported"];
+
+const humanSize = (bytes: number) => {
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+  if (bytes >= 1024) {
+    return `${Math.round(bytes / 1024)} kB`;
+  }
+  return `${bytes} B`;
+};
+
+type ResultEntry = {
+  name: string;
+  status: string;
+  failed: boolean;
+  isImage: boolean;
+  size: string;
+  downloadUrl: string;
+  previewUrl: string;
+};
+
+/** Collects what the results view needs about each converted file. */
+function buildEntries(files: Filename[], outputPath: string): ResultEntry[] {
+  return files.map((file) => {
+    const name = file.output_file_name;
+    const extension = name.split(".").pop()?.toLowerCase() ?? "";
+    let bytes = 0;
+    try {
+      bytes = statSync(`${outputDir}${outputPath}${name}`).size;
+    } catch {
+      // The file may have been deleted or the conversion failed
+    }
+    const downloadUrl = buildDownloadUrl(WEBROOT, outputPath, name);
+    return {
+      name,
+      status: file.status,
+      failed: FAILED_STATUSES.includes(file.status),
+      isImage: IMAGE_EXTENSIONS.has(extension),
+      size: humanSize(bytes),
+      downloadUrl,
+      // Served with an inline disposition so it can be shown instead of downloaded
+      previewUrl: `${downloadUrl}?inline=1`,
+    };
+  });
+}
 
 // A job with no files (the home page creates one per visit) has nothing to wait for
 const isFinished = (job: Jobs) => job.status === "completed" || job.num_files === 0;
@@ -88,6 +153,7 @@ function ResultsArticle({
   tracked: FileProgress[] | undefined;
 }) {
   const finished = isFinished(job);
+  const entries = buildEntries(files, outputPath);
   return (
     <article class="article" data-job-complete={String(finished)}>
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -126,7 +192,10 @@ function ResultsArticle({
           >
             <DownloadIcon /> <span>Tar Archive</span>
           </a>
-          <button class="btn-primary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5" onclick="downloadAll()">
+          <button
+            class="btn-primary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5"
+            onclick="downloadAll()"
+          >
             <DownloadIcon /> <span>Download All</span>
           </button>
         </div>
@@ -137,70 +206,252 @@ function ResultsArticle({
         <p class="mb-6 text-sm text-slate-500 dark:text-neutral-400">Converting your files…</p>
       )}
 
-      {finished && (
-        <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-neutral-800 bg-slate-50 dark:bg-neutral-900 shadow-sm">
-          <table class="w-full table-auto text-left text-sm">
-            <thead class="border-b border-slate-200 dark:border-neutral-800 bg-slate-100/80 dark:bg-neutral-850/80 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-neutral-400">
-              <tr>
-                <th class="p-4">Converted File Name</th>
-                <th class="p-4">Status</th>
-                <th class="p-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200 dark:divide-neutral-800/80">
-              {files.map((file) => {
-                const isFailed = ["Failed, check logs", "File type not supported"].includes(file.status);
-                const isDone = file.status === "Done";
+      {finished && entries.length > 0 && (
+        <div data-results>
+          {/* Toolbar: switch between the two views, and act on the selection */}
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div class="inline-flex overflow-hidden rounded-xl border border-slate-200 dark:border-neutral-800">
+              <button
+                type="button"
+                data-view-button="rows"
+                class="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-neutral-300"
+              >
+                ☰ Rows
+              </button>
+              <button
+                type="button"
+                data-view-button="cards"
+                class="border-l border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 dark:border-neutral-800 dark:text-neutral-300"
+              >
+                ▦ Cards
+              </button>
+            </div>
+            <div data-selection-bar hidden class="flex flex-wrap items-center gap-2">
+              <span
+                data-selection-count
+                class="text-xs font-semibold text-slate-600 dark:text-neutral-300"
+              >
+                0 selected
+              </span>
+              <button
+                type="button"
+                data-download-selected
+                class="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
+              >
+                <DownloadIcon /> <span>Download selected</span>
+              </button>
+              <button type="button" data-clear-selection class="btn-secondary px-3 py-1.5 text-xs">
+                Clear
+              </button>
+            </div>
+          </div>
 
-                return (
-                  <tr class="hover:bg-slate-100/50 dark:hover:bg-neutral-800/40 transition-colors">
-                    <td safe class="p-4 font-medium text-slate-900 dark:text-white max-w-[28vw] truncate" title={file.output_file_name}>
-                      {file.output_file_name}
+          {/* Rows view */}
+          <div
+            data-view="rows"
+            class="overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+          >
+            <table class="w-full table-auto text-left text-sm">
+              <thead class="border-b border-slate-200 bg-slate-100/80 text-xs font-bold uppercase tracking-wider text-slate-500 dark:border-neutral-800 dark:bg-neutral-850/80 dark:text-neutral-400">
+                <tr>
+                  <th class="p-4">
+                    <input type="checkbox" data-select-all aria-label="Select all files" />
+                  </th>
+                  <th class="p-4">Converted File Name</th>
+                  <th class="p-4">Size</th>
+                  <th class="p-4">Status</th>
+                  <th class="p-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 dark:divide-neutral-800/80">
+                {entries.map((entry) => (
+                  <tr
+                    data-result-item
+                    data-name={entry.name}
+                    data-download={entry.downloadUrl}
+                    class="transition-colors hover:bg-slate-100/50 dark:hover:bg-neutral-800/40"
+                  >
+                    <td class="p-4">
+                      {entry.failed ? (
+                        ""
+                      ) : (
+                        <input type="checkbox" data-select aria-label={`Select ${entry.name}`} />
+                      )}
+                    </td>
+                    <td
+                      safe
+                      class="max-w-[28vw] truncate p-4 font-medium text-slate-900 dark:text-white"
+                      title={entry.name}
+                    >
+                      {entry.name}
+                    </td>
+                    <td class="p-4 text-slate-500 dark:text-neutral-400" safe>
+                      {entry.failed ? "—" : entry.size}
                     </td>
                     <td class="p-4">
-                      {isDone ? (
-                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          ✓ Ready
-                        </span>
-                      ) : isFailed ? (
-                        <span class="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-2.5 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400 border border-rose-500/20" title={file.status}>
+                      {entry.failed ? (
+                        <span
+                          class="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400"
+                          title={entry.status}
+                        >
                           ✕ Failed
                         </span>
                       ) : (
-                        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-xs font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                          ⏳ {file.status}
+                        <span class="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          ✓ Ready
                         </span>
                       )}
                     </td>
                     <td class="p-4 text-right">
-                      {isFailed ? (
-                        <span class="text-xs text-slate-400 dark:text-neutral-500">Unavailable</span>
+                      {entry.failed ? (
+                        <span class="text-xs text-slate-400 dark:text-neutral-500">
+                          Unavailable
+                        </span>
                       ) : (
                         <div class="inline-flex items-center justify-end gap-2">
-                          <a
-                            class="inline-flex size-8 items-center justify-center rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-slate-700 dark:text-neutral-200 transition-colors"
-                            href={buildDownloadUrl(WEBROOT, outputPath, file.output_file_name)}
-                            target="_blank"
-                            title="Preview"
+                          <button
+                            type="button"
+                            data-preview={entry.previewUrl}
+                            data-is-image={String(entry.isImage)}
+                            title={`Preview ${entry.name}`}
+                            class="inline-flex size-8 items-center justify-center rounded-lg bg-slate-200 text-slate-700 transition-colors hover:bg-slate-300 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
                           >
                             <EyeIcon />
-                          </a>
+                          </button>
                           <a
-                            class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-accent-500 to-lime-400 px-3 py-1.5 text-xs font-bold text-neutral-950 shadow hover:from-accent-400 hover:to-lime-300 transition-all cursor-pointer"
-                            href={buildDownloadUrl(WEBROOT, outputPath, file.output_file_name)}
-                            download={file.output_file_name}
-                            title={`Download ${file.output_file_name}`}
+                            class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-accent-500 to-lime-400 px-3 py-1.5 text-xs font-bold text-neutral-950 shadow transition-all hover:from-accent-400 hover:to-lime-300"
+                            href={entry.downloadUrl}
+                            download={entry.name}
+                            title={`Download ${entry.name}`}
                           >
                             <DownloadIcon /> <span>Download</span>
                           </a>
+                          <button
+                            type="button"
+                            data-delete
+                            title={`Delete ${entry.name}`}
+                            class="inline-flex size-8 items-center justify-center rounded-lg bg-slate-200 text-rose-600 transition-colors hover:bg-rose-100 dark:bg-neutral-800 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                          >
+                            <DeleteIcon />
+                          </button>
                         </div>
                       )}
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Cards view: a thumbnail per file with the preview eye in the middle */}
+          <div
+            data-view="cards"
+            hidden
+            class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4"
+          >
+            {entries.map((entry) => (
+              <div
+                data-result-item
+                data-name={entry.name}
+                data-download={entry.downloadUrl}
+                class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+              >
+                <div class="relative flex h-36 items-center justify-center overflow-hidden bg-slate-100 dark:bg-neutral-950">
+                  {entry.isImage && !entry.failed ? (
+                    <img
+                      src={entry.previewUrl}
+                      alt={entry.name}
+                      loading="lazy"
+                      class="size-full object-cover"
+                    />
+                  ) : (
+                    <span class="text-3xl">{entry.failed ? "✕" : "📄"}</span>
+                  )}
+                  {entry.failed ? (
+                    ""
+                  ) : (
+                    <button
+                      type="button"
+                      data-preview={entry.previewUrl}
+                      data-is-image={String(entry.isImage)}
+                      title={`Preview ${entry.name}`}
+                      class="absolute inset-0 flex items-center justify-center bg-neutral-950/0 text-white opacity-0 transition-all hover:bg-neutral-950/40 group-hover:opacity-100"
+                    >
+                      <span class="rounded-full bg-neutral-950/70 p-3">
+                        <EyeIcon />
+                      </span>
+                    </button>
+                  )}
+                  {entry.failed ? (
+                    ""
+                  ) : (
+                    <input
+                      type="checkbox"
+                      data-select
+                      aria-label={`Select ${entry.name}`}
+                      class="absolute left-2 top-2 size-4 accent-lime-500"
+                    />
+                  )}
+                </div>
+                <div class="p-3">
+                  <p
+                    safe
+                    class="truncate text-xs font-semibold text-slate-900 dark:text-white"
+                    title={entry.name}
+                  >
+                    {entry.name}
+                  </p>
+                  <div class="mt-2 flex items-center justify-between">
+                    <span class="text-xs text-slate-500 dark:text-neutral-400" safe>
+                      {entry.failed ? "Failed" : entry.size}
+                    </span>
+                    {entry.failed ? (
+                      ""
+                    ) : (
+                      <span class="inline-flex items-center gap-1.5">
+                        <a
+                          href={entry.downloadUrl}
+                          download={entry.name}
+                          title={`Download ${entry.name}`}
+                          class="inline-flex size-7 items-center justify-center rounded-lg bg-gradient-to-r from-accent-500 to-lime-400 text-neutral-950"
+                        >
+                          <DownloadIcon />
+                        </a>
+                        <button
+                          type="button"
+                          data-delete
+                          title={`Delete ${entry.name}`}
+                          class="inline-flex size-7 items-center justify-center rounded-lg bg-slate-200 text-rose-600 dark:bg-neutral-800 dark:text-rose-400"
+                        >
+                          <DeleteIcon />
+                        </button>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Preview overlay */}
+          <div
+            data-preview-modal
+            hidden
+            class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/80 p-4"
+          >
+            <div class="max-h-full w-full max-w-4xl overflow-auto rounded-2xl bg-white p-4 dark:bg-neutral-900">
+              <div class="mb-3 flex items-center justify-between gap-4">
+                <p
+                  data-preview-name
+                  class="truncate text-sm font-bold text-slate-900 dark:text-white"
+                />
+                <button type="button" data-preview-close class="btn-secondary px-3 py-1.5 text-xs">
+                  Close
+                </button>
+              </div>
+              <img data-preview-image alt="" class="mx-auto max-h-[70vh] w-auto rounded-xl" />
+            </div>
+          </div>
         </div>
       )}
     </article>
@@ -302,6 +553,29 @@ export const results = new Elysia()
       );
     },
     { auth: true },
+  )
+  .post(
+    "/results/:jobId/delete",
+    async ({ params, body, status, user }) => {
+      const job = db
+        .query("SELECT * FROM jobs WHERE user_id = ? AND id = ?")
+        .as(Jobs)
+        .get(user.id, params.jobId);
+
+      if (!job) {
+        return status(404, { message: "Job not found." });
+      }
+
+      const fileName = sanitize(body.filename);
+      await unlink(`${outputDir}${user.id}/${job.id}/${fileName}`).catch(() => {});
+      db.query("DELETE FROM file_names WHERE job_id = ? AND output_file_name = ?").run(
+        job.id,
+        fileName,
+      );
+
+      return { deleted: fileName };
+    },
+    { body: t.Object({ filename: t.String() }), auth: true },
   )
   .get(
     "/progress/:jobId/status",

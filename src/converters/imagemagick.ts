@@ -443,6 +443,11 @@ export const properties = {
 
 const DOCUMENT_INPUTS = new Set(["pdf", "epdf", "ps", "eps", "epi", "epsi", "ai"]);
 
+// Resolution used when rasterising a document. Higher means sharper images and
+// larger files; the default is a readable screen quality.
+const DEFAULT_DENSITY = 150;
+const ALLOWED_DENSITIES = [150, 300];
+
 export function convert(
   filePath: string,
   fileType: string,
@@ -473,7 +478,9 @@ export function convert(
   // Documents are rasterised by Ghostscript: the default 72 DPI is blurry, and the
   // transparent page background turns black in formats without alpha, like JPG
   if (DOCUMENT_INPUTS.has(fileType)) {
-    inputArgs.push("-density", "150");
+    const requested = (options as { density?: number } | undefined)?.density;
+    const density = ALLOWED_DENSITIES.includes(requested ?? 0) ? requested : DEFAULT_DENSITY;
+    inputArgs.push("-density", String(density));
     outputArgs.push("-background", "white", "-alpha", "remove", "-alpha", "off");
   }
 

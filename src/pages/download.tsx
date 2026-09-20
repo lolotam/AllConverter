@@ -11,7 +11,7 @@ export const download = new Elysia()
   .use(userService)
   .get(
     "/download/:userId/:jobId/:fileName",
-    async ({ params, redirect, set, user }) => {
+    async ({ params, query, redirect, set, user }) => {
       const userId = user.id;
       const job = await db
         .query("SELECT * FROM jobs WHERE user_id = ? AND id = ?")
@@ -31,7 +31,10 @@ export const download = new Elysia()
         return { message: "Converted file not found." };
       }
 
-      set.headers["content-disposition"] = `attachment; filename="${encodeURIComponent(fileName)}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
+      // Previews and card thumbnails ask for the file inline; everything else downloads
+      const disposition = query.inline ? "inline" : "attachment";
+      set.headers["content-disposition"] =
+        `${disposition}; filename="${encodeURIComponent(fileName)}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
       return file;
     },
     {

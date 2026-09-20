@@ -473,6 +473,24 @@ export const root = new Elysia().use(userService).get(
                         </div>
                       </div>
 
+                      {/* Resolution for documents rendered to images (PDF to JPG and similar).
+                          script.js only shows this when it applies to the chosen formats. */}
+                      <div id="quality-option" hidden class="mt-4">
+                        <label class="flex flex-col gap-1 text-sm text-slate-600 dark:text-neutral-300">
+                          Image quality
+                          <select
+                            name="quality"
+                            class={`
+                              rounded-xl border border-slate-200 bg-white p-3 text-slate-900
+                              dark:border-neutral-700 dark:bg-neutral-800 dark:text-white
+                            `}
+                          >
+                            <option value="150">Standard · 150 DPI (smaller files)</option>
+                            <option value="300">High · 300 DPI (sharper, larger files)</option>
+                          </select>
+                        </label>
+                      </div>
+
                       {/* Big Call to Action Button */}
                       <input
                         class={`

@@ -1,3 +1,4 @@
+/* global tus */ // provided by tus.min.js, loaded before this script
 const webroot = document.querySelector("meta[name='webroot']").content;
 const fileInput = document.querySelector('input[type="file"]');
 const dropZone = document.getElementById("dropzone");
@@ -171,6 +172,7 @@ function selectTarget(targetName, converterName, fullValue) {
   convertToElement.value = finalVal;
   convertToInput.value = `${targetName.toUpperCase()}${converterName ? ` (${converterName})` : ""}`;
   formatSelected = true;
+  updateQualityOption();
   if (pendingFiles === 0 && fileNames.length > 0) {
     convertButton.disabled = false;
   }
@@ -430,6 +432,20 @@ const uploadFile = (file, pauseButton) => {
       upload.start();
     })
     .catch(() => upload.start());
+};
+
+// Rasterising a document (PDF, PostScript) into images is the only case where the
+// resolution matters, so the option only appears for those conversions.
+const DOCUMENT_TYPES = ["pdf", "ps", "eps", "ai", "epdf"];
+const IMAGE_TARGETS = ["jpg", "jpeg", "png", "webp", "tiff", "tif", "bmp", "avif", "heic"];
+
+const updateQualityOption = () => {
+  const option = document.getElementById("quality-option");
+  if (!option) return;
+  const target = (document.querySelector("select[name='convert_to']")?.value || "").split(",")[0];
+  option.hidden = !(
+    DOCUMENT_TYPES.includes((fileType || "").toLowerCase()) && IMAGE_TARGETS.includes(target)
+  );
 };
 
 const formConvert = document.querySelector(`form[action='${webroot}/convert']`);

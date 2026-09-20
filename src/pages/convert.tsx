@@ -104,6 +104,7 @@ export const convert = new Elysia().use(userService).post(
       converterName,
       jobId,
       tier.priority_queue,
+      { density: body.quality === "300" ? 300 : 150 },
     )
       .catch((error) => {
         console.error("Error in conversion process:", error);
@@ -120,6 +121,8 @@ export const convert = new Elysia().use(userService).post(
     body: t.Object({
       convert_to: t.String(),
       file_names: t.String(),
+      // Resolution for rasterising documents such as PDF, in DPI
+      quality: t.Optional(t.String()),
     }),
     auth: true,
   },

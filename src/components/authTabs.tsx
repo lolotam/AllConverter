@@ -1,12 +1,16 @@
 // Both entrances to the account are shown side by side: visitors sent here after their
 // free conversion were landing on a page that looked like sign-up only.
+import { t, type Locale } from "../i18n";
+
 export function AuthTabs({
   webroot,
+  locale,
   active,
   accountRegistration,
   reason,
 }: {
   webroot: string;
+  locale: Locale;
   active: "login" | "register";
   accountRegistration: boolean;
   reason?: string | undefined;
@@ -22,18 +26,26 @@ export function AuthTabs({
   return (
     <div class="mb-6 flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-neutral-800 dark:bg-neutral-900">
       <a href={`${webroot}/login${suffix}`} class={tab(active === "login")}>
-        Sign in
+        {t(locale, "auth.signInTab")}
       </a>
       {accountRegistration ? (
         <a href={`${webroot}/register${suffix}`} class={tab(active === "register")}>
-          Create account
+          {t(locale, "auth.createTab")}
         </a>
       ) : null}
     </div>
   );
 }
 
-export function GoogleButton({ webroot, label }: { webroot: string; label: string }) {
+export function GoogleButton({
+  webroot,
+  locale,
+  label,
+}: {
+  webroot: string;
+  locale: Locale;
+  label: string;
+}) {
   return (
     <>
       <a
@@ -67,7 +79,7 @@ export function GoogleButton({ webroot, label }: { webroot: string; label: strin
       </a>
       <div class="my-5 flex items-center gap-3 text-xs text-slate-500 dark:text-neutral-500">
         <span class="h-px flex-1 bg-slate-200 dark:bg-neutral-800" />
-        or use your email
+        {t(locale, "auth.orEmail")}
         <span class="h-px flex-1 bg-slate-200 dark:bg-neutral-800" />
       </div>
     </>

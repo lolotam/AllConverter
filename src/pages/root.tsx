@@ -23,27 +23,26 @@ import {
 } from "../helpers/env";
 import { checkoutConfig, priceIdForTier } from "../services/paddle";
 import { getConversionsToday, getQuotaContext, UNLIMITED_THRESHOLD } from "../services/quota";
+import { localeFromRequest, t as tr, type Locale, type MessageKey } from "../i18n";
 import { FIRST_RUN, userService } from "./user";
 
 // Must match the real cleanup schedule; the privacy policy states the same retention.
 // Read per request, because retention is per tier and editable in the admin dashboard.
-const fileDeletionPromise = () =>
+// The retention sentence itself comes from the database and stays in its own language.
+const fileDeletionPromise = (locale: Locale) =>
   deletionIsAutomatic()
-    ? `Uploaded and converted files are permanently deleted from our servers ${retentionSentence()}.`
-    : "You can permanently delete your uploaded and converted files at any time.";
+    ? tr(locale, "home.filesDeletedAuto", { retention: retentionSentence() })
+    : tr(locale, "home.filesDeletedManual");
 
-const LIMIT_MESSAGES: Record<string, string> = {
-  daily:
-    "You've used all of today's conversions on your plan. Upgrade to Pro for unlimited conversions.",
-  batch:
-    "Your plan doesn't allow that many files in one conversion. Upgrade to Pro for bigger batches.",
-  upload:
-    "Those files haven't finished uploading yet. Wait for every upload to complete, then convert.",
+const LIMIT_MESSAGE_KEYS: Record<string, MessageKey> = {
+  daily: "home.limit.daily",
+  batch: "home.limit.batch",
+  upload: "home.limit.upload",
 };
 
 export const root = new Elysia().use(userService).get(
   "/",
-  async ({ jwt, redirect, query, request, server, cookie: { auth, jobId } }) => {
+  async ({ jwt, redirect, query, request, server, cookie: { auth, jobId, lang } }) => {
     if (!ALLOW_UNAUTHENTICATED) {
       if (FIRST_RUN) {
         return redirect(`${WEBROOT}/setup`, 302);
@@ -155,20 +154,20 @@ export const root = new Elysia().use(userService).get(
       dailyLimit >= UNLIMITED_THRESHOLD
         ? null
         : Math.max(0, dailyLimit - getConversionsToday(subject));
-    const limitMessage =
-      query.limit && Object.hasOwn(LIMIT_MESSAGES, query.limit)
-        ? LIMIT_MESSAGES[query.limit]
-        : undefined;
+    const limitMessageKey = query.limit ? LIMIT_MESSAGE_KEYS[query.limit] : undefined;
+    const locale = localeFromRequest(request, lang?.value);
 
     return (
       <BaseHtml
         webroot={WEBROOT}
         title={`${BRANDING} - Universal Cloud File Converter`}
         customFooter={true}
+        locale={locale}
       >
         <>
           <Header
             webroot={WEBROOT}
+            locale={locale}
             branding={BRANDING}
             accountRegistration={ACCOUNT_REGISTRATION}
             allowUnauthenticated={ALLOW_UNAUTHENTICATED}
@@ -178,14 +177,14 @@ export const root = new Elysia().use(userService).get(
           />
 
           <main class="w-full flex-1">
-            {limitMessage && (
+            {limitMessageKey && (
               <div
                 role="alert"
                 class="border-b border-amber-500/40 bg-amber-500/10 px-4 py-3 text-center text-sm font-medium text-amber-300"
               >
-                <span safe>{limitMessage}</span>{" "}
+                <span safe>{tr(locale, limitMessageKey)}</span>{" "}
                 <a href="#pricing" class="font-bold underline hover:text-amber-200">
-                  See plans
+                  {tr(locale, "home.seePlans")}
                 </a>
               </div>
             )}
@@ -193,8 +192,10 @@ export const root = new Elysia().use(userService).get(
             <div class="border-b border-slate-200 dark:border-neutral-800/60 bg-gradient-to-r from-accent-500/10 via-lime-500/5 to-emerald-500/10 py-2.5 px-4 text-center text-xs sm:text-sm text-slate-700 dark:text-neutral-300">
               <span class="inline-flex items-center gap-1.5 font-medium">
                 <span class="flex size-2 rounded-full bg-accent-500 animate-pulse" />
-                <strong class="text-lime-700 dark:text-accent-400">New:</strong> Fast cloud
-                conversion for over 1,000+ formats with 100% privacy!
+                <strong class="text-lime-700 dark:text-accent-400">
+                  {tr(locale, "home.announcementNew")}
+                </strong>{" "}
+                {tr(locale, "home.announcement")}
               </span>
             </div>
 
@@ -202,30 +203,29 @@ export const root = new Elysia().use(userService).get(
             <section class="relative overflow-hidden pt-12 pb-20 px-4 sm:px-6 lg:px-8">
               {/* Subtle background glow circles */}
               <div class="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 size-[650px] rounded-full bg-gradient-to-tr from-accent-500/15 to-emerald-500/10 blur-[130px]" />
-              <div class="pointer-events-none absolute top-1/2 -left-40 size-[450px] rounded-full bg-blue-500/10 blur-[120px]" />
+              <div class="pointer-events-none absolute top-1/2 -start-40 size-[450px] rounded-full bg-blue-500/10 blur-[120px]" />
 
               <div class="relative mx-auto max-w-5xl text-center">
                 {/* Badge */}
                 <div class="inline-flex items-center gap-2 rounded-full border border-lime-500/30 bg-lime-500/10 px-3.5 py-1.5 text-xs font-semibold text-lime-700 dark:text-accent-400 backdrop-blur-md mb-6 shadow-sm">
-                  <span>⚡ Unlimited & Free Online Converter</span>
+                  <span>{tr(locale, "home.badge")}</span>
                 </div>
 
                 {/* Main Heading */}
                 <h1 class="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
-                  Convert Any File to Any Format{" "}
+                  {tr(locale, "home.heroTitle")}{" "}
                   <span class="bg-gradient-to-r from-accent-500 via-lime-500 to-emerald-500 bg-clip-text text-transparent">
-                    in Seconds
+                    {tr(locale, "home.heroTitleHighlight")}
                   </span>
                 </h1>
 
                 {/* Subtitle */}
                 <p class="mx-auto max-w-2xl text-base sm:text-lg text-slate-600 dark:text-neutral-300 mb-10 leading-relaxed">
-                  Transform audio, video, documents, images, and eBooks effortlessly with zero
-                  quality loss. 100% private, cloud-powered, and free.
+                  {tr(locale, "home.heroSubtitle")}
                 </p>
 
                 {/* CONVERTER CARD (CORE ENGINE) */}
-                <div class="relative mx-auto max-w-4xl text-left">
+                <div class="relative mx-auto max-w-4xl text-start">
                   {/* Glowing border card */}
                   <div class="rounded-3xl border border-slate-200 bg-white/95 p-5 sm:p-8 backdrop-blur-2xl shadow-xl dark:border-neutral-700/60 dark:bg-neutral-900/90 dark:shadow-2xl transition-all">
                     {/* Interactive Dropzone */}
@@ -263,25 +263,26 @@ export const root = new Elysia().use(userService).get(
                       <div class="space-y-1">
                         <p class="text-lg font-bold text-slate-900 dark:text-white">
                           <span class="text-lime-600 dark:text-accent-400 group-hover:underline">
-                            Choose Files
+                            {tr(locale, "home.chooseFiles")}
                           </span>{" "}
-                          or drag & drop them here
+                          {tr(locale, "home.orDragDrop")}
                         </p>
                         <p class="text-xs text-slate-500 dark:text-neutral-400">
-                          Video, Audio, Document, Image, eBook & Archives · up to{" "}
-                          {tier.max_file_size_mb} MB per file · {tier.batch_limit} files at once
+                          {tr(locale, "home.fileTypes")} ·{" "}
+                          {tr(locale, "home.upTo", { size: tier.max_file_size_mb })} ·{" "}
+                          {tr(locale, "home.filesAtOnce", { count: tier.batch_limit })}
                           {conversionsLeft !== null &&
-                            ` · ${conversionsLeft} conversions left today`}
+                            ` · ${tr(locale, "home.conversionsLeft", { count: conversionsLeft })}`}
                         </p>
                       </div>
 
                       {/* File source buttons mockup */}
                       <div class="mt-4 flex items-center gap-2">
                         <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-neutral-800 px-3 py-1 text-xs text-slate-700 dark:text-neutral-300 border border-slate-200 dark:border-neutral-700">
-                          📁 From Device
+                          {tr(locale, "home.fromDevice")}
                         </span>
                         <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-neutral-800 px-3 py-1 text-xs text-slate-700 dark:text-neutral-300 border border-slate-200 dark:border-neutral-700">
-                          ☁️ Cloud Storage
+                          {tr(locale, "home.cloudStorage")}
                         </span>
                       </div>
 
@@ -314,7 +315,7 @@ export const root = new Elysia().use(userService).get(
                     >
                       <div class="flex items-center gap-2 flex-wrap text-xs">
                         <span class="font-bold text-slate-600 dark:text-neutral-400 flex items-center gap-1">
-                          <span>🕒</span> Recent:
+                          {tr(locale, "home.recent")}
                         </span>
                         <div class="recent-pills-list flex flex-wrap gap-1.5" />
                       </div>
@@ -324,7 +325,7 @@ export const root = new Elysia().use(userService).get(
                     <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-neutral-400">
                       <div class="flex flex-wrap items-center gap-1.5">
                         <span class="font-semibold text-slate-600 dark:text-neutral-400">
-                          Popular:
+                          {tr(locale, "home.popular")}
                         </span>
                         {popularFormats.map((fmt) => (
                           <button
@@ -337,7 +338,7 @@ export const root = new Elysia().use(userService).get(
                         ))}
                       </div>
                       <span class="text-lime-600 dark:text-accent-400 font-medium">
-                        1,000+ total formats
+                        {tr(locale, "home.totalFormats")}
                       </span>
                     </div>
 
@@ -352,7 +353,7 @@ export const root = new Elysia().use(userService).get(
                       <div class="relative">
                         <div class="flex items-center rounded-xl bg-slate-100 dark:bg-neutral-800/90 border border-slate-300 dark:border-neutral-700 px-4 py-3 focus-within:border-accent-500 transition-colors">
                           <svg
-                            class="size-5 text-slate-400 dark:text-neutral-400 mr-2"
+                            class="size-5 text-slate-400 dark:text-neutral-400 me-2"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -367,7 +368,7 @@ export const root = new Elysia().use(userService).get(
                           <input
                             type="search"
                             name="convert_to_search"
-                            placeholder="Select target format (e.g. mp3, pdf, jpg, docx)..."
+                            placeholder={tr(locale, "home.searchPlaceholder")}
                             autocomplete="off"
                             class="w-full bg-transparent text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-400 focus:outline-none"
                           />
@@ -385,10 +386,10 @@ export const root = new Elysia().use(userService).get(
                             <article
                               id="recent-formats-group"
                               class="convert_to_group hidden w-full flex-col border-b border-slate-200 dark:border-neutral-700/60 p-3 bg-blue-500/5 dark:bg-blue-500/10 rounded-lg mb-1"
-                              data-converter="🕒 Recent Formats"
+                              data-converter={tr(locale, "home.recentFormatsGroup")}
                             >
                               <header class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                                <span>🕒</span> Recently Used (المستخدمة مؤخراً)
+                                {tr(locale, "home.recentlyUsed")}
                               </header>
                               <ul
                                 id="recent-formats-list"
@@ -399,10 +400,10 @@ export const root = new Elysia().use(userService).get(
                             {/* Popular Formats Group inside popup */}
                             <article
                               class="convert_to_group flex w-full flex-col border-b border-slate-200 dark:border-neutral-700/60 p-3 bg-amber-500/5 dark:bg-amber-500/10 rounded-lg mb-1"
-                              data-converter="🔥 Popular Formats"
+                              data-converter={tr(locale, "home.popularFormatsGroup")}
                             >
                               <header class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
-                                <span>🔥</span> Popular Formats (الأكثر شهرة)
+                                {tr(locale, "home.popularFormatsGroup")}
                               </header>
                               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">
                                 {[
@@ -467,9 +468,14 @@ export const root = new Elysia().use(userService).get(
                           </article>
 
                           {/* Hidden element for selected format */}
-                          <select name="convert_to" aria-label="Convert to" required hidden>
+                          <select
+                            name="convert_to"
+                            aria-label={tr(locale, "home.convertTo")}
+                            required
+                            hidden
+                          >
                             <option selected disabled value="">
-                              Convert to
+                              {tr(locale, "home.convertTo")}
                             </option>
                             {Object.entries(allTargets).map(([converter, targets]) => (
                               <optgroup label={converter}>
@@ -488,7 +494,7 @@ export const root = new Elysia().use(userService).get(
                           script.js only shows this when it applies to the chosen formats. */}
                       <div id="quality-option" hidden class="mt-4">
                         <label class="flex flex-col gap-1 text-sm text-slate-600 dark:text-neutral-300">
-                          Image quality
+                          {tr(locale, "home.imageQuality")}
                           <select
                             name="quality"
                             class={`
@@ -496,8 +502,8 @@ export const root = new Elysia().use(userService).get(
                               dark:border-neutral-700 dark:bg-neutral-800 dark:text-white
                             `}
                           >
-                            <option value="150">Standard · 150 DPI (smaller files)</option>
-                            <option value="300">High · 300 DPI (sharper, larger files)</option>
+                            <option value="150">{tr(locale, "home.qualityStandard")}</option>
+                            <option value="300">{tr(locale, "home.qualityHigh")}</option>
                           </select>
                         </label>
                       </div>
@@ -509,7 +515,7 @@ export const root = new Elysia().use(userService).get(
                           disabled:opacity-40 disabled:cursor-not-allowed
                         `}
                         type="submit"
-                        value="Convert Now ⚡"
+                        value={tr(locale, "home.convertNow")}
                         disabled
                       />
                     </form>
@@ -517,16 +523,16 @@ export const root = new Elysia().use(userService).get(
                     {/* Trust Badges */}
                     <div class="mt-6 pt-5 border-t border-slate-200 dark:border-neutral-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-slate-500 dark:text-neutral-400 text-center">
                       <div class="flex items-center justify-center gap-1.5">
-                        <span>🔒</span> 256-Bit SSL Encryption
+                        {tr(locale, "home.ssl")}
                       </div>
                       <div class="flex items-center justify-center gap-1.5">
-                        <span>🗑️</span> Auto-Deleted After 2h
+                        {tr(locale, "home.autoDeleted")}
                       </div>
                       <div class="flex items-center justify-center gap-1.5">
-                        <span>⚡</span> High-Speed Cloud
+                        {tr(locale, "home.highSpeed")}
                       </div>
                       <div class="flex items-center justify-center gap-1.5">
-                        <span>🛡️</span> 100% Private & Secure
+                        {tr(locale, "home.privateSecure")}
                       </div>
                     </div>
                   </div>
@@ -542,10 +548,10 @@ export const root = new Elysia().use(userService).get(
               <div class="mx-auto max-w-7xl">
                 <div class="text-center max-w-3xl mx-auto mb-14">
                   <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">
-                    All-in-One Cloud Conversion Suite
+                    {tr(locale, "home.toolsTitle")}
                   </h2>
                   <p class="text-slate-600 dark:text-neutral-400 text-base">
-                    Every converter you need in one place. Fast, accurate, and completely online.
+                    {tr(locale, "home.toolsSubtitle")}
                   </p>
                 </div>
 
@@ -568,21 +574,20 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                      Document Converter
+                      {tr(locale, "home.docConverter")}
                     </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Convert PDF, Word (DOCX), Excel (XLSX), PowerPoint (PPTX), and TXT with
-                      pixel-perfect accuracy.
+                      {tr(locale, "home.docConverterDesc")}
                     </p>
                     <div class="flex flex-wrap gap-1.5">
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        PDF to Word
+                        {tr(locale, "home.tag", { from: "PDF", to: "Word" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        Word to PDF
+                        {tr(locale, "home.tag", { from: "Word", to: "PDF" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        Excel to PDF
+                        {tr(locale, "home.tag", { from: "Excel", to: "PDF" })}
                       </span>
                     </div>
                   </div>
@@ -605,21 +610,20 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                      Video Converter
+                      {tr(locale, "home.videoConverter")}
                     </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Compress and convert video files across MP4, MKV, AVI, MOV, WEBM, and animated
-                      GIF formats.
+                      {tr(locale, "home.videoConverterDesc")}
                     </p>
                     <div class="flex flex-wrap gap-1.5">
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        MP4 to MP3
+                        {tr(locale, "home.tag", { from: "MP4", to: "MP3" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        MOV to MP4
+                        {tr(locale, "home.tag", { from: "MOV", to: "MP4" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        MKV to MP4
+                        {tr(locale, "home.tag", { from: "MKV", to: "MP4" })}
                       </span>
                     </div>
                   </div>
@@ -642,21 +646,20 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                      Audio Converter
+                      {tr(locale, "home.audioConverter")}
                     </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Extract audio tracks and convert between MP3, WAV, FLAC, AAC, M4A, OGG, and
-                      high-res formats.
+                      {tr(locale, "home.audioConverterDesc")}
                     </p>
                     <div class="flex flex-wrap gap-1.5">
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        WAV to MP3
+                        {tr(locale, "home.tag", { from: "WAV", to: "MP3" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        FLAC to MP3
+                        {tr(locale, "home.tag", { from: "FLAC", to: "MP3" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        M4A to MP3
+                        {tr(locale, "home.tag", { from: "M4A", to: "MP3" })}
                       </span>
                     </div>
                   </div>
@@ -679,21 +682,20 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                      Image Converter
+                      {tr(locale, "home.imageConverter")}
                     </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Convert between PNG, JPG, WEBP, SVG, HEIC, TIFF, and vector formats with smart
-                      compression.
+                      {tr(locale, "home.imageConverterDesc")}
                     </p>
                     <div class="flex flex-wrap gap-1.5">
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        HEIC to JPG
+                        {tr(locale, "home.tag", { from: "HEIC", to: "JPG" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        PNG to JPG
+                        {tr(locale, "home.tag", { from: "PNG", to: "JPG" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        WEBP to PNG
+                        {tr(locale, "home.tag", { from: "WEBP", to: "PNG" })}
                       </span>
                     </div>
                   </div>
@@ -716,21 +718,20 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                      E-Book Converter
+                      {tr(locale, "home.ebookConverter")}
                     </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Read your books on any device. Transform between EPUB, MOBI, PDF, AZW3, and
-                      Kindle formats.
+                      {tr(locale, "home.ebookConverterDesc")}
                     </p>
                     <div class="flex flex-wrap gap-1.5">
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        EPUB to PDF
+                        {tr(locale, "home.tag", { from: "EPUB", to: "PDF" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        PDF to EPUB
+                        {tr(locale, "home.tag", { from: "PDF", to: "EPUB" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        MOBI to EPUB
+                        {tr(locale, "home.tag", { from: "MOBI", to: "EPUB" })}
                       </span>
                     </div>
                   </div>
@@ -753,21 +754,20 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                      Data & Archives
+                      {tr(locale, "home.dataArchives")}
                     </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Convert structured data (JSON, CSV, XML, YAML) and compress or unpack ZIP,
-                      TAR, and GZ archives.
+                      {tr(locale, "home.dataArchivesDesc")}
                     </p>
                     <div class="flex flex-wrap gap-1.5">
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        JSON to CSV
+                        {tr(locale, "home.tag", { from: "JSON", to: "CSV" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        CSV to JSON
+                        {tr(locale, "home.tag", { from: "CSV", to: "JSON" })}
                       </span>
                       <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        XML to JSON
+                        {tr(locale, "home.tag", { from: "XML", to: "JSON" })}
                       </span>
                     </div>
                   </div>
@@ -780,10 +780,10 @@ export const root = new Elysia().use(userService).get(
               <div class="mx-auto max-w-7xl">
                 <div class="text-center max-w-3xl mx-auto mb-16">
                   <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">
-                    How It Works
+                    {tr(locale, "home.howTitle")}
                   </h2>
                   <p class="text-slate-600 dark:text-neutral-400 text-base">
-                    Transform any file in 3 simple, friction-free steps.
+                    {tr(locale, "home.howSubtitle")}
                   </p>
                 </div>
 
@@ -794,11 +794,10 @@ export const root = new Elysia().use(userService).get(
                       1
                     </div>
                     <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                      Upload File
+                      {tr(locale, "home.step1Title")}
                     </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 max-w-xs">
-                      Drag and drop your file or select it directly from your computer or mobile
-                      phone.
+                      {tr(locale, "home.step1Desc")}
                     </p>
                   </div>
 
@@ -808,10 +807,10 @@ export const root = new Elysia().use(userService).get(
                       2
                     </div>
                     <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                      Choose Target Format
+                      {tr(locale, "home.step2Title")}
                     </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 max-w-xs">
-                      Pick your desired output format from over 1,000 supported options.
+                      {tr(locale, "home.step2Desc")}
                     </p>
                   </div>
 
@@ -821,11 +820,10 @@ export const root = new Elysia().use(userService).get(
                       3
                     </div>
                     <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                      Download Instantly
+                      {tr(locale, "home.step3Title")}
                     </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 max-w-xs">
-                      Our high-speed servers process your file in seconds. Download your file right
-                      away!
+                      {tr(locale, "home.step3Desc")}
                     </p>
                   </div>
                 </div>
@@ -840,14 +838,13 @@ export const root = new Elysia().use(userService).get(
               <div class="mx-auto max-w-7xl">
                 <div class="text-center max-w-3xl mx-auto mb-16">
                   <div class="inline-flex items-center gap-2 rounded-full border border-lime-500/30 bg-lime-500/10 px-3.5 py-1.5 text-xs font-semibold text-lime-700 dark:text-accent-400 mb-4">
-                    <span>Flexible Plans</span>
+                    <span>{tr(locale, "home.pricingBadge")}</span>
                   </div>
                   <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">
-                    Simple, Transparent Pricing
+                    {tr(locale, "home.pricingTitle")}
                   </h2>
                   <p class="text-slate-600 dark:text-neutral-400 text-base">
-                    Use our platform for free, or upgrade for massive file sizes and unlimited
-                    conversions.
+                    {tr(locale, "home.pricingSubtitle")}
                   </p>
                 </div>
 
@@ -870,15 +867,15 @@ export const root = new Elysia().use(userService).get(
                       >
                         {t.is_popular ? (
                           <div class="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-accent-500 to-lime-400 px-4 py-1 text-xs font-extrabold text-neutral-950 uppercase tracking-wider shadow-sm">
-                            {t.badge || "Most Popular"}
+                            <span safe>{t.badge || tr(locale, "home.mostPopular")}</span>
                           </div>
                         ) : null}
 
                         <div>
-                          <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                          <h3 safe class="text-xl font-bold text-slate-900 dark:text-white mb-2">
                             {t.name}
                           </h3>
-                          <p class="text-sm text-slate-600 dark:text-neutral-400 mb-6">
+                          <p safe class="text-sm text-slate-600 dark:text-neutral-400 mb-6">
                             {t.description}
                           </p>
                           <div class="flex items-baseline gap-1 mb-6">
@@ -893,7 +890,7 @@ export const root = new Elysia().use(userService).get(
                             {featuresList.map((feat) => (
                               <li class="flex items-center gap-2.5">
                                 <span class="text-lime-600 dark:text-accent-400 font-bold">✓</span>{" "}
-                                {feat}
+                                <span safe>{feat}</span>
                               </li>
                             ))}
                           </ul>
@@ -904,7 +901,7 @@ export const root = new Elysia().use(userService).get(
                             href={`${WEBROOT}/account`}
                             class="w-full text-center text-sm font-bold btn-secondary"
                           >
-                            Current plan
+                            {tr(locale, "home.currentPlan")}
                           </a>
                         ) : checkout && priceIdForTier(t.id) ? (
                           <button
@@ -914,7 +911,7 @@ export const root = new Elysia().use(userService).get(
                               t.is_popular ? "btn-primary" : "btn-secondary"
                             }`}
                           >
-                            {t.button_text}
+                            <span safe>{t.button_text}</span>
                           </button>
                         ) : (
                           <a
@@ -923,7 +920,7 @@ export const root = new Elysia().use(userService).get(
                               t.is_popular ? "btn-primary" : "btn-secondary"
                             }`}
                           >
-                            {t.button_text}
+                            <span safe>{t.button_text}</span>
                           </a>
                         )}
                       </div>
@@ -942,11 +939,10 @@ export const root = new Elysia().use(userService).get(
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div>
                     <h2 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-6">
-                      Engineered for Speed, Privacy & Precision
+                      {tr(locale, "home.featuresTitle")}
                     </h2>
                     <p class="text-slate-600 dark:text-neutral-300 text-base mb-8 leading-relaxed">
-                      Unlike other services that sell or retain your documents, ConvertX operates
-                      under a strict privacy-first architecture. {fileDeletionPromise()}
+                      {tr(locale, "home.featuresIntro")} {fileDeletionPromise(locale)}
                     </p>
                     <div class="space-y-4">
                       <div class="flex items-start gap-4">
@@ -955,10 +951,10 @@ export const root = new Elysia().use(userService).get(
                         </div>
                         <div>
                           <h4 class="font-bold text-slate-900 dark:text-white text-base">
-                            Automatic File Deletion
+                            {tr(locale, "home.autoDeleteTitle")}
                           </h4>
                           <p class="text-sm text-slate-600 dark:text-neutral-400">
-                            {fileDeletionPromise()}
+                            {fileDeletionPromise(locale)}
                           </p>
                         </div>
                       </div>
@@ -968,11 +964,10 @@ export const root = new Elysia().use(userService).get(
                         </div>
                         <div>
                           <h4 class="font-bold text-slate-900 dark:text-white text-base">
-                            Industry-Standard Engines
+                            {tr(locale, "home.industryTitle")}
                           </h4>
                           <p class="text-sm text-slate-600 dark:text-neutral-400">
-                            Powered by FFmpeg, LibreOffice, ImageMagick, Pandoc, and Calibre for the
-                            highest quality possible.
+                            {tr(locale, "home.industryDesc")}
                           </p>
                         </div>
                       </div>
@@ -982,11 +977,10 @@ export const root = new Elysia().use(userService).get(
                         </div>
                         <div>
                           <h4 class="font-bold text-slate-900 dark:text-white text-base">
-                            Zero Installation Required
+                            {tr(locale, "home.zeroInstallTitle")}
                           </h4>
                           <p class="text-sm text-slate-600 dark:text-neutral-400">
-                            Runs smoothly in any modern browser on iOS, Android, macOS, Windows, and
-                            Linux.
+                            {tr(locale, "home.zeroInstallDesc")}
                           </p>
                         </div>
                       </div>
@@ -995,38 +989,40 @@ export const root = new Elysia().use(userService).get(
 
                   <div class="rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-neutral-700/60 dark:bg-gradient-to-tr dark:from-neutral-900 dark:to-neutral-850 p-8">
                     <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-4">
-                      Supported Converters & Libraries
+                      {tr(locale, "home.librariesTitle")}
                     </h3>
                     <div class="grid grid-cols-2 gap-3 text-sm text-slate-700 dark:text-neutral-300">
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> FFmpeg
-                        (Video/Audio)
+                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
+                        {tr(locale, "home.lib.ffmpeg")}
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> LibreOffice
-                        (Office Docs)
+                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
+                        {tr(locale, "home.lib.libreoffice")}
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> ImageMagick
-                        (Raster)
+                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
+                        {tr(locale, "home.lib.imagemagick")}
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> Pandoc
-                        (Markdown/TeX)
+                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
+                        {tr(locale, "home.lib.pandoc")}
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> Calibre (eBooks)
+                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
+                        {tr(locale, "home.lib.calibre")}
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> Inkscape
-                        (Vectors/SVG)
+                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
+                        {tr(locale, "home.lib.inkscape")}
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> Potrace (Raster to
-                        Vector)
+                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
+                        {tr(locale, "home.lib.potrace")}
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> Assimp (3D Assets)
+                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
+                        {tr(locale, "home.lib.assimp")}
                       </div>
                     </div>
                   </div>
@@ -1051,17 +1047,19 @@ export const root = new Elysia().use(userService).get(
                   </span>
                 </div>
                 <p class="text-slate-500 dark:text-neutral-400 text-xs max-w-sm leading-relaxed mb-4">
-                  The modern, secure online file converter. Transform thousands of file formats in
-                  the cloud with zero software installation.
+                  {tr(locale, "home.footerTagline")}
                 </p>
-                <p class="text-slate-500 dark:text-neutral-400 text-xs">
-                  © {new Date().getFullYear()} {BRANDING}. All rights reserved.
+                <p safe class="text-slate-500 dark:text-neutral-400 text-xs">
+                  {tr(locale, "home.copyright", {
+                    year: new Date().getFullYear(),
+                    brand: BRANDING,
+                  })}
                 </p>
               </div>
 
               <div>
                 <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">
-                  Converters
+                  {tr(locale, "home.footerConverters")}
                 </h5>
                 <ul class="space-y-2 text-xs text-slate-600 dark:text-neutral-400">
                   <li>
@@ -1069,7 +1067,7 @@ export const root = new Elysia().use(userService).get(
                       href="#tools"
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      PDF Converter
+                      {tr(locale, "home.footerPdf")}
                     </a>
                   </li>
                   <li>
@@ -1077,7 +1075,7 @@ export const root = new Elysia().use(userService).get(
                       href="#tools"
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Video Converter
+                      {tr(locale, "home.footerVideo")}
                     </a>
                   </li>
                   <li>
@@ -1085,7 +1083,7 @@ export const root = new Elysia().use(userService).get(
                       href="#tools"
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Audio Converter
+                      {tr(locale, "home.footerAudio")}
                     </a>
                   </li>
                   <li>
@@ -1093,7 +1091,7 @@ export const root = new Elysia().use(userService).get(
                       href="#tools"
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Image Converter
+                      {tr(locale, "home.footerImage")}
                     </a>
                   </li>
                   <li>
@@ -1101,7 +1099,7 @@ export const root = new Elysia().use(userService).get(
                       href="#tools"
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      eBook Converter
+                      {tr(locale, "home.footerEbook")}
                     </a>
                   </li>
                 </ul>
@@ -1109,7 +1107,7 @@ export const root = new Elysia().use(userService).get(
 
               <div>
                 <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">
-                  Product
+                  {tr(locale, "home.footerProduct")}
                 </h5>
                 <ul class="space-y-2 text-xs text-slate-600 dark:text-neutral-400">
                   <li>
@@ -1117,7 +1115,7 @@ export const root = new Elysia().use(userService).get(
                       href="#pricing"
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Pricing Plans
+                      {tr(locale, "home.footerPricing")}
                     </a>
                   </li>
                   <li>
@@ -1125,7 +1123,7 @@ export const root = new Elysia().use(userService).get(
                       href="#how-it-works"
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      How It Works
+                      {tr(locale, "home.footerHow")}
                     </a>
                   </li>
                   <li>
@@ -1133,7 +1131,7 @@ export const root = new Elysia().use(userService).get(
                       href="#features"
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Security & Privacy
+                      {tr(locale, "home.footerSecurity")}
                     </a>
                   </li>
                   <li>
@@ -1141,7 +1139,7 @@ export const root = new Elysia().use(userService).get(
                       href={`${WEBROOT}/history`}
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Conversion History
+                      {tr(locale, "home.footerHistory")}
                     </a>
                   </li>
                 </ul>
@@ -1149,7 +1147,7 @@ export const root = new Elysia().use(userService).get(
 
               <div>
                 <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">
-                  Account
+                  {tr(locale, "home.footerAccount")}
                 </h5>
                 <ul class="space-y-2 text-xs text-slate-600 dark:text-neutral-400">
                   <li>
@@ -1157,7 +1155,7 @@ export const root = new Elysia().use(userService).get(
                       href={`${WEBROOT}/login`}
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Sign In
+                      {tr(locale, "home.footerSignIn")}
                     </a>
                   </li>
                   <li>
@@ -1165,7 +1163,7 @@ export const root = new Elysia().use(userService).get(
                       href={`${WEBROOT}/register`}
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Create Account
+                      {tr(locale, "home.footerCreate")}
                     </a>
                   </li>
                   <li>
@@ -1173,7 +1171,7 @@ export const root = new Elysia().use(userService).get(
                       href={`${WEBROOT}/account`}
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Account Settings
+                      {tr(locale, "home.footerSettings")}
                     </a>
                   </li>
                   <li>
@@ -1181,7 +1179,7 @@ export const root = new Elysia().use(userService).get(
                       href={`${WEBROOT}/terms`}
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Terms of Service
+                      {tr(locale, "home.footerTerms")}
                     </a>
                   </li>
                   <li>
@@ -1189,7 +1187,7 @@ export const root = new Elysia().use(userService).get(
                       href={`${WEBROOT}/privacy`}
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Privacy Policy
+                      {tr(locale, "home.footerPrivacy")}
                     </a>
                   </li>
                   <li>
@@ -1197,7 +1195,7 @@ export const root = new Elysia().use(userService).get(
                       href={`${WEBROOT}/refunds`}
                       class="hover:text-slate-900 dark:hover:text-white transition-colors"
                     >
-                      Refund Policy
+                      {tr(locale, "home.footerRefunds")}
                     </a>
                   </li>
                 </ul>
@@ -1231,6 +1229,7 @@ export const root = new Elysia().use(userService).get(
     cookie: t.Cookie({
       auth: t.Optional(t.String()),
       jobId: t.Optional(t.String()),
+      lang: t.Optional(t.String()),
     }),
   },
 );

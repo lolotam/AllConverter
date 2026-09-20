@@ -15,6 +15,7 @@ import {
   BRANDING,
 } from "../helpers/env";
 import { GOOGLE_ENABLED, authorizationUrl, exchangeCode, redirectUri } from "../services/google";
+import { localeFromRequest, t as tr } from "../i18n";
 import { userService } from "../services/user";
 
 export { userService } from "../services/user";
@@ -38,23 +39,24 @@ export function setupAllowed(token: unknown, configured: string = SETUP_TOKEN): 
 
 export const user = new Elysia()
   .use(userService)
-  .get("/setup", ({ redirect, query, set }) => {
+  .get("/setup", ({ redirect, query, set, request, cookie: { lang } }) => {
     if (!FIRST_RUN) {
       return redirect(`${WEBROOT}/login`, 302);
     }
 
+    const locale = localeFromRequest(request, lang?.value);
+
     if (!setupAllowed(query.token)) {
       set.status = 403;
       return (
-        <BaseHtml title="ConvertX | Setup" webroot={WEBROOT}>
+        <BaseHtml title="ConvertX | Setup" webroot={WEBROOT} locale={locale}>
           <main class="mx-auto w-full max-w-2xl flex-1 px-4">
-            <h1 class="my-8 text-3xl">Setup is locked</h1>
+            <h1 class="my-8 text-3xl">{tr(locale, "setup.lockedTitle")}</h1>
             <article class="article">
               <p>
-                This instance has no accounts yet, and the first one can only be created by someone
-                holding the setup token. Open this page as
-                <code class="mx-1">/setup?token=YOUR_TOKEN</code>
-                using the <code>SETUP_TOKEN</code> value from the server environment.
+                {tr(locale, "setup.lockedBody1")} <code class="mx-1">/setup?token=YOUR_TOKEN</code>{" "}
+                {tr(locale, "setup.lockedBody2")} <code>SETUP_TOKEN</code>{" "}
+                {tr(locale, "setup.lockedBody3")}
               </p>
             </article>
           </main>
@@ -63,36 +65,36 @@ export const user = new Elysia()
     }
 
     return (
-      <BaseHtml title="ConvertX | Setup" webroot={WEBROOT}>
+      <BaseHtml title="ConvertX | Setup" webroot={WEBROOT} locale={locale}>
         <main
           class={`
             mx-auto w-full max-w-4xl flex-1 px-2
             sm:px-4
           `}
         >
-          <h1 class="my-8 text-3xl">Welcome to ConvertX!</h1>
+          <h1 class="my-8 text-3xl">{tr(locale, "setup.welcome")}</h1>
           <article class="article p-0">
-            <header class="w-full bg-neutral-800 p-4">Create your account</header>
+            <header class="w-full bg-neutral-800 p-4">{tr(locale, "setup.createAccount")}</header>
             <form method="post" action={`${WEBROOT}/register`} class="p-4">
               <fieldset class="mb-4 flex flex-col gap-4">
                 <label class="flex flex-col gap-1">
-                  Email
+                  {tr(locale, "auth.email")}
                   <input
                     type="email"
                     name="email"
                     class="rounded-sm bg-neutral-800 p-3"
-                    placeholder="Email"
+                    placeholder={tr(locale, "auth.email")}
                     autocomplete="email"
                     required
                   />
                 </label>
                 <label class="flex flex-col gap-1">
-                  Password
+                  {tr(locale, "auth.password")}
                   <input
                     type="password"
                     name="password"
                     class="rounded-sm bg-neutral-800 p-3"
-                    placeholder="Password"
+                    placeholder={tr(locale, "auth.password")}
                     autocomplete="current-password"
                     required
                   />
@@ -101,10 +103,10 @@ export const user = new Elysia()
               {SETUP_TOKEN ? (
                 <input type="hidden" name="setupToken" value={String(query.token ?? "")} />
               ) : null}
-              <input type="submit" value="Create account" class="btn-primary" />
+              <input type="submit" value={tr(locale, "auth.createSubmit")} class="btn-primary" />
             </form>
             <footer class="p-4">
-              Report any issues on{" "}
+              {tr(locale, "setup.reportIssues")}{" "}
               <a
                 class={`
                   text-accent-500 underline
@@ -121,16 +123,19 @@ export const user = new Elysia()
       </BaseHtml>
     );
   })
-  .get("/register", ({ redirect, query }) => {
+  .get("/register", ({ redirect, query, request, cookie: { lang } }) => {
     if (!ACCOUNT_REGISTRATION) {
       return redirect(`${WEBROOT}/login?reason=${query.reason ?? ""}`, 302);
     }
 
+    const locale = localeFromRequest(request, lang?.value);
+
     return (
-      <BaseHtml webroot={WEBROOT} title="ConvertX | Register">
+      <BaseHtml webroot={WEBROOT} title="ConvertX | Register" locale={locale}>
         <>
           <Header
             webroot={WEBROOT}
+            locale={locale}
             branding={BRANDING}
             accountRegistration={ACCOUNT_REGISTRATION}
             allowUnauthenticated={ALLOW_UNAUTHENTICATED}
@@ -148,60 +153,68 @@ export const user = new Elysia()
                   role="status"
                   class="mb-4 rounded-lg border border-accent-500/40 bg-accent-500/10 p-3 text-sm"
                 >
-                  You've used your free conversion for today. Create a free account to keep
-                  converting, or{" "}
+                  {tr(locale, "auth.freeUsedRegister1")}{" "}
                   <a href={`${WEBROOT}/login?reason=free-used`} class="text-accent-500 underline">
-                    sign in
+                    {tr(locale, "auth.signInLink")}
                   </a>{" "}
-                  if you already have one.
+                  {tr(locale, "auth.freeUsedRegister2")}
                 </p>
               )}
               <AuthTabs
                 webroot={WEBROOT}
+                locale={locale}
                 active="register"
                 accountRegistration={ACCOUNT_REGISTRATION}
                 reason={typeof query.reason === "string" ? query.reason : undefined}
               />
               {GOOGLE_ENABLED ? (
-                <GoogleButton webroot={WEBROOT} label="Continue with Google" />
+                <GoogleButton
+                  webroot={WEBROOT}
+                  locale={locale}
+                  label={tr(locale, "auth.continueGoogle")}
+                />
               ) : null}
               <form method="post" class="flex flex-col gap-4">
                 <fieldset class="mb-4 flex flex-col gap-4">
                   <label class="flex flex-col gap-1">
-                    Email
+                    {tr(locale, "auth.email")}
                     <input
                       type="email"
                       name="email"
                       class="rounded-sm bg-neutral-800 p-3"
-                      placeholder="Email"
+                      placeholder={tr(locale, "auth.email")}
                       autocomplete="email"
                       required
                     />
                   </label>
                   <label class="flex flex-col gap-1">
-                    Password
+                    {tr(locale, "auth.password")}
                     <input
                       type="password"
                       name="password"
                       class="rounded-sm bg-neutral-800 p-3"
-                      placeholder="Password"
+                      placeholder={tr(locale, "auth.password")}
                       autocomplete="current-password"
                       required
                     />
                   </label>
                 </fieldset>
                 <p class="text-sm text-neutral-400">
-                  By creating an account you agree to the{" "}
+                  {tr(locale, "auth.agreeTo")}{" "}
                   <a href={`${WEBROOT}/terms`} class="text-accent-500 underline">
-                    Terms of Service
+                    {tr(locale, "auth.termsLink")}
                   </a>{" "}
-                  and{" "}
+                  {tr(locale, "auth.and")}{" "}
                   <a href={`${WEBROOT}/privacy`} class="text-accent-500 underline">
-                    Privacy Policy
+                    {tr(locale, "auth.privacyLink")}
                   </a>
                   .
                 </p>
-                <input type="submit" value="Register" class="w-full btn-primary" />
+                <input
+                  type="submit"
+                  value={tr(locale, "auth.register")}
+                  class="w-full btn-primary"
+                />
               </form>
             </article>
           </main>
@@ -278,7 +291,7 @@ export const user = new Elysia()
   )
   .get(
     "/login",
-    async ({ jwt, redirect, query, cookie: { auth } }) => {
+    async ({ jwt, redirect, query, request, cookie: { auth, lang } }) => {
       if (FIRST_RUN) {
         return redirect(`${WEBROOT}/setup`, 302);
       }
@@ -294,11 +307,14 @@ export const user = new Elysia()
         auth.remove();
       }
 
+      const locale = localeFromRequest(request, lang?.value);
+
       return (
-        <BaseHtml webroot={WEBROOT} title="ConvertX | Login">
+        <BaseHtml webroot={WEBROOT} title="ConvertX | Login" locale={locale}>
           <>
             <Header
               webroot={WEBROOT}
+              locale={locale}
               branding={BRANDING}
               accountRegistration={ACCOUNT_REGISTRATION}
               allowUnauthenticated={ALLOW_UNAUTHENTICATED}
@@ -316,15 +332,15 @@ export const user = new Elysia()
                     role="status"
                     class="mb-4 rounded-lg border border-accent-500/40 bg-accent-500/10 p-3 text-sm"
                   >
-                    You've used your free conversion for today. Sign in to keep converting
+                    {tr(locale, "auth.freeUsedLogin1")}
                     {ACCOUNT_REGISTRATION ? (
                       <>
-                        , or{" "}
+                        {tr(locale, "auth.freeUsedLoginOr")}{" "}
                         <a
                           href={`${WEBROOT}/register?reason=free-used`}
                           class="text-accent-500 underline"
                         >
-                          create a free account
+                          {tr(locale, "auth.freeUsedLoginLink")}
                         </a>
                       </>
                     ) : (
@@ -335,6 +351,7 @@ export const user = new Elysia()
                 )}
                 <AuthTabs
                   webroot={WEBROOT}
+                  locale={locale}
                   active="login"
                   accountRegistration={ACCOUNT_REGISTRATION}
                   reason={typeof query.reason === "string" ? query.reason : undefined}
@@ -345,36 +362,40 @@ export const user = new Elysia()
                     class="mb-4 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-sm"
                   >
                     {query.error === "closed"
-                      ? "Registration is closed, so that Google account cannot be used to create an account here."
+                      ? tr(locale, "auth.errorClosed")
                       : query.error === "setup"
-                        ? "This instance has no accounts yet. The first one must be created on the setup page with the setup token."
-                        : "Signing in with Google did not work. Please try again."}
+                        ? tr(locale, "auth.errorSetup")
+                        : tr(locale, "auth.errorGoogle")}
                   </p>
                 ) : null}
                 {GOOGLE_ENABLED ? (
-                  <GoogleButton webroot={WEBROOT} label="Sign in with Google" />
+                  <GoogleButton
+                    webroot={WEBROOT}
+                    locale={locale}
+                    label={tr(locale, "auth.googleLogin")}
+                  />
                 ) : null}
                 <form method="post" class="flex flex-col gap-4">
                   <fieldset class="mb-4 flex flex-col gap-4">
                     <label class="flex flex-col gap-1">
-                      Email
+                      {tr(locale, "auth.email")}
                       <input
                         type="email"
                         name="email"
                         class="rounded-sm bg-neutral-800 p-3"
-                        placeholder="Email"
+                        placeholder={tr(locale, "auth.email")}
                         autocomplete="email"
                         autofocus
                         required
                       />
                     </label>
                     <label class="flex flex-col gap-1">
-                      Password
+                      {tr(locale, "auth.password")}
                       <input
                         type="password"
                         name="password"
                         class="rounded-sm bg-neutral-800 p-3"
-                        placeholder="Password"
+                        placeholder={tr(locale, "auth.password")}
                         autocomplete="current-password"
                         required
                       />
@@ -387,10 +408,14 @@ export const user = new Elysia()
                         role="button"
                         class="w-full btn-secondary text-center"
                       >
-                        Register
+                        {tr(locale, "auth.register")}
                       </a>
                     ) : null}
-                    <input type="submit" value="Login" class="w-full btn-primary" />
+                    <input
+                      type="submit"
+                      value={tr(locale, "auth.login")}
+                      class="w-full btn-primary"
+                    />
                   </div>
                 </form>
               </article>

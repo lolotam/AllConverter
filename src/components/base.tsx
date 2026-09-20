@@ -1,5 +1,6 @@
 import { version } from "../../package.json";
 import { assetUrl } from "../helpers/assetUrl";
+import { isRtl, t, type Locale } from "../i18n";
 import { brandingUrl } from "../services/branding";
 
 export const BaseHtml = ({
@@ -7,13 +8,15 @@ export const BaseHtml = ({
   title = "ConvertX - Fast, Secure & Free Online File Converter",
   webroot = "",
   customFooter = false,
+  locale = "en",
 }: {
   children: JSX.Element;
   title?: string;
   webroot?: string;
   customFooter?: boolean;
+  locale?: Locale | undefined;
 }) => (
-  <html lang="en" class="dark scroll-smooth">
+  <html lang={locale} dir={isRtl(locale) ? "rtl" : "ltr"} class="dark scroll-smooth">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -26,7 +29,7 @@ export const BaseHtml = ({
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
       <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Tajawal:wght@400;500;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cairo:wght@400;500;600;700;800&display=swap"
         rel="stylesheet"
       />
       <link rel="stylesheet" href={assetUrl(webroot, "generated.css")} />
@@ -43,6 +46,9 @@ export const BaseHtml = ({
       <style>{`
         body {
           font-family: 'Plus Jakarta Sans', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        html[dir="rtl"] body {
+          font-family: 'Cairo', 'Plus Jakarta Sans', sans-serif;
         }
       `}</style>
       <script>{`
@@ -71,7 +77,7 @@ export const BaseHtml = ({
       {!customFooter && (
         <footer class="w-full border-t border-neutral-800/80 bg-neutral-950/60 py-6">
           <div class="p-4 text-center text-sm text-neutral-500">
-            <span>Powered by </span>
+            <span>{t(locale, "base.poweredBy")} </span>
             <a
               href="https://github.com/C4illin/ConvertX"
               class={`
@@ -84,15 +90,15 @@ export const BaseHtml = ({
             <span safe>v{version || ""}</span>
             <span class="mx-2">·</span>
             <a href={`${webroot}/terms`} class="text-neutral-400 hover:text-accent-500">
-              Terms
+              {t(locale, "base.terms")}
             </a>
             <span class="mx-2">·</span>
             <a href={`${webroot}/privacy`} class="text-neutral-400 hover:text-accent-500">
-              Privacy
+              {t(locale, "base.privacy")}
             </a>
             <span class="mx-2">·</span>
             <a href={`${webroot}/refunds`} class="text-neutral-400 hover:text-accent-500">
-              Refunds
+              {t(locale, "base.refunds")}
             </a>
           </div>
         </footer>

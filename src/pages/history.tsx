@@ -13,12 +13,13 @@ import {
   BRANDING,
 } from "../helpers/env";
 import { userService } from "./user";
+import { localeFromRequest, t as tr } from "../i18n";
 import { EyeIcon } from "../icons/eye";
 import { DeleteIcon } from "../icons/delete";
 
 export const history = new Elysia().use(userService).get(
   "/history",
-  async ({ redirect, user }) => {
+  async ({ redirect, request, cookie: { lang }, user }) => {
     if (HIDE_HISTORY) {
       return redirect(`${WEBROOT}/`, 302);
     }
@@ -27,6 +28,7 @@ export const history = new Elysia().use(userService).get(
       return redirect(`${WEBROOT}/login`, 302);
     }
 
+    const locale = localeFromRequest(request, lang?.value);
     let userJobs = db.query("SELECT * FROM jobs WHERE user_id = ?").as(Jobs).all(user.id).reverse();
 
     for (const job of userJobs) {
@@ -40,10 +42,11 @@ export const history = new Elysia().use(userService).get(
     userJobs = userJobs.filter((job) => job.num_files > 0);
 
     return (
-      <BaseHtml webroot={WEBROOT} title="ConvertX | Results">
+      <BaseHtml webroot={WEBROOT} title="ConvertX | Results" locale={locale}>
         <>
           <Header
             webroot={WEBROOT}
+            locale={locale}
             branding={BRANDING}
             allowUnauthenticated={ALLOW_UNAUTHENTICATED}
             hideHistory={HIDE_HISTORY}
@@ -58,7 +61,7 @@ export const history = new Elysia().use(userService).get(
           >
             <article class="article">
               <div class="mb-4 flex items-center justify-between">
-                <h1 class="text-xl">Results</h1>
+                <h1 class="text-xl">{tr(locale, "history.title")}</h1>
                 <div id="delete-selected-container">
                   <button
                     id="delete-selected-btn"
@@ -70,14 +73,15 @@ export const history = new Elysia().use(userService).get(
                   >
                     <DeleteIcon />{" "}
                     <span>
-                      Delete Selected (<span id="selected-count">0</span>)
+                      {tr(locale, "history.deleteSelectedLabel")} (
+                      <span id="selected-count">0</span>)
                     </span>
                   </button>
                 </div>
               </div>
               <table
                 class={`
-                  w-full table-auto overflow-y-auto rounded-sm bg-neutral-900 text-left
+                  w-full table-auto overflow-y-auto rounded-sm bg-neutral-900 text-start
                   [&_td]:p-4
                   [&_tr]:rounded-sm [&_tr]:border-b [&_tr]:border-neutral-800
                 `}
@@ -94,7 +98,7 @@ export const history = new Elysia().use(userService).get(
                         type="checkbox"
                         id="select-all"
                         class="size-4 cursor-pointer"
-                        title="Select all"
+                        title={tr(locale, "history.selectAll")}
                       />
                     </th>
                     <th
@@ -103,7 +107,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      <span class="sr-only">Expand details</span>
+                      <span class="sr-only">{tr(locale, "history.expandDetails")}</span>
                     </th>
                     <th
                       class={`
@@ -111,7 +115,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      Time
+                      {tr(locale, "history.time")}
                     </th>
                     <th
                       class={`
@@ -119,7 +123,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      Files
+                      {tr(locale, "history.files")}
                     </th>
                     <th
                       class={`
@@ -128,7 +132,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      Files Done
+                      {tr(locale, "history.filesDone")}
                     </th>
                     <th
                       class={`
@@ -136,7 +140,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      Status
+                      {tr(locale, "history.status")}
                     </th>
                     <th
                       class={`
@@ -144,7 +148,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      Actions
+                      {tr(locale, "history.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -211,7 +215,9 @@ export const history = new Elysia().use(userService).get(
                       <tr id={`details-${job.id}`} class="hidden">
                         <td colspan="7">
                           <div class="p-2 text-sm text-neutral-500">
-                            <div class="mb-1 font-semibold">Detailed File Information:</div>
+                            <div class="mb-1 font-semibold">
+                              {tr(locale, "history.detailedInfo")}
+                            </div>
                             {job.files_detailed.map((file: Filename) => (
                               <div class="flex items-center">
                                 <span class="w-5/12 truncate" title={file.file_name} safe>
@@ -245,6 +251,14 @@ export const history = new Elysia().use(userService).get(
           </main>
           <script>
             {`
+              const i18n = ${JSON.stringify({
+                confirmDelete: tr(locale, "history.confirmDelete"),
+                deletedOk: tr(locale, "history.deletedOk"),
+                deletedSomeFailed: tr(locale, "history.deletedSomeFailed"),
+                deletedFail: tr(locale, "history.deletedFail"),
+                deletedError: tr(locale, "history.deletedError"),
+              })};
+
               document.addEventListener('DOMContentLoaded', () => {
                 // Expand/collapse job details
                 const toggles = document.querySelectorAll('.job-details-toggle');
@@ -308,7 +322,7 @@ export const history = new Elysia().use(userService).get(
 
                   if (jobIds.length === 0) return;
 
-                  const confirmed = confirm(\`Are you sure you want to delete \${jobIds.length} job(s)? This action cannot be undone.\`);
+                  const confirmed = confirm(i18n.confirmDelete.replace("{count}", jobIds.length));
                   if (!confirmed) return;
 
                   try {
@@ -327,14 +341,19 @@ export const history = new Elysia().use(userService).get(
                     const result = await response.json();
 
                     if (result.success || result.deleted > 0) {
-                      alert(\`Successfully deleted \${result.deleted} job(s).\${result.failed > 0 ? \` Failed to delete \${result.failed} job(s).\` : ''}\`);
+                      alert(
+                        i18n.deletedOk.replace("{count}", result.deleted) +
+                          (result.failed > 0
+                            ? i18n.deletedSomeFailed.replace("{count}", result.failed)
+                            : ''),
+                      );
                       window.location.reload();
                     } else {
-                      alert('Failed to delete jobs. Please try again.');
+                      alert(i18n.deletedFail);
                     }
                   } catch (error) {
                     console.error('Error deleting jobs:', error);
-                    alert('An error occurred while deleting jobs. Please try again.');
+                    alert(i18n.deletedError);
                   }
                 });
               });

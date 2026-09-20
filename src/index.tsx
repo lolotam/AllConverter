@@ -11,6 +11,7 @@ import { deleteFile } from "./pages/deleteFile";
 import { deleteJob } from "./pages/deleteJob";
 import { download } from "./pages/download";
 import { history } from "./pages/history";
+import { langRoute } from "./i18n/langRoute";
 import { listConverters } from "./pages/listConverters";
 import { results } from "./pages/results";
 import { root } from "./pages/root";
@@ -86,6 +87,7 @@ const app = new Elysia({
   .use(admin)
   .use(billing)
   .use(legal)
+  .use(langRoute)
   .onError(({ error, code, request }) => {
     if (code === "NOT_FOUND") {
       console.warn(`404: ${request.method} ${new URL(request.url).pathname}`);

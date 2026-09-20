@@ -16,13 +16,23 @@ import { DownloadIcon } from "../icons/download";
 import { DeleteIcon } from "../icons/delete";
 import { EyeIcon } from "../icons/eye";
 import sanitize from "sanitize-filename";
+import { localeFromRequest, t as tr, type Locale } from "../i18n";
 import { userService } from "./user";
 
-const STATE_LABELS: Record<FileState, string> = {
-  queued: "Queued",
-  converting: "Converting…",
-  done: "Done",
-  failed: "Failed",
+const STATE_LABELS: Record<
+  FileState,
+  {
+    key:
+      | "results.stateQueued"
+      | "results.stateConverting"
+      | "results.stateDone"
+      | "results.stateFailed";
+  }
+> = {
+  queued: { key: "results.stateQueued" },
+  converting: { key: "results.stateConverting" },
+  done: { key: "results.stateDone" },
+  failed: { key: "results.stateFailed" },
 };
 
 const IMAGE_EXTENSIONS = new Set([
@@ -93,12 +103,22 @@ function buildEntries(files: Filename[], outputPath: string, token: string): Res
 // A job with no files (the home page creates one per visit) has nothing to wait for
 const isFinished = (job: Jobs) => job.status === "completed" || job.num_files === 0;
 
-function ProgressList({ job, tracked }: { job: Jobs; tracked: FileProgress[] }) {
+function ProgressList({
+  locale,
+  job,
+  tracked,
+}: {
+  locale: Locale;
+  job: Jobs;
+  tracked: FileProgress[];
+}) {
   return (
     <section class="mb-6">
       <div class="mb-3 flex items-center justify-between text-sm font-semibold text-slate-700 dark:text-neutral-200">
         <span>
-          Converting {job.num_files} file{job.num_files === 1 ? "" : "s"}…
+          {job.num_files === 1
+            ? tr(locale, "results.convertingOne")
+            : tr(locale, "results.convertingMany", { count: job.num_files })}
         </span>
         <span data-progress-overall class="tabular-nums text-lime-600 dark:text-accent-400">
           0%
@@ -128,7 +148,7 @@ function ProgressList({ job, tracked }: { job: Jobs; tracked: FileProgress[] }) 
               aria-valuemin="0"
               aria-valuemax="100"
               aria-valuenow="0"
-              aria-label={`Converting ${file.file}`}
+              aria-label={tr(locale, "results.convertingFile", { file: file.file })}
               class="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-neutral-700"
             >
               <div
@@ -138,7 +158,7 @@ function ProgressList({ job, tracked }: { job: Jobs; tracked: FileProgress[] }) 
               />
             </div>
             <p data-progress-state class="mt-1 text-xs text-slate-500 dark:text-neutral-400">
-              {STATE_LABELS[file.state]}
+              {tr(locale, STATE_LABELS[file.state].key)}
             </p>
           </li>
         ))}
@@ -148,11 +168,13 @@ function ProgressList({ job, tracked }: { job: Jobs; tracked: FileProgress[] }) 
 }
 
 function ResultsArticle({
+  locale,
   job,
   files,
   outputPath,
   tracked,
 }: {
+  locale: Locale;
   job: Jobs;
   files: Filename[];
   outputPath: string;
@@ -166,12 +188,18 @@ function ResultsArticle({
     <article class="article" data-job-complete={String(finished)}>
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-black text-slate-900 dark:text-white">Conversion Results</h1>
+          <h1 class="text-2xl font-black text-slate-900 dark:text-white">
+            {tr(locale, "results.title")}
+          </h1>
           <p class="text-xs text-slate-500 dark:text-neutral-400 mt-1">
-            Job #{job.id} ·{" "}
+            {tr(locale, "results.job", { id: job.id })}{" "}
             {finished
-              ? `${files.length} file${files.length === 1 ? "" : "s"} ready`
-              : `converting ${job.num_files} file${job.num_files === 1 ? "" : "s"}`}
+              ? files.length === 1
+                ? tr(locale, "results.readyOne")
+                : tr(locale, "results.readyMany", { count: files.length })
+              : job.num_files === 1
+                ? tr(locale, "results.convertingCountOne")
+                : tr(locale, "results.convertingCountMany", { count: job.num_files })}
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
@@ -179,7 +207,7 @@ function ResultsArticle({
             href={`${WEBROOT}/`}
             class="btn-secondary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5"
           >
-            <span>+</span> Convert More
+            <span>+</span> {tr(locale, "results.convertMore")}
           </a>
           <form action={`${WEBROOT}/delete/${job.id}`} method="POST">
             <button
@@ -188,7 +216,7 @@ function ResultsArticle({
               class="btn-secondary text-xs sm:text-sm py-2 px-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 inline-flex items-center gap-1.5"
               {...(finished ? "" : { disabled: true, "aria-busy": "true" })}
             >
-              <DeleteIcon /> <span>Delete</span>
+              <DeleteIcon /> <span>{tr(locale, "results.delete")}</span>
             </button>
           </form>
           <a
@@ -198,20 +226,24 @@ function ResultsArticle({
             class="btn-primary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5"
             {...(finished ? "" : { disabled: true, "aria-busy": "true" })}
           >
-            <DownloadIcon /> <span>Tar Archive</span>
+            <DownloadIcon /> <span>{tr(locale, "results.tarArchive")}</span>
           </a>
           <button
             class="btn-primary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5"
             onclick="downloadAll()"
           >
-            <DownloadIcon /> <span>Download All</span>
+            <DownloadIcon /> <span>{tr(locale, "results.downloadAll")}</span>
           </button>
         </div>
       </div>
 
-      {!finished && tracked && tracked.length > 0 && <ProgressList job={job} tracked={tracked} />}
+      {!finished && tracked && tracked.length > 0 && (
+        <ProgressList locale={locale} job={job} tracked={tracked} />
+      )}
       {!finished && !tracked && (
-        <p class="mb-6 text-sm text-slate-500 dark:text-neutral-400">Converting your files…</p>
+        <p class="mb-6 text-sm text-slate-500 dark:text-neutral-400">
+          {tr(locale, "results.convertingYourFiles")}
+        </p>
       )}
 
       {finished && entries.length > 0 && (
@@ -224,14 +256,14 @@ function ResultsArticle({
                 data-view-button="rows"
                 class="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-neutral-300"
               >
-                ☰ Rows
+                {tr(locale, "results.rows")}
               </button>
               <button
                 type="button"
                 data-view-button="cards"
-                class="border-l border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 dark:border-neutral-800 dark:text-neutral-300"
+                class="border-s border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 dark:border-neutral-800 dark:text-neutral-300"
               >
-                ▦ Cards
+                {tr(locale, "results.cards")}
               </button>
             </div>
             <div data-selection-bar hidden class="flex flex-wrap items-center gap-2">
@@ -239,17 +271,17 @@ function ResultsArticle({
                 data-selection-count
                 class="text-xs font-semibold text-slate-600 dark:text-neutral-300"
               >
-                0 selected
+                {tr(locale, "results.selected", { count: 0 })}
               </span>
               <button
                 type="button"
                 data-download-selected
                 class="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
               >
-                <DownloadIcon /> <span>Download selected</span>
+                <DownloadIcon /> <span>{tr(locale, "results.downloadSelected")}</span>
               </button>
               <button type="button" data-clear-selection class="btn-secondary px-3 py-1.5 text-xs">
-                Clear
+                {tr(locale, "results.clear")}
               </button>
             </div>
           </div>
@@ -259,16 +291,20 @@ function ResultsArticle({
             data-view="rows"
             class="overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
           >
-            <table class="w-full table-auto text-left text-sm">
+            <table class="w-full table-auto text-start text-sm">
               <thead class="border-b border-slate-200 bg-slate-100/80 text-xs font-bold uppercase tracking-wider text-slate-500 dark:border-neutral-800 dark:bg-neutral-850/80 dark:text-neutral-400">
                 <tr>
                   <th class="p-4">
-                    <input type="checkbox" data-select-all aria-label="Select all files" />
+                    <input
+                      type="checkbox"
+                      data-select-all
+                      aria-label={tr(locale, "results.selectAll")}
+                    />
                   </th>
-                  <th class="p-4">Converted File Name</th>
-                  <th class="p-4">Size</th>
-                  <th class="p-4">Status</th>
-                  <th class="p-4 text-right">Actions</th>
+                  <th class="p-4">{tr(locale, "results.fileName")}</th>
+                  <th class="p-4">{tr(locale, "results.size")}</th>
+                  <th class="p-4">{tr(locale, "results.status")}</th>
+                  <th class="p-4 text-end">{tr(locale, "results.actions")}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-200 dark:divide-neutral-800/80">
@@ -283,7 +319,11 @@ function ResultsArticle({
                       {entry.failed ? (
                         ""
                       ) : (
-                        <input type="checkbox" data-select aria-label={`Select ${entry.name}`} />
+                        <input
+                          type="checkbox"
+                          data-select
+                          aria-label={tr(locale, "results.selectFile", { name: entry.name })}
+                        />
                       )}
                     </td>
                     <td
@@ -302,18 +342,18 @@ function ResultsArticle({
                           class="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400"
                           title={entry.status}
                         >
-                          ✕ Failed
+                          {tr(locale, "results.failedBadge")}
                         </span>
                       ) : (
                         <span class="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                          ✓ Ready
+                          {tr(locale, "results.readyBadge")}
                         </span>
                       )}
                     </td>
-                    <td class="p-4 text-right">
+                    <td class="p-4 text-end">
                       {entry.failed ? (
                         <span class="text-xs text-slate-400 dark:text-neutral-500">
-                          Unavailable
+                          {tr(locale, "results.unavailable")}
                         </span>
                       ) : (
                         <div class="inline-flex items-center justify-end gap-2">
@@ -321,7 +361,7 @@ function ResultsArticle({
                             type="button"
                             data-preview={entry.previewUrl}
                             data-is-image={String(entry.isImage)}
-                            title={`Preview ${entry.name}`}
+                            title={tr(locale, "results.previewFile", { name: entry.name })}
                             class="inline-flex size-8 items-center justify-center rounded-lg bg-slate-200 text-slate-700 transition-colors hover:bg-slate-300 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
                           >
                             <EyeIcon />
@@ -330,14 +370,14 @@ function ResultsArticle({
                             class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-accent-500 to-lime-400 px-3 py-1.5 text-xs font-bold text-neutral-950 shadow transition-all hover:from-accent-400 hover:to-lime-300"
                             href={entry.downloadUrl}
                             download={entry.name}
-                            title={`Download ${entry.name}`}
+                            title={tr(locale, "results.downloadFile", { name: entry.name })}
                           >
-                            <DownloadIcon /> <span>Download</span>
+                            <DownloadIcon /> <span>{tr(locale, "results.download")}</span>
                           </a>
                           <button
                             type="button"
                             data-delete
-                            title={`Delete ${entry.name}`}
+                            title={tr(locale, "results.deleteFile", { name: entry.name })}
                             class="inline-flex size-8 items-center justify-center rounded-lg bg-slate-200 text-rose-600 transition-colors hover:bg-rose-100 dark:bg-neutral-800 dark:text-rose-400 dark:hover:bg-rose-950/40"
                           >
                             <DeleteIcon />
@@ -382,7 +422,7 @@ function ResultsArticle({
                       type="button"
                       data-preview={entry.previewUrl}
                       data-is-image={String(entry.isImage)}
-                      title={`Preview ${entry.name}`}
+                      title={tr(locale, "results.previewFile", { name: entry.name })}
                       class="absolute inset-0 flex items-center justify-center bg-neutral-950/0 text-white opacity-0 transition-all hover:bg-neutral-950/40 group-hover:opacity-100"
                     >
                       <span class="rounded-full bg-neutral-950/70 p-3">
@@ -396,8 +436,8 @@ function ResultsArticle({
                     <input
                       type="checkbox"
                       data-select
-                      aria-label={`Select ${entry.name}`}
-                      class="absolute left-2 top-2 size-4 accent-lime-500"
+                      aria-label={tr(locale, "results.selectFile", { name: entry.name })}
+                      class="absolute start-2 top-2 size-4 accent-lime-500"
                     />
                   )}
                 </div>
@@ -411,7 +451,7 @@ function ResultsArticle({
                   </p>
                   <div class="mt-2 flex items-center justify-between">
                     <span class="text-xs text-slate-500 dark:text-neutral-400" safe>
-                      {entry.failed ? "Failed" : entry.size}
+                      {entry.failed ? tr(locale, "results.failed") : entry.size}
                     </span>
                     {entry.failed ? (
                       ""
@@ -420,7 +460,7 @@ function ResultsArticle({
                         <a
                           href={entry.downloadUrl}
                           download={entry.name}
-                          title={`Download ${entry.name}`}
+                          title={tr(locale, "results.downloadFile", { name: entry.name })}
                           class="inline-flex size-7 items-center justify-center rounded-lg bg-gradient-to-r from-accent-500 to-lime-400 text-neutral-950"
                         >
                           <DownloadIcon />
@@ -428,7 +468,7 @@ function ResultsArticle({
                         <button
                           type="button"
                           data-delete
-                          title={`Delete ${entry.name}`}
+                          title={tr(locale, "results.deleteFile", { name: entry.name })}
                           class="inline-flex size-7 items-center justify-center rounded-lg bg-slate-200 text-rose-600 dark:bg-neutral-800 dark:text-rose-400"
                         >
                           <DeleteIcon />
@@ -454,7 +494,7 @@ function ResultsArticle({
                   class="truncate text-sm font-bold text-slate-900 dark:text-white"
                 />
                 <button type="button" data-preview-close class="btn-secondary px-3 py-1.5 text-xs">
-                  Close
+                  {tr(locale, "results.close")}
                 </button>
               </div>
               <img data-preview-image alt="" class="mx-auto max-h-[70vh] w-auto rounded-xl" />
@@ -470,11 +510,13 @@ export const results = new Elysia()
   .use(userService)
   .get(
     "/results/:jobId",
-    async ({ params, set, cookie: { job_id }, user }) => {
+    async ({ params, set, request, cookie: { job_id, lang }, user }) => {
       if (job_id?.value) {
         // Clear the job_id cookie since we are viewing the results
         job_id.remove();
       }
+
+      const locale = localeFromRequest(request, lang?.value);
 
       const job = db
         .query("SELECT * FROM jobs WHERE user_id = ? AND id = ?")
@@ -496,10 +538,11 @@ export const results = new Elysia()
         .all(params.jobId);
 
       return (
-        <BaseHtml webroot={WEBROOT} title="ConvertX | Result">
+        <BaseHtml webroot={WEBROOT} title="ConvertX | Result" locale={locale}>
           <>
             <Header
               webroot={WEBROOT}
+              locale={locale}
               allowUnauthenticated={ALLOW_UNAUTHENTICATED}
               loggedIn
               branding={BRANDING}
@@ -512,6 +555,7 @@ export const results = new Elysia()
               `}
             >
               <ResultsArticle
+                locale={locale}
                 job={job}
                 files={files}
                 outputPath={outputPath}
@@ -527,11 +571,13 @@ export const results = new Elysia()
   )
   .post(
     "/progress/:jobId",
-    async ({ set, params, cookie: { job_id }, user }) => {
+    async ({ set, params, request, cookie: { job_id, lang }, user }) => {
       if (job_id?.value) {
         // Clear the job_id cookie since we are viewing the results
         job_id.remove();
       }
+
+      const locale = localeFromRequest(request, lang?.value);
 
       const job = db
         .query("SELECT * FROM jobs WHERE user_id = ? AND id = ?")
@@ -554,6 +600,7 @@ export const results = new Elysia()
 
       return (
         <ResultsArticle
+          locale={locale}
           job={job}
           files={files}
           outputPath={outputPath}

@@ -1,9 +1,11 @@
+import { isRtl, t, type Locale } from "../i18n";
 import { brandingUrl } from "../services/branding";
 import { siteName, siteTagline } from "../services/siteName";
 
 /** The avatar button and the menu it opens. Only shown for a real account. */
 const AccountMenu = ({
   webroot,
+  locale,
   email,
   name,
   avatar,
@@ -13,6 +15,7 @@ const AccountMenu = ({
   hideHistory,
 }: {
   webroot: string;
+  locale: Locale;
   email: string;
   name?: string | undefined;
   avatar?: string | undefined;
@@ -26,13 +29,13 @@ const AccountMenu = ({
     <details class="group relative" data-account-menu>
       <summary
         class={`
-          flex cursor-pointer list-none items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 pr-2
+          flex cursor-pointer list-none items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 pe-2
           shadow-sm transition-all
           hover:border-accent-500/60 hover:shadow
           dark:border-neutral-700 dark:bg-neutral-900
         `}
         aria-haspopup="menu"
-        title="Account menu"
+        title={t(locale, "header.accountMenu")}
       >
         {avatar ? (
           <img src={avatar} alt="" width="32" height="32" class="size-8 rounded-lg object-cover" />
@@ -57,7 +60,7 @@ const AccountMenu = ({
       <div
         role="menu"
         class={`
-          absolute right-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5
+          absolute end-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5
           shadow-xl
           dark:border-neutral-800 dark:bg-neutral-900
         `}
@@ -81,19 +84,19 @@ const AccountMenu = ({
 
         <div class="py-1">
           <a href={`${webroot}/account`} class={item} role="menuitem">
-            <span>👤</span> My profile
+            <span>👤</span> {t(locale, "menu.profile")}
           </a>
           {!hideHistory ? (
             <a href={`${webroot}/history`} class={item} role="menuitem">
-              <span>🕒</span> Conversion history
+              <span>🕒</span> {t(locale, "menu.history")}
             </a>
           ) : null}
           <a href={`${webroot}/account#password`} class={item} role="menuitem">
-            <span>🔒</span> Change password
+            <span>🔒</span> {t(locale, "menu.changePassword")}
           </a>
           {isAdmin ? (
             <a href={`${webroot}/admin`} class={item} role="menuitem">
-              <span>⚡</span> Admin dashboard
+              <span>⚡</span> {t(locale, "menu.admin")}
             </a>
           ) : null}
         </div>
@@ -104,7 +107,7 @@ const AccountMenu = ({
             role="menuitem"
             class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 transition-colors"
           >
-            <span>↩</span> Sign out
+            <span>↩</span> {t(locale, "menu.signOut")}
           </a>
         </div>
       </div>
@@ -113,6 +116,7 @@ const AccountMenu = ({
 };
 
 export const Header = ({
+  locale = "en",
   loggedIn,
   isAdmin,
   accountRegistration,
@@ -126,6 +130,7 @@ export const Header = ({
   accountInitials,
   accountTier,
 }: {
+  locale?: Locale | undefined;
   loggedIn?: boolean | undefined;
   isAdmin?: boolean | undefined;
   accountRegistration?: boolean | undefined;
@@ -143,6 +148,12 @@ export const Header = ({
   const logo = brandingUrl(webroot, "logo");
   const name = siteName() || branding;
   const tagline = siteTagline();
+  const langLink = (target: Locale) =>
+    `rounded-md px-1.5 py-1 transition-colors ${
+      locale === target
+        ? "font-bold text-slate-900 dark:text-white"
+        : "text-slate-500 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-white"
+    }`;
   return (
     <header class="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/85 text-slate-800 dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:text-neutral-100 backdrop-blur-xl transition-colors duration-200">
       <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
@@ -200,37 +211,49 @@ export const Header = ({
               href={`${webroot}/#tools`}
               class="hover:text-lime-600 dark:hover:text-accent-400 transition-colors"
             >
-              Tools
+              {t(locale, "header.tools")}
             </a>
             <a
               href={`${webroot}/#how-it-works`}
               class="hover:text-lime-600 dark:hover:text-accent-400 transition-colors"
             >
-              How It Works
+              {t(locale, "header.howItWorks")}
             </a>
             <a
               href={`${webroot}/#pricing`}
               class="hover:text-lime-600 dark:hover:text-accent-400 transition-colors"
             >
-              Pricing
+              {t(locale, "header.pricing")}
             </a>
             <a
               href={`${webroot}/#features`}
               class="hover:text-lime-600 dark:hover:text-accent-400 transition-colors"
             >
-              Features
+              {t(locale, "header.features")}
             </a>
           </nav>
         </div>
 
         {/* Right Navigation */}
         <div class="flex items-center gap-3">
+          {/* Language Switch */}
+          <div
+            class={`flex items-center gap-1 text-sm ${isRtl(locale) ? "font-bold" : "font-semibold"}`}
+          >
+            <a href={`${webroot}/lang/en`} class={langLink("en")} title="English">
+              EN
+            </a>
+            <span class="text-slate-300 dark:text-neutral-600">|</span>
+            <a href={`${webroot}/lang/ar`} class={langLink("ar")} title="العربية">
+              ع
+            </a>
+          </div>
           {/* Theme Toggle Button */}
           <button
             id="theme-toggle"
             type="button"
-            aria-label="Toggle theme"
-            title="Toggle Light / Dark Mode"
+            aria-label={t(locale, "header.toggleTheme")}
+            title={t(locale, "header.toggleThemeTitle")}
             class="flex size-9 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-neutral-700 dark:bg-neutral-850 dark:text-neutral-200 dark:hover:bg-neutral-700 transition-all cursor-pointer shadow-sm"
             onclick="
               const isDark = document.documentElement.classList.contains('dark');
@@ -255,11 +278,12 @@ export const Header = ({
                   href={`${webroot}/history`}
                   class="hidden rounded-lg px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white transition-all sm:inline-block"
                 >
-                  History
+                  {t(locale, "header.history")}
                 </a>
               )}
               <AccountMenu
                 webroot={webroot}
+                locale={locale}
                 email={accountEmail}
                 name={accountName}
                 avatar={accountAvatar}
@@ -276,7 +300,7 @@ export const Header = ({
                   href={`${webroot}/admin`}
                   class="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 font-bold text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 transition-all shadow-sm"
                 >
-                  <span>⚡</span> Dashboard
+                  <span>⚡</span> {t(locale, "header.dashboard")}
                 </a>
               )}
               {!hideHistory && (
@@ -284,7 +308,7 @@ export const Header = ({
                   href={`${webroot}/history`}
                   class="rounded-lg px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white transition-all"
                 >
-                  History
+                  {t(locale, "header.history")}
                 </a>
               )}
               {!allowUnauthenticated ? (
@@ -292,7 +316,7 @@ export const Header = ({
                   href={`${webroot}/account`}
                   class="rounded-lg px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white transition-all"
                 >
-                  Account
+                  {t(locale, "header.account")}
                 </a>
               ) : null}
               {!allowUnauthenticated ? (
@@ -300,14 +324,14 @@ export const Header = ({
                   href={`${webroot}/logoff`}
                   class="rounded-lg px-3 py-1.5 font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-red-400 transition-all"
                 >
-                  Logout
+                  {t(locale, "header.logout")}
                 </a>
               ) : (
                 <a
                   href={`${webroot}/#pricing`}
                   class="rounded-xl bg-gradient-to-r from-accent-500 to-lime-400 px-4 py-1.5 text-xs font-bold text-neutral-950 shadow-md hover:from-accent-400 hover:to-lime-300 transition-all"
                 >
-                  Upgrade to Pro
+                  {t(locale, "header.upgrade")}
                 </a>
               )}
             </div>
@@ -317,14 +341,14 @@ export const Header = ({
                 href={`${webroot}/login`}
                 class="rounded-lg px-3.5 py-1.5 font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-neutral-300 dark:hover:bg-neutral-800/80 dark:hover:text-white transition-all"
               >
-                Sign In
+                {t(locale, "header.signIn")}
               </a>
               {accountRegistration && (
                 <a
                   href={`${webroot}/register`}
                   class="rounded-xl bg-gradient-to-r from-accent-500 to-lime-400 px-4 py-2 font-bold text-neutral-950 shadow-lg shadow-accent-500/20 hover:from-accent-400 hover:to-lime-300 hover:scale-[1.02] active:scale-[0.98] transition-all"
                 >
-                  Get Started Free
+                  {t(locale, "header.getStarted")}
                 </a>
               )}
             </div>

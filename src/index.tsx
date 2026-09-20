@@ -24,7 +24,11 @@ import { admin } from "./pages/admin";
 import { billing } from "./pages/billing";
 import { legal } from "./pages/legal";
 import { MB, pruneUsage } from "./services/quota";
-import { deleteExpiredJobs, ensureCleanupDefaults } from "./services/cleanup";
+import {
+  deleteExpiredJobs,
+  deleteOrphanedUploads,
+  ensureCleanupDefaults,
+} from "./services/cleanup";
 import { cleanUpExpiredUploads } from "./services/tus";
 
 export { outputDir, uploadsDir } from "./helpers/paths";
@@ -119,6 +123,11 @@ ensureCleanupDefaults();
 
 const clearJobs = () => {
   deleteExpiredJobs();
+  // Files uploaded for a conversion that was never started belong to nobody
+  const orphans = deleteOrphanedUploads();
+  if (orphans > 0) {
+    console.log(`Removed ${orphans} abandoned upload folder(s).`);
+  }
 
   // Every 15 minutes, so a two-hour window is honoured closely enough. The sweep itself
   // decides whether anything should go, so switching deletion on in the admin dashboard

@@ -1,4 +1,7 @@
 import { randomInt } from "node:crypto";
+import { readdirSync } from "node:fs";
+import { resolve } from "node:path";
+import { uploadsDir } from "../helpers/paths";
 import { assetUrl } from "../helpers/assetUrl";
 import { JWTPayloadSpec } from "@elysiajs/jwt";
 import { Elysia, t } from "elysia";
@@ -38,7 +41,36 @@ const LIMIT_MESSAGE_KEYS: Record<string, MessageKey> = {
   daily: "home.limit.daily",
   batch: "home.limit.batch",
   upload: "home.limit.upload",
+  converter: "home.limit.converter",
+  nofiles: "home.limit.nofiles",
+  kept: "home.limit.kept",
 };
+
+/**
+ * The job the visitor already uploaded files for and never converted, if it is still
+ * theirs and still has files. Anything else means we should start a fresh job.
+ */
+function pendingUploadJob(userId: string, cookieValue: unknown): number | null {
+  const jobId = typeof cookieValue === "string" ? cookieValue : "";
+  if (!jobId) {
+    return null;
+  }
+
+  // Job ids arrive as cookie strings while the column is an integer, and SQLite will not
+  // match the two, so ownership is compared here rather than in the query
+  const job = db.query("SELECT id, user_id, num_files FROM jobs WHERE id = ?").get(jobId) as
+    { id: number; user_id: number; num_files: number } | undefined;
+  if (!job || String(job.user_id) !== String(userId) || job.num_files > 0) {
+    return null;
+  }
+
+  try {
+    return readdirSync(resolve(`${uploadsDir}${userId}/${job.id}`)).length > 0 ? job.id : null;
+  } catch {
+    // No upload folder yet: this job never received a file
+    return null;
+  }
+}
 
 export const root = new Elysia().use(userService).get(
   "/",
@@ -66,11 +98,14 @@ export const root = new Elysia().use(userService).get(
     if (ALLOW_UNAUTHENTICATED && isRegistered) {
       user = signedIn;
     } else if (ALLOW_UNAUTHENTICATED) {
-      const newUserId = String(
-        UNAUTHENTICATED_USER_SHARING
-          ? 0
-          : randomInt(2 ** 24, Math.min(2 ** 48 + 2 ** 24 - 1, Number.MAX_SAFE_INTEGER)),
-      );
+      // A visitor who already has a guest identity keeps it. Minting a new one on every
+      // page load meant a guest's uploads and history were stranded under an id nothing
+      // pointed at any more, so reloading the page silently lost their files.
+      const existingGuest = signedIn !== false && signedIn.id ? String(signedIn.id) : "";
+      const newUserId = UNAUTHENTICATED_USER_SHARING
+        ? "0"
+        : existingGuest ||
+          String(randomInt(2 ** 24, Math.min(2 ** 48 + 2 ** 24 - 1, Number.MAX_SAFE_INTEGER)));
       const accessToken = await jwt.sign({
         id: newUserId,
       });
@@ -114,15 +149,24 @@ export const root = new Elysia().use(userService).get(
       return redirect(`${WEBROOT}/login`, 302);
     }
 
-    // create a new job
-    db.query("INSERT INTO jobs (user_id, date_created) VALUES (?, ?)").run(
-      user.id,
-      new Date().toISOString(),
-    );
+    // A visitor sent back here after a refused conversion still has their uploads on the
+    // server. Minting a new job would orphan them — the files would exist but nothing
+    // could reach them — so a job that was never converted is picked up again.
+    const pendingJob = pendingUploadJob(user.id, jobId?.value);
+    if (!pendingJob) {
+      db.query("INSERT INTO jobs (user_id, date_created) VALUES (?, ?)").run(
+        user.id,
+        new Date().toISOString(),
+      );
+    }
 
-    const { id } = db
-      .query("SELECT id FROM jobs WHERE user_id = ? ORDER BY id DESC")
-      .get(user.id) as { id: number };
+    const id =
+      pendingJob ??
+      (
+        db.query("SELECT id FROM jobs WHERE user_id = ? ORDER BY id DESC").get(user.id) as {
+          id: number;
+        }
+      ).id;
 
     if (!jobId) {
       return { message: "Cookies should be enabled to use this app." };
@@ -149,7 +193,7 @@ export const root = new Elysia().use(userService).get(
     const dbTiers = getTiers();
     const currentUser = user && user.id ? getUserById(user.id) : null;
     const checkout = checkoutConfig(currentUser);
-    const { tier, subject, dailyLimit } = getQuotaContext(user.id, request, server);
+    const { tier, subject, dailyLimit, isGuest } = getQuotaContext(user.id, request, server);
     const conversionsLeft =
       dailyLimit >= UNLIMITED_THRESHOLD
         ? null
@@ -235,6 +279,22 @@ export const root = new Elysia().use(userService).get(
                       data-batch-limit={String(tier.batch_limit)}
                       data-chunk-size-mb={String(UPLOAD_CHUNK_SIZE_MB)}
                       data-job-id={String(id)}
+                      data-conversions-left={
+                        conversionsLeft === null ? "" : String(conversionsLeft)
+                      }
+                      data-quota-message={
+                        isGuest
+                          ? tr(locale, "home.quotaSpentGuest")
+                          : tr(locale, "home.quotaSpentUser")
+                      }
+                      data-quota-action-url={
+                        isGuest ? `${WEBROOT}/register?reason=free-used` : `${WEBROOT}/#pricing`
+                      }
+                      data-quota-action-label={
+                        isGuest
+                          ? tr(locale, "home.quotaActionRegister")
+                          : tr(locale, "home.quotaActionUpgrade")
+                      }
                       class={`
                         group relative flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl
                         border-2 border-dashed border-slate-300 bg-slate-50/70 p-6 text-center transition-all duration-300

@@ -1,6 +1,6 @@
 // Deleting jobs whose files have outlived the retention window. Shared by the timer in
 // index.tsx and the "run cleanup now" button in the admin dashboard.
-import { readdirSync, rmSync } from "node:fs";
+import { existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import path from "node:path";
 import db from "../db/db";
 import { AUTO_DELETE_EVERY_N_HOURS } from "../helpers/env";
@@ -131,6 +131,56 @@ export function deleteExpiredJobs(olderThanHours?: number): number {
   }
 
   return expired.length;
+}
+
+/**
+ * Removes upload folders that no conversion will ever claim: the job was abandoned before
+ * Convert was pressed, or the row is gone entirely. Without this they sit on the volume
+ * for good, because the retention sweep only deletes jobs it can still see.
+ *
+ * A grace period keeps an upload that is still in progress, or one whose owner is about
+ * to press Convert, from being taken out from under them.
+ */
+export function deleteOrphanedUploads(graceHours = 2): number {
+  const cutoff = Date.now() - graceHours * 60 * 60 * 1000;
+  let removed = 0;
+
+  for (const directory of [uploadsDir, outputDir]) {
+    const root = path.resolve(directory);
+    if (!existsSync(root)) {
+      continue;
+    }
+
+    for (const userEntry of readdirSync(root, { withFileTypes: true })) {
+      if (!userEntry.isDirectory()) {
+        continue;
+      }
+      const userPath = path.join(root, userEntry.name);
+
+      for (const jobEntry of readdirSync(userPath, { withFileTypes: true })) {
+        if (!jobEntry.isDirectory()) {
+          continue;
+        }
+        const jobPath = path.join(userPath, jobEntry.name);
+
+        const job = db
+          .query("SELECT num_files, date_created FROM jobs WHERE id = ? AND user_id = ?")
+          .get(jobEntry.name, userEntry.name) as
+          { num_files: number; date_created: string } | undefined;
+
+        const startedConverting = (job?.num_files ?? 0) > 0;
+        const age = job ? Date.parse(job.date_created) : statSync(jobPath).mtimeMs;
+        if (startedConverting || age > cutoff) {
+          continue;
+        }
+
+        rmSync(jobPath, { recursive: true, force: true });
+        removed += 1;
+      }
+    }
+  }
+
+  return removed;
 }
 
 /**

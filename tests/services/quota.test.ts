@@ -56,7 +56,7 @@ test("registered users get their own tier and are keyed by user id", () => {
   expect(dailyLimit).toBe(tier.daily_conversions);
 });
 
-test("consumeConversions stops at the daily limit without recording the rejected batch", () => {
+test("consumeConversions stops at the daily limit without recording the rejected task", () => {
   const { subject } = getQuotaContext("99999999", request, serverSeeing(uniqueIp()));
   const limit = 10;
 

@@ -56,7 +56,7 @@ export const convert = new Elysia().use(userService).post(
       convertTo.includes("\\") ||
       convertTo.includes("..")
     ) {
-      return redirect(`${WEBROOT}/`, 302);
+      return redirect(`${WEBROOT}/?limit=converter`, 302);
     }
 
     const fileNames = JSON.parse(body.file_names) as string[];
@@ -66,7 +66,7 @@ export const convert = new Elysia().use(userService).post(
     }
 
     if (!Array.isArray(fileNames) || fileNames.length === 0) {
-      return redirect(`${WEBROOT}/`, 302);
+      return redirect(`${WEBROOT}/?limit=nofiles`, 302);
     }
 
     // A resumable upload only appears in the job folder once it is complete, so this
@@ -80,7 +80,10 @@ export const convert = new Elysia().use(userService).post(
     if (fileNames.length > tier.batch_limit) {
       return redirect(`${WEBROOT}/?limit=batch#pricing`, 302);
     }
-    if (!consumeConversions(subject, dailyLimit, fileNames.length)) {
+    // One conversion is one task, however many files it carries: a visitor converting
+    // four photos in one go has done one thing, not four. The number of files in a task
+    // is capped separately by the plan's batch limit.
+    if (!consumeConversions(subject, dailyLimit, 1)) {
       // A visitor who used their free conversion is asked to create an account,
       // which is free; a signed-in user has genuinely reached their plan's limit
       return isGuest

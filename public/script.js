@@ -16,6 +16,37 @@ const chunkSize = (Number(dropZone.dataset.chunkSizeMb) || 16) * 1024 * 1024;
 const currentJobId = dropZone.dataset.jobId || "";
 const uploads = new Map();
 
+// An empty value means the plan has no daily limit worth counting
+const conversionsLeft = dropZone.dataset.conversionsLeft ?? "";
+const quotaSpent = conversionsLeft === "0";
+
+// Uploading first and refusing afterwards wasted the visitor's bandwidth and left their
+// files stranded on the server, so nothing is sent once the day's conversions are gone
+let quotaNoticeShown = false;
+const showQuotaNotice = () => {
+  if (quotaNoticeShown) {
+    return;
+  }
+  quotaNoticeShown = true;
+
+  const notice = document.createElement("div");
+  notice.setAttribute("role", "alert");
+  notice.className =
+    "mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300";
+  notice.textContent = `${dropZone.dataset.quotaMessage ?? "No conversions left today."} `;
+
+  const url = dropZone.dataset.quotaActionUrl;
+  if (url) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.className = "font-bold underline";
+    link.textContent = dropZone.dataset.quotaActionLabel ?? "Continue";
+    notice.appendChild(link);
+  }
+
+  dropZone.parentElement.insertBefore(notice, dropZone);
+};
+
 const showRejectedFile = (file, reason) => {
   const row = document.createElement("tr");
   const name = document.createElement("td");
@@ -63,6 +94,10 @@ dropZone.addEventListener("drop", (e) => {
 
 // Extracted handleFile function for reusability in drag-and-drop and file input
 function handleFile(file) {
+  if (quotaSpent) {
+    showQuotaNotice();
+    return;
+  }
   if (file.size > maxFileSizeMb * 1024 * 1024) {
     showRejectedFile(file, `Larger than your plan's ${maxFileSizeMb} MB limit`);
     return;

@@ -184,6 +184,11 @@ export const en = {
     "You've used all of today's conversions on your plan. Upgrade to Pro for unlimited conversions.",
   "home.limit.batch":
     "Your plan doesn't allow that many files in one conversion. Upgrade to Pro for bigger batches.",
+  "home.limit.converter":
+    "That conversion is not available any more, so nothing was converted. Choose a format and try again — your files are still here.",
+  "home.limit.nofiles":
+    "No files were sent with that conversion. Add your files again and press Convert.",
+  "home.limit.kept": "Your uploaded files are still here. Choose a format and press Convert.",
   "home.limit.upload":
     "Those files haven't finished uploading yet. Wait for every upload to complete, then convert.",
   "home.seePlans": "See plans",
@@ -199,6 +204,12 @@ export const en = {
   "home.fileTypes": "Video, Audio, Document, Image, eBook & Archives",
   "home.upTo": "up to {size} MB per file",
   "home.filesAtOnce": "{count} files at once",
+  "home.quotaSpentGuest":
+    "You have used today's free conversion, so files cannot be uploaded right now. An account is free and lets you keep converting.",
+  "home.quotaSpentUser":
+    "You have used all of today's conversions on your plan, so files cannot be uploaded right now.",
+  "home.quotaActionRegister": "Create a free account",
+  "home.quotaActionUpgrade": "See the plans",
   "home.conversionsLeft": "{count} conversions left today",
   "home.fromDevice": "📁 From Device",
   "home.cloudStorage": "☁️ Cloud Storage",

@@ -365,3 +365,160 @@ export function AnalyticsPanel({ data }: { data: Analytics }) {
     </div>
   );
 }
+
+export function SitePanel({
+  webroot,
+  logoUrl,
+  faviconUrl,
+  converters,
+}: {
+  webroot: string;
+  logoUrl: string | null;
+  faviconUrl: string | null;
+  converters: { name: string; formats: number; visible: boolean }[];
+}) {
+  const uploadField = `text-sm file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-2 file:text-sm file:font-semibold dark:file:bg-neutral-700 dark:file:text-white`;
+  return (
+    <div class="space-y-6">
+      <div>
+        <h2 class={title}>Site</h2>
+        <p class={subtle}>
+          Artwork and which converters the site offers. Changes apply on the next page load.
+        </p>
+      </div>
+
+      <div class="grid gap-4 lg:grid-cols-2">
+        <div class={panel}>
+          <h3 class="mb-3 font-bold text-slate-900 dark:text-white">Logo</h3>
+          <div class="mb-4 flex items-center gap-4">
+            {logoUrl ? (
+              <img
+                src={logoUrl}
+                alt="Current logo"
+                width="48"
+                height="48"
+                class="size-12 rounded-xl object-contain"
+              />
+            ) : (
+              <span class="flex size-12 items-center justify-center rounded-xl bg-gradient-to-tr from-accent-500 to-lime-400 text-xs font-black text-neutral-950">
+                CX
+              </span>
+            )}
+            <p class={subtle}>
+              {logoUrl ? "Your logo, shown in the header." : "Using the built-in mark."} PNG, JPEG,
+              WebP or GIF, up to 1 MB.
+            </p>
+          </div>
+          <form
+            method="post"
+            action={`${webroot}/admin/branding/logo`}
+            enctype="multipart/form-data"
+            class="flex flex-wrap items-center gap-2"
+          >
+            <input
+              type="file"
+              name="image"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              required
+              class={uploadField}
+            />
+            <button type="submit" class="btn-primary px-4 py-2 text-sm">
+              Upload
+            </button>
+          </form>
+          {logoUrl ? (
+            <form method="post" action={`${webroot}/admin/branding/logo/delete`} class="mt-2">
+              <button
+                type="submit"
+                class="text-xs font-medium text-red-600 hover:underline dark:text-red-400"
+              >
+                Use the built-in mark again
+              </button>
+            </form>
+          ) : null}
+        </div>
+
+        <div class={panel}>
+          <h3 class="mb-3 font-bold text-slate-900 dark:text-white">Favicon</h3>
+          <div class="mb-4 flex items-center gap-4">
+            {faviconUrl ? (
+              <img
+                src={faviconUrl}
+                alt="Current favicon"
+                width="32"
+                height="32"
+                class="size-8 rounded object-contain"
+              />
+            ) : (
+              <span class="flex size-8 items-center justify-center rounded bg-slate-200 text-[10px] font-bold dark:bg-neutral-800">
+                ICO
+              </span>
+            )}
+            <p class={subtle}>
+              {faviconUrl ? "Your favicon, shown in the browser tab." : "Using the bundled icons."}{" "}
+              PNG or ICO, up to 1 MB.
+            </p>
+          </div>
+          <form
+            method="post"
+            action={`${webroot}/admin/branding/favicon`}
+            enctype="multipart/form-data"
+            class="flex flex-wrap items-center gap-2"
+          >
+            <input
+              type="file"
+              name="image"
+              accept="image/png,image/x-icon,.ico"
+              required
+              class={uploadField}
+            />
+            <button type="submit" class="btn-primary px-4 py-2 text-sm">
+              Upload
+            </button>
+          </form>
+          {faviconUrl ? (
+            <form method="post" action={`${webroot}/admin/branding/favicon/delete`} class="mt-2">
+              <button
+                type="submit"
+                class="text-xs font-medium text-red-600 hover:underline dark:text-red-400"
+              >
+                Use the bundled icons again
+              </button>
+            </form>
+          ) : null}
+        </div>
+      </div>
+
+      <div class={panel}>
+        <h3 class="mb-1 font-bold text-slate-900 dark:text-white">Converters offered</h3>
+        <p class={`${subtle} mb-4`}>
+          Unticking one removes its formats from the landing page and from the converter chooser, so
+          nobody can start a conversion with it. Converters whose tools are missing from the image
+          never appear here at all.
+        </p>
+        <form method="post" action={`${webroot}/admin/features`}>
+          <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {converters.map((converter) => (
+              <label class="flex items-center gap-2.5 rounded-xl border border-slate-200 p-2.5 text-sm dark:border-neutral-800">
+                <input
+                  type="checkbox"
+                  name="visible"
+                  value={converter.name}
+                  checked={converter.visible}
+                  class="size-4 accent-accent-500"
+                />
+                <span class="font-medium text-slate-900 dark:text-white" safe>
+                  {converter.name}
+                </span>
+                <span class={`${subtle} ml-auto`}>{converter.formats} formats</span>
+              </label>
+            ))}
+          </div>
+          <button type="submit" class="btn-primary mt-4 px-5 py-2.5 text-sm">
+            Save converters
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

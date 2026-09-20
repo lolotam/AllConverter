@@ -2,6 +2,7 @@ import Elysia from "elysia";
 import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
 import { onlyAvailable } from "../converters/availability";
+import { onlyVisible } from "../services/features";
 import { getAllInputs, getAllTargets } from "../converters/main";
 import { ALLOW_UNAUTHENTICATED, WEBROOT, BRANDING } from "../helpers/env";
 import { userService } from "./user";
@@ -42,30 +43,32 @@ export const listConverters = new Elysia().use(userService).get(
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(onlyAvailable(getAllTargets())).map(([converter, targets]) => {
-                    const inputs = getAllInputs(converter);
-                    return (
-                      <tr>
-                        <td safe>{converter}</td>
-                        <td>
-                          Count: {inputs.length}
-                          <ul>
-                            {inputs.map((input) => (
-                              <li safe>{input}</li>
-                            ))}
-                          </ul>
-                        </td>
-                        <td>
-                          Count: {targets.length}
-                          <ul>
-                            {targets.map((target) => (
-                              <li safe>{target}</li>
-                            ))}
-                          </ul>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {Object.entries(onlyVisible(onlyAvailable(getAllTargets()))).map(
+                    ([converter, targets]) => {
+                      const inputs = getAllInputs(converter);
+                      return (
+                        <tr>
+                          <td safe>{converter}</td>
+                          <td>
+                            Count: {inputs.length}
+                            <ul>
+                              {inputs.map((input) => (
+                                <li safe>{input}</li>
+                              ))}
+                            </ul>
+                          </td>
+                          <td>
+                            Count: {targets.length}
+                            <ul>
+                              {targets.map((target) => (
+                                <li safe>{target}</li>
+                              ))}
+                            </ul>
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )}
                 </tbody>
               </table>
             </article>

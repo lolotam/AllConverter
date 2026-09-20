@@ -39,9 +39,36 @@ function looksLike(type: string, bytes: Uint8Array): boolean {
       return ascii(bytes, 0, "GIF8");
     case "image/webp":
       return ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WEBP");
+    case "image/x-icon":
+    case "image/vnd.microsoft.icon":
+      return startsWith(bytes, [0x00, 0x00, 0x01, 0x00]);
     default:
       return false;
   }
+}
+
+/**
+ * Checks an uploaded image and returns the extension to store it under, or the error to
+ * show. Shared by profile pictures and the site logo.
+ */
+export async function validateImage(
+  file: File,
+  allowed: Record<string, string>,
+  maxBytes: number,
+): Promise<{ extension: string } | { error: AvatarError }> {
+  const extension = allowed[file.type];
+  if (!extension) {
+    return { error: "type" };
+  }
+  if (file.size === 0 || file.size > maxBytes) {
+    return { error: "size" };
+  }
+
+  const header = new Uint8Array((await file.arrayBuffer()).slice(0, 12));
+  if (!looksLike(file.type, header)) {
+    return { error: "type" };
+  }
+  return { extension };
 }
 
 /**
@@ -49,18 +76,11 @@ function looksLike(type: string, bytes: Uint8Array): boolean {
  * was there. Returns the error to show instead if the file is not usable.
  */
 export async function saveAvatar(userId: string, file: File): Promise<AvatarError | null> {
-  const extension = AVATAR_TYPES[file.type];
-  if (!extension) {
-    return "type";
+  const checked = await validateImage(file, AVATAR_TYPES, MAX_AVATAR_BYTES);
+  if ("error" in checked) {
+    return checked.error;
   }
-  if (file.size === 0 || file.size > MAX_AVATAR_BYTES) {
-    return "size";
-  }
-
-  const header = new Uint8Array((await file.arrayBuffer()).slice(0, 12));
-  if (!looksLike(file.type, header)) {
-    return "type";
-  }
+  const { extension } = checked;
 
   mkdirSync(avatarsDir, { recursive: true });
   const fileName = `${userId}${extension}`;

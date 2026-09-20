@@ -6,6 +6,7 @@ import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
 import { headerAccount } from "../helpers/headerUser";
 import { onlyAvailable } from "../converters/availability";
+import { onlyVisible } from "../services/features";
 import { getAllTargets } from "../converters/main";
 import db, { getTiers, getUserById } from "../db/db";
 import { User } from "../db/types";
@@ -135,7 +136,16 @@ export const root = new Elysia().use(userService).get(
       sameSite: "strict",
     });
 
-    const allTargets = onlyAvailable(getAllTargets());
+    const allTargets = onlyVisible(onlyAvailable(getAllTargets()));
+    // Offering a shortcut to a format no visible converter produces would only fail later
+    const offeredFormats = new Set(
+      Object.values(allTargets)
+        .flat()
+        .map((format) => String(format).toLowerCase()),
+    );
+    const popularFormats = ["PDF", "MP4", "MP3", "JPG", "PNG", "DOCX", "EPUB", "WEBP"].filter(
+      (format) => offeredFormats.has(format.toLowerCase()),
+    );
     const dbTiers = getTiers();
     const currentUser = user && user.id ? getUserById(user.id) : null;
     const checkout = checkoutConfig(currentUser);
@@ -315,7 +325,7 @@ export const root = new Elysia().use(userService).get(
                         <span class="font-semibold text-slate-600 dark:text-neutral-400">
                           Popular:
                         </span>
-                        {["PDF", "MP4", "MP3", "JPG", "PNG", "DOCX", "EPUB", "WEBP"].map((fmt) => (
+                        {popularFormats.map((fmt) => (
                           <button
                             type="button"
                             onclick={`selectTarget('${fmt.toLowerCase()}', 'popular', '${fmt.toLowerCase()},popular')`}

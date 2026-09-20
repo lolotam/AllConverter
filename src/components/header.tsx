@@ -1,3 +1,5 @@
+import { brandingUrl } from "../services/branding";
+
 /** The avatar button and the menu it opens. Only shown for a real account. */
 const AccountMenu = ({
   webroot,
@@ -136,6 +138,8 @@ export const Header = ({
   accountInitials?: string | undefined;
   accountTier?: string | undefined;
 }) => {
+  // Uploaded in the admin dashboard; null keeps the artwork that ships with the app
+  const logo = brandingUrl(webroot, "logo");
   return (
     <header class="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/85 text-slate-800 dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:text-neutral-100 backdrop-blur-xl transition-colors duration-200">
       <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
@@ -145,20 +149,30 @@ export const Header = ({
             href={`${webroot}/`}
             class="group flex items-center gap-2.5 transition-transform hover:scale-[1.02]"
           >
-            <div class="flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-accent-500 via-lime-400 to-emerald-400 shadow-lg shadow-accent-500/20">
-              <svg
-                class="size-5 text-neutral-950"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M7 16V4m0 0L3 8m4-4l4 4" />
-                <path d="M17 8v12m0 0l4-4m-4 4l-4-4" />
-              </svg>
-            </div>
+            {logo ? (
+              <img
+                src={logo}
+                alt=""
+                width="36"
+                height="36"
+                class="size-9 rounded-xl object-contain"
+              />
+            ) : (
+              <div class="flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-accent-500 via-lime-400 to-emerald-400 shadow-lg shadow-accent-500/20">
+                <svg
+                  class="size-5 text-neutral-950"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M7 16V4m0 0L3 8m4-4l4 4" />
+                  <path d="M17 8v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+              </div>
+            )}
             <div class="flex flex-col">
               <span
                 class="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white group-hover:text-accent-500 transition-colors"

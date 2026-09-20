@@ -197,6 +197,14 @@ export function initializeDatabase(db: Database): void {
     }
   }
 
+  // Settings an admin can change without a redeploy (see services/settings.ts)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS system_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
+
   // Daily conversion counters used to enforce tier quotas (see services/quota.ts)
   db.exec(`
     CREATE TABLE IF NOT EXISTS usage (
@@ -286,6 +294,9 @@ export function getAllUsers(): (User & { jobs_count: number })[] {
       COALESCE(u.role, 'user') as role,
       COALESCE(u.tier, 'free') as tier,
       COALESCE(u.created_at, 'N/A') as created_at,
+      u.display_name,
+      u.avatar_path,
+      u.google_id,
       COUNT(j.id) as jobs_count
     FROM users u
     LEFT JOIN jobs j ON j.user_id = u.id

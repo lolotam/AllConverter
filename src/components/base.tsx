@@ -1,5 +1,6 @@
 import { version } from "../../package.json";
 import { assetUrl } from "../helpers/assetUrl";
+import { brandingUrl } from "../services/branding";
 
 export const BaseHtml = ({
   children,
@@ -29,9 +30,15 @@ export const BaseHtml = ({
         rel="stylesheet"
       />
       <link rel="stylesheet" href={assetUrl(webroot, "generated.css")} />
-      <link rel="apple-touch-icon" sizes="180x180" href={`${webroot}/apple-touch-icon.png`} />
-      <link rel="icon" type="image/png" sizes="32x32" href={`${webroot}/favicon-32x32.png`} />
-      <link rel="icon" type="image/png" sizes="16x16" href={`${webroot}/favicon-16x16.png`} />
+      {brandingUrl(webroot, "favicon") ? (
+        <link rel="icon" href={String(brandingUrl(webroot, "favicon"))} />
+      ) : (
+        <>
+          <link rel="apple-touch-icon" sizes="180x180" href={`${webroot}/apple-touch-icon.png`} />
+          <link rel="icon" type="image/png" sizes="32x32" href={`${webroot}/favicon-32x32.png`} />
+          <link rel="icon" type="image/png" sizes="16x16" href={`${webroot}/favicon-16x16.png`} />
+        </>
+      )}
       <link rel="manifest" href={`${webroot}/site.webmanifest`} />
       <style>{`
         body {
@@ -57,7 +64,9 @@ export const BaseHtml = ({
         })();
       `}</script>
     </head>
-    <body class={`flex min-h-screen w-full flex-col bg-slate-100 text-slate-900 dark:bg-[#0b0c10] dark:text-neutral-100 transition-colors duration-200 selection:bg-accent-500 selection:text-neutral-950`}>
+    <body
+      class={`flex min-h-screen w-full flex-col bg-slate-100 text-slate-900 dark:bg-[#0b0c10] dark:text-neutral-100 transition-colors duration-200 selection:bg-accent-500 selection:text-neutral-950`}
+    >
       {children}
       {!customFooter && (
         <footer class="w-full border-t border-neutral-800/80 bg-neutral-950/60 py-6">

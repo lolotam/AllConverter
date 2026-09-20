@@ -3,6 +3,7 @@ import {
   AnalyticsPanel,
   ConversionsPanel,
   HealthPanel,
+  SitePanel,
   StoragePanel,
 } from "../components/adminPanels";
 import { BaseHtml } from "../components/base";
@@ -24,11 +25,28 @@ import {
   HIDE_HISTORY,
   WEBROOT,
 } from "../helpers/env";
+import { onlyAvailable } from "../converters/availability";
+import { getAllTargets } from "../converters/main";
 import { analytics, queueSnapshot, storageUsage, systemHealth } from "../services/adminStats";
+import { brandingUrl, removeBrandingAsset, saveBrandingAsset } from "../services/branding";
+import { initialsOf } from "../services/avatar";
+import { hiddenConverters, setHiddenConverters } from "../services/features";
 import { deleteExpiredJobs } from "../services/cleanup";
 import { GOOGLE_ENABLED } from "../services/google";
 import { PADDLE_ENABLED } from "../services/paddle";
 import { userService } from "../services/user";
+
+/** Every converter whose tools are installed, and whether the site currently offers it. */
+function converterVisibility(): { name: string; formats: number; visible: boolean }[] {
+  const hidden = new Set(hiddenConverters());
+  return Object.entries(onlyAvailable(getAllTargets()))
+    .map(([name, targets]) => ({
+      name,
+      formats: Array.isArray(targets) ? targets.length : 0,
+      visible: !hidden.has(name),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
 export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
   .use(userService)
@@ -137,6 +155,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                       { id: "conversions", label: "⚙️ Conversions" },
                       { id: "health", label: "❤️ Health" },
                       { id: "usage", label: "📈 Usage" },
+                      { id: "site", label: "🎨 Site" },
                     ].map((tab) => (
                       <a
                         href={`${WEBROOT}/admin?tab=${tab.id}`}
@@ -334,8 +353,33 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                             <tr class="hover:bg-neutral-850/50 transition-colors">
                               <td class="p-4 font-mono text-xs text-neutral-400">{u.id}</td>
                               <td class="p-4 font-medium text-white">
-                                <div class="flex items-center gap-2">
-                                  <span>{u.email}</span>
+                                <div class="flex items-center gap-2.5">
+                                  {u.avatar_path ? (
+                                    <img
+                                      src={`${WEBROOT}/avatar/${u.id}`}
+                                      alt=""
+                                      width="28"
+                                      height="28"
+                                      class="size-7 rounded-lg object-cover"
+                                    />
+                                  ) : (
+                                    <span class="flex size-7 items-center justify-center rounded-lg bg-neutral-800 text-[10px] font-bold text-neutral-300">
+                                      {initialsOf(u.display_name, u.email)}
+                                    </span>
+                                  )}
+                                  <span class="flex flex-col">
+                                    <span safe>{u.display_name || u.email}</span>
+                                    {u.display_name ? (
+                                      <span class="text-[11px] font-normal text-neutral-400" safe>
+                                        {u.email}
+                                      </span>
+                                    ) : null}
+                                  </span>
+                                  {u.google_id ? (
+                                    <span class="rounded bg-neutral-800 px-1.5 py-0.5 text-[10px] font-bold text-neutral-300">
+                                      Google
+                                    </span>
+                                  ) : null}
                                   {u.id === currentUser.id && (
                                     <span class="rounded bg-accent-500/20 px-1.5 py-0.5 text-[10px] font-bold text-accent-400">
                                       YOU
@@ -712,6 +756,15 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                 )}
 
                 {currentTab === "usage" && <AnalyticsPanel data={analytics()} />}
+
+                {currentTab === "site" && (
+                  <SitePanel
+                    webroot={WEBROOT}
+                    logoUrl={brandingUrl(WEBROOT, "logo")}
+                    faviconUrl={brandingUrl(WEBROOT, "favicon")}
+                    converters={converterVisibility()}
+                  />
+                )}
               </div>
             </div>
           </>
@@ -891,5 +944,88 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
       cookie: t.Cookie({
         auth: t.Optional(t.String()),
       }),
+    },
+  )
+  // Logo and favicon uploads
+  .post(
+    "/branding/:asset",
+    async ({ params, body, jwt, redirect, cookie: { auth } }) => {
+      if (!auth?.value) return redirect(`${WEBROOT}/login`, 302);
+      const verified = (await jwt.verify(auth.value)) as { id: string } | false;
+      if (!verified || !verified.id) return redirect(`${WEBROOT}/login`, 302);
+      const adminUser = getUserById(verified.id);
+      if (!adminUser || adminUser.role !== "admin") return redirect(`${WEBROOT}/`, 302);
+      if (params.asset !== "logo" && params.asset !== "favicon") {
+        return redirect(`${WEBROOT}/admin?tab=site`, 302);
+      }
+
+      const failure = await saveBrandingAsset(params.asset, body.image);
+      const message =
+        failure === "type"
+          ? "That file type cannot be used"
+          : failure === "size"
+            ? "That image is larger than 1 MB"
+            : `${params.asset === "logo" ? "Logo" : "Favicon"} updated`;
+      return redirect(`${WEBROOT}/admin?tab=site&msg=${encodeURIComponent(message)}`, 302);
+    },
+    {
+      params: t.Object({ asset: t.String() }),
+      body: t.Object({ image: t.File() }),
+      cookie: t.Cookie({ auth: t.Optional(t.String()) }),
+    },
+  )
+  .post(
+    "/branding/:asset/delete",
+    async ({ params, jwt, redirect, cookie: { auth } }) => {
+      if (!auth?.value) return redirect(`${WEBROOT}/login`, 302);
+      const verified = (await jwt.verify(auth.value)) as { id: string } | false;
+      if (!verified || !verified.id) return redirect(`${WEBROOT}/login`, 302);
+      const adminUser = getUserById(verified.id);
+      if (!adminUser || adminUser.role !== "admin") return redirect(`${WEBROOT}/`, 302);
+      if (params.asset !== "logo" && params.asset !== "favicon") {
+        return redirect(`${WEBROOT}/admin?tab=site`, 302);
+      }
+
+      await removeBrandingAsset(params.asset);
+      return redirect(`${WEBROOT}/admin?tab=site&msg=Using+the+built-in+artwork+again`, 302);
+    },
+    {
+      params: t.Object({ asset: t.String() }),
+      cookie: t.Cookie({ auth: t.Optional(t.String()) }),
+    },
+  )
+  // Which converters the site offers
+  .post(
+    "/features",
+    async ({ body, jwt, redirect, cookie: { auth } }) => {
+      if (!auth?.value) return redirect(`${WEBROOT}/login`, 302);
+      const verified = (await jwt.verify(auth.value)) as { id: string } | false;
+      if (!verified || !verified.id) return redirect(`${WEBROOT}/login`, 302);
+      const adminUser = getUserById(verified.id);
+      if (!adminUser || adminUser.role !== "admin") return redirect(`${WEBROOT}/`, 302);
+
+      // An unticked box sends nothing, so the hidden list is everything not sent back
+      const ticked = new Set(
+        Array.isArray(body.visible) ? body.visible : body.visible ? [body.visible] : [],
+      );
+      const hidden = Object.keys(onlyAvailable(getAllTargets())).filter(
+        (converter) => !ticked.has(converter),
+      );
+      setHiddenConverters(hidden);
+
+      return redirect(
+        `${WEBROOT}/admin?tab=site&msg=${encodeURIComponent(
+          hidden.length === 0
+            ? "Every converter is offered"
+            : `${hidden.length} converter(s) hidden`,
+        )}`,
+        302,
+      );
+    },
+    {
+      body: t.Object({
+        visible: t.Optional(t.Union([t.String(), t.Array(t.String())])),
+      }),
+      cookie: t.Cookie({ auth: t.Optional(t.String()) }),
     },
   );

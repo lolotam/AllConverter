@@ -1,16 +1,30 @@
 import Elysia, { t } from "elysia";
 import { onlyAvailable } from "../converters/availability";
+import { onlyVisible } from "../services/features";
 import { getPossibleTargets } from "../converters/main";
 import { userService } from "./user";
 
 const POPULAR_FORMATS = [
-  "pdf", "mp4", "mp3", "jpg", "png", "docx", "webp", "epub", "xlsx", "csv", "wav", "gif", "txt", "zip"
+  "pdf",
+  "mp4",
+  "mp3",
+  "jpg",
+  "png",
+  "docx",
+  "webp",
+  "epub",
+  "xlsx",
+  "csv",
+  "wav",
+  "gif",
+  "txt",
+  "zip",
 ];
 
 export const chooseConverter = new Elysia().use(userService).post(
   "/conversions",
   ({ body }) => {
-    const possibleTargets = onlyAvailable(getPossibleTargets(body.fileType));
+    const possibleTargets = onlyVisible(onlyAvailable(getPossibleTargets(body.fileType)));
     const allUniqueTargets = Array.from(new Set(Object.values(possibleTargets).flat()));
     const popularTargets = POPULAR_FORMATS.filter((p) => allUniqueTargets.includes(p));
 
@@ -32,7 +46,10 @@ export const chooseConverter = new Elysia().use(userService).post(
             <header class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
               <span>🕒</span> Recently Used (المستخدمة مؤخراً)
             </header>
-            <ul id="recent-formats-list" class="convert_to_target flex flex-row flex-wrap gap-1.5" />
+            <ul
+              id="recent-formats-list"
+              class="convert_to_target flex flex-row flex-wrap gap-1.5"
+            />
           </article>
 
           {/* Popular Formats Group */}
@@ -46,7 +63,9 @@ export const chooseConverter = new Elysia().use(userService).post(
               </header>
               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">
                 {popularTargets.map((target) => {
-                  const converterEntry = Object.entries(possibleTargets).find(([_, tList]) => tList.includes(target));
+                  const converterEntry = Object.entries(possibleTargets).find(([_, tList]) =>
+                    tList.includes(target),
+                  );
                   const converterName = converterEntry ? converterEntry[0] : "";
                   return (
                     <button
@@ -71,7 +90,10 @@ export const chooseConverter = new Elysia().use(userService).post(
               class="convert_to_group flex w-full flex-col border-b border-slate-100 dark:border-neutral-700/60 p-3 last:border-none"
               data-converter={converter}
             >
-              <header class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-lime-600 dark:text-accent-400" safe>
+              <header
+                class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-lime-600 dark:text-accent-400"
+                safe
+              >
                 {converter}
               </header>
               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">

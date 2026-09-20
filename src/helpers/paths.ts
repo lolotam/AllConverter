@@ -6,3 +6,5 @@ export const outputDir = "./data/output/";
 export const incompleteUploadsDir = "./data/uploads-incomplete/";
 // Profile pictures, one file per user, named by user id
 export const avatarsDir = "./data/avatars/";
+// Uploaded logo and favicon, replacing what ships with the app
+export const brandingDir = "./data/branding/";

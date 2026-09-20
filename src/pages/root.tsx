@@ -31,6 +31,8 @@ const fileDeletionPromise =
 const LIMIT_MESSAGES: Record<string, string> = {
   daily: "You've used all of today's conversions on your plan. Upgrade to Pro for unlimited conversions.",
   batch: "Your plan doesn't allow that many files in one conversion. Upgrade to Pro for bigger batches.",
+  upload:
+    "Those files haven't finished uploading yet. Wait for every upload to complete, then convert.",
 };
 
 export const root = new Elysia().use(userService).get(

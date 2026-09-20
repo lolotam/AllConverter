@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, readdir } from "node:fs/promises";
 import { Elysia, t } from "elysia";
 import sanitize from "sanitize-filename";
 import { outputDir, uploadsDir } from "..";
@@ -67,6 +67,13 @@ export const convert = new Elysia().use(userService).post(
 
     if (!Array.isArray(fileNames) || fileNames.length === 0) {
       return redirect(`${WEBROOT}/`, 302);
+    }
+
+    // A resumable upload only appears in the job folder once it is complete, so this
+    // also stops a conversion being started on a file that is still uploading
+    const uploaded = await readdir(userUploadsDir).catch(() => [] as string[]);
+    if (fileNames.some((fileName) => !uploaded.includes(fileName))) {
+      return redirect(`${WEBROOT}/?limit=upload`, 302);
     }
 
     const { tier, subject } = getQuotaContext(user.id, request, server);

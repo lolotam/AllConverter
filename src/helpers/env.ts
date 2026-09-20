@@ -64,3 +64,15 @@ export const REFUND_WINDOW_DAYS =
   process.env.REFUND_WINDOW_DAYS && Number(process.env.REFUND_WINDOW_DAYS) >= 0
     ? Number(process.env.REFUND_WINDOW_DAYS)
     : 14;
+
+// Resumable uploads: how long an abandoned partial upload is kept before it is
+// swept, and the chunk size the browser uses. Chunks must stay well under
+// Cloudflare's 100 MB request limit and its 100 second request timeout.
+export const TUS_UPLOAD_EXPIRY_HOURS = process.env.TUS_UPLOAD_EXPIRY_HOURS
+  ? Number(process.env.TUS_UPLOAD_EXPIRY_HOURS)
+  : 24;
+
+export const UPLOAD_CHUNK_SIZE_MB =
+  process.env.UPLOAD_CHUNK_SIZE_MB && Number(process.env.UPLOAD_CHUNK_SIZE_MB) > 0
+    ? Number(process.env.UPLOAD_CHUNK_SIZE_MB)
+    : 16;

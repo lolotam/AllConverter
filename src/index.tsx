@@ -16,16 +16,17 @@ import { history } from "./pages/history";
 import { listConverters } from "./pages/listConverters";
 import { results } from "./pages/results";
 import { root } from "./pages/root";
-import { upload } from "./pages/upload";
+import { resumableUpload, upload } from "./pages/upload";
 import { user } from "./pages/user";
 import { healthcheck } from "./pages/healthcheck";
 import { admin } from "./pages/admin";
 import { billing } from "./pages/billing";
 import { legal } from "./pages/legal";
+import { outputDir, uploadsDir } from "./helpers/paths";
 import { MB, pruneUsage } from "./services/quota";
+import { cleanUpExpiredUploads } from "./services/tus";
 
-export const uploadsDir = "./data/uploads/";
-export const outputDir = "./data/output/";
+export { outputDir, uploadsDir } from "./helpers/paths";
 
 // Fix for Elysia issue with Bun, (see https://github.com/oven-sh/bun/issues/12161)
 process.getBuiltinModule = require;
@@ -48,6 +49,7 @@ const app = new Elysia({
   .use(user)
   .use(root)
   .use(upload)
+  .use(resumableUpload)
   .use(history)
   .use(convert)
   .use(download)
@@ -117,6 +119,10 @@ const clearJobs = () => {
 if (AUTO_DELETE_EVERY_N_HOURS > 0) {
   clearJobs();
 }
+
+// Abandoned partial uploads are not tied to a job yet, so they need their own sweep
+cleanUpExpiredUploads();
+setInterval(cleanUpExpiredUploads, 60 * 60 * 1000);
 
 // Guest quota counters hold IP addresses; drop old ones even if file auto-delete is off
 pruneUsage();

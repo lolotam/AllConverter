@@ -73,7 +73,11 @@ afterEach(() => {
     testDb.close();
   }
   if (existsSync(testDbPath)) {
-    unlinkSync(testDbPath);
+    try {
+      unlinkSync(testDbPath);
+    } catch (err) {
+      // Ignore Windows EBUSY file lock during test cleanup
+    }
   }
   if (existsSync(`${testDbPath}-wal`)) {
     try {
@@ -135,7 +139,7 @@ test("db initializes and creates tables on first run", () => {
   expect(tables.map((t) => t.name)).toContain("users");
   expect(tables.map((t) => t.name)).toContain("jobs");
   expect(tables.map((t) => t.name)).toContain("file_names");
-  expect(getDbVersion(testDb)).toBe(1);
+  expect(getDbVersion(testDb)).toBe(2);
 });
 
 test("db handles migration from version 0 to version 1", () => {
@@ -170,14 +174,26 @@ test("db handles migration from version 0 to version 1", () => {
     // Now runs the real migration logic from db.ts
     initializeDatabase(migrateDb);
 
-    expect(getDbVersion(migrateDb)).toBe(1);
+    expect(getDbVersion(migrateDb)).toBe(2);
     const columnInfo = getColumnInfo(migrateDb, "file_names");
     expect(columnInfo.map((c) => c.name)).toContain("status");
   } finally {
     if (migrateDb) migrateDb.close();
-    if (existsSync(migrateDbPath)) unlinkSync(migrateDbPath);
-    if (existsSync(`${migrateDbPath}-wal`)) unlinkSync(`${migrateDbPath}-wal`);
-    if (existsSync(`${migrateDbPath}-shm`)) unlinkSync(`${migrateDbPath}-shm`);
+    if (existsSync(migrateDbPath)) {
+      try {
+        unlinkSync(migrateDbPath);
+      } catch (err) {}
+    }
+    if (existsSync(`${migrateDbPath}-wal`)) {
+      try {
+        unlinkSync(`${migrateDbPath}-wal`);
+      } catch (err) {}
+    }
+    if (existsSync(`${migrateDbPath}-shm`)) {
+      try {
+        unlinkSync(`${migrateDbPath}-shm`);
+      } catch (err) {}
+    }
   }
 });
 

@@ -42,6 +42,7 @@ import {
   cleanupEnabled,
   cleanupOverrideHours,
   deleteExpiredJobs,
+  deleteOrphanedUploads,
   purgeAllJobs,
   setCleanupEnabled,
   setCleanupOverrideHours,
@@ -991,10 +992,14 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
       if (!adminUser || adminUser.role !== "admin") return redirect(`${WEBROOT}/`, 302);
 
       const removed = deleteExpiredJobs();
-      return redirect(
-        `${WEBROOT}/admin?tab=storage&msg=Cleanup+removed+${removed}+expired+job${removed === 1 ? "" : "s"}`,
-        302,
-      );
+      // Files uploaded for a conversion nobody started are storage too, and the button
+      // says "delete expired", not "delete expired jobs"
+      const orphans = deleteOrphanedUploads();
+      const message =
+        orphans > 0
+          ? `Cleanup removed ${removed} expired job${removed === 1 ? "" : "s"} and ${orphans} abandoned upload${orphans === 1 ? "" : "s"}`
+          : `Cleanup removed ${removed} expired job${removed === 1 ? "" : "s"}`;
+      return redirect(`${WEBROOT}/admin?tab=storage&msg=${encodeURIComponent(message)}`, 302);
     },
     {
       cookie: t.Cookie({

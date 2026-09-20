@@ -35,6 +35,11 @@ export class PriorityQueue {
     });
   }
 
+  /** What the queue is doing right now, for the admin dashboard. */
+  stats(): { running: number; waiting: number; concurrency: number } {
+    return { running: this.running, waiting: this.waiting.length, concurrency: this.concurrency };
+  }
+
   private next(): void {
     while (this.running < this.concurrency) {
       const task = this.waiting.shift();

@@ -1,11 +1,9 @@
-import { rmSync } from "node:fs";
 import { html } from "@elysiajs/html";
 import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
 import "./helpers/printVersions";
 import { unavailableConverters } from "./converters/availability";
 import db from "./db/db";
-import { Jobs } from "./db/types";
 import { AUTO_DELETE_EVERY_N_HOURS, UPLOAD_CHUNK_SIZE_MB, WEBROOT } from "./helpers/env";
 import { chooseConverter } from "./pages/chooseConverter";
 import { convert } from "./pages/convert";
@@ -23,8 +21,8 @@ import { account } from "./pages/account";
 import { admin } from "./pages/admin";
 import { billing } from "./pages/billing";
 import { legal } from "./pages/legal";
-import { outputDir, uploadsDir } from "./helpers/paths";
 import { MB, pruneUsage } from "./services/quota";
+import { deleteExpiredJobs } from "./services/cleanup";
 import { cleanUpExpiredUploads } from "./services/tus";
 
 export { outputDir, uploadsDir } from "./helpers/paths";
@@ -98,26 +96,7 @@ for (const { converter, missing } of unavailableConverters()) {
 console.log(`🦊 Elysia is running at http://${app.server?.hostname}:${app.server?.port}${WEBROOT}`);
 
 const clearJobs = () => {
-  const jobs = db
-    .query("SELECT * FROM jobs WHERE date_created < ?")
-    .as(Jobs)
-    .all(new Date(Date.now() - AUTO_DELETE_EVERY_N_HOURS * 60 * 60 * 1000).toISOString());
-
-  for (const job of jobs) {
-    // delete the directories
-    rmSync(`${outputDir}${job.user_id}/${job.id}`, {
-      recursive: true,
-      force: true,
-    });
-    rmSync(`${uploadsDir}${job.user_id}/${job.id}`, {
-      recursive: true,
-      force: true,
-    });
-
-    // delete the job
-    db.query("DELETE FROM file_names WHERE job_id = ?").run(job.id);
-    db.query("DELETE FROM jobs WHERE id = ?").run(job.id);
-  }
+  deleteExpiredJobs();
 
   // Check at least every 15 minutes so files don't outlive the retention
   // window by up to another full N hours.

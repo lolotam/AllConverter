@@ -77,6 +77,18 @@ export function jobProgress(jobId: string): (FileProgress & { elapsedMs: number 
 }
 
 // Keep finished jobs long enough for an open results page to see the final state
+/** Jobs with at least one file still queued or converting, newest ids last. */
+export function activeJobs(): { jobId: string; files: FileProgress[] }[] {
+  const active: { jobId: string; files: FileProgress[] }[] = [];
+  for (const [jobId, files] of jobs) {
+    const list = [...files.values()];
+    if (list.some((file) => file.state === "queued" || file.state === "converting")) {
+      active.push({ jobId, files: list });
+    }
+  }
+  return active;
+}
+
 export function forgetJob(jobId: string, afterMs = 10 * 60 * 1000): void {
   setTimeout(() => jobs.delete(jobId), afterMs).unref?.();
 }

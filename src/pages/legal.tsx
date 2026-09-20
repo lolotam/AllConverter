@@ -97,7 +97,7 @@ const List = ({ children }: { children: JSX.Element[] }) => (
 
 const fileRetention =
   AUTO_DELETE_EVERY_N_HOURS > 0
-    ? `automatically deleted about ${AUTO_DELETE_EVERY_N_HOURS} hour${AUTO_DELETE_EVERY_N_HOURS === 1 ? "" : "s"} after you start a conversion (the cleanup runs every 15 minutes)`
+    ? "automatically deleted according to your plan's retention period (2 hours for free conversions, 24 hours for Pro, and 7 days for Business; the cleanup runs every 15 minutes)"
     : "kept until you delete them from your conversion history";
 
 const LegalPage = ({

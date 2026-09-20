@@ -49,6 +49,7 @@ export class Tier {
   button_text!: string;
   button_link!: string;
   color_theme!: string;
+  retention_hours!: number;
 }
 
 export class SystemSetting {

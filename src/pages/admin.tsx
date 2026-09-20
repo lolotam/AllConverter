@@ -622,8 +622,8 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                 </div>
                               </div>
 
-                              {/* Batch Limit & Priority */}
-                              <div class="grid grid-cols-2 gap-2">
+                              {/* Batch Limit, Priority & Retention */}
+                              <div class="grid grid-cols-3 gap-2">
                                 <div>
                                   <label class="block text-xs font-semibold text-neutral-400 mb-1">
                                     Batch Files
@@ -638,19 +638,35 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                 </div>
                                 <div>
                                   <label class="block text-xs font-semibold text-neutral-400 mb-1">
-                                    Priority Turbo
+                                    Priority Queue
                                   </label>
                                   <select
                                     name="priority_queue"
-                                    class="w-full rounded-xl bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-accent-500"
+                                    class="w-full rounded-xl bg-neutral-800 border border-neutral-700 px-2 py-2 text-sm text-white focus:outline-none focus:border-accent-500"
                                   >
                                     <option value="0" selected={t.priority_queue === 0}>
                                       Standard
                                     </option>
                                     <option value="1" selected={t.priority_queue === 1}>
-                                      Priority Turbo
+                                      Priority
+                                    </option>
+                                    <option value="2" selected={t.priority_queue === 2}>
+                                      Highest
                                     </option>
                                   </select>
+                                </div>
+                                <div>
+                                  <label class="block text-xs font-semibold text-neutral-400 mb-1">
+                                    Retention (h)
+                                  </label>
+                                  <input
+                                    type="number"
+                                    name="retention_hours"
+                                    value={String(t.retention_hours ?? 2)}
+                                    required
+                                    min="1"
+                                    class="w-full rounded-xl bg-neutral-800 border border-neutral-700 px-3 py-2 text-sm font-mono text-white focus:outline-none focus:border-accent-500"
+                                  />
                                 </div>
                               </div>
 
@@ -893,6 +909,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
         features: JSON.stringify(featuresArray),
         button_text: body.button_text,
         button_link: body.button_link,
+        retention_hours: Number(body.retention_hours || 2),
       });
 
       return redirect(
@@ -918,6 +935,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
         features: t.String(),
         button_text: t.String(),
         button_link: t.String(),
+        retention_hours: t.Optional(t.String()),
       }),
       cookie: t.Cookie({
         auth: t.Optional(t.String()),

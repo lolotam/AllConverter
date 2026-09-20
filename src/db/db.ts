@@ -82,9 +82,19 @@ export function initializeDatabase(db: Database): void {
       features TEXT NOT NULL,
       button_text TEXT NOT NULL,
       button_link TEXT NOT NULL,
-      color_theme TEXT DEFAULT 'default'
+      color_theme TEXT DEFAULT 'default',
+      retention_hours INTEGER NOT NULL DEFAULT 2
     );
   `);
+
+  // Add retention_hours column to tiers table if not present
+  const tierColumns = db.query("PRAGMA table_info(tiers)").all() as { name: string }[];
+  if (!tierColumns.some((c) => c.name.toLowerCase() === "retention_hours")) {
+    db.exec("ALTER TABLE tiers ADD COLUMN retention_hours INTEGER NOT NULL DEFAULT 2;");
+    db.exec("UPDATE tiers SET retention_hours = 2 WHERE id = 'free';");
+    db.exec("UPDATE tiers SET retention_hours = 24 WHERE id = 'pro';");
+    db.exec("UPDATE tiers SET retention_hours = 168 WHERE id = 'business';");
+  }
 
   // Seed default tiers if empty
   const tierCount = (db.query("SELECT COUNT(*) as count FROM tiers").get() as { count: number })
@@ -94,8 +104,8 @@ export function initializeDatabase(db: Database): void {
       INSERT INTO tiers (
         id, name, price, billing_period, description, max_file_size_mb,
         daily_conversions, priority_queue, batch_limit, is_popular, badge,
-        features, button_text, button_link, color_theme
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        features, button_text, button_link, color_theme, retention_hours
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     insertTier.run(
@@ -113,13 +123,14 @@ export function initializeDatabase(db: Database): void {
       JSON.stringify([
         "Up to 100 MB max file size",
         "10 conversions per day",
-        "Standard processing queue",
-        "Files kept for 24 hours",
+        "Standard cloud processing speed",
+        "2-hour file retention",
         "No account required",
       ]),
       "Start Free",
       "#dropzone",
       "default",
+      2,
     );
 
     insertTier.run(
@@ -139,12 +150,13 @@ export function initializeDatabase(db: Database): void {
         "Unlimited conversions",
         "Priority queue — your files convert first",
         "Batch upload up to 50 files",
-        "Files kept for 24 hours",
+        "24-hour file storage",
         "No ads, ever",
       ]),
       "Upgrade to Pro",
       "/register",
       "accent",
+      24,
     );
 
     insertTier.run(
@@ -155,23 +167,90 @@ export function initializeDatabase(db: Database): void {
       "High-volume automated conversion for developers & teams.",
       5120,
       999999,
-      1,
+      2,
       100,
       0,
       "Enterprise",
       JSON.stringify([
         "Up to 5 GB max file size",
         "Batch upload up to 100 files",
-        "Priority queue — your files convert first",
-        "Files kept for 24 hours",
-        "Email support",
+        "Highest queue priority",
+        "7-day file storage",
+        "Email support (1 business day)",
         "API access — join the waiting list",
       ]),
       "Join the waiting list",
       "/register",
       "blue",
+      168,
     );
   }
+
+  // Ensure default tier retention and honest features are up to date in existing databases
+  db.query(
+    `
+    UPDATE tiers SET
+      retention_hours = 2,
+      features = ?
+    WHERE id = 'free' AND (features LIKE '%Files kept for 24 hours%' OR features LIKE '%Standard processing queue%')
+  `,
+  ).run(
+    JSON.stringify([
+      "Up to 100 MB max file size",
+      "10 conversions per day",
+      "Standard cloud processing speed",
+      "2-hour file retention",
+      "No account required",
+    ]),
+  );
+
+  db.query(
+    `
+    UPDATE tiers SET
+      retention_hours = 24,
+      features = ?
+    WHERE id = 'pro' AND (features LIKE '%5x faster%' OR features LIKE '%Files kept for 24 hours%')
+  `,
+  ).run(
+    JSON.stringify([
+      "Up to 2 GB max file size",
+      "Unlimited conversions",
+      "Priority queue — your files convert first",
+      "Batch upload up to 50 files",
+      "24-hour file storage",
+      "No ads, ever",
+    ]),
+  );
+
+  // The old Business card also linked "Get API Access" to a login page, for an API that
+  // does not exist; the waiting list is what it really offers today
+  db.query(
+    `
+    UPDATE tiers SET
+      button_text = 'Join the waiting list',
+      button_link = '/register'
+    WHERE id = 'business' AND button_text = 'Get API Access'
+  `,
+  ).run();
+
+  db.query(
+    `
+    UPDATE tiers SET
+      retention_hours = 168,
+      priority_queue = 2,
+      features = ?
+    WHERE id = 'business' AND (features LIKE '%50,000 API credits%' OR features LIKE '%Files kept for 24 hours%')
+  `,
+  ).run(
+    JSON.stringify([
+      "Up to 5 GB max file size",
+      "Batch upload up to 100 files",
+      "Highest queue priority",
+      "7-day file storage",
+      "Email support (1 business day)",
+      "API access — join the waiting list",
+    ]),
+  );
 
   // Paddle subscription state, written by the billing webhook (see services/paddle.ts),
   // and the Google account id for people who signed in with Google (see services/google.ts)
@@ -195,106 +274,6 @@ export function initializeDatabase(db: Database): void {
         // Everyone who existed before this column registered with a password
         db.exec("UPDATE users SET password_set = '1';");
       }
-    }
-  }
-
-  // The seeded plans promised things the code never did: a retention window that is not
-  // per-tier, an unmeasured "5x", and a Business plan of API credits, webhooks, an SLA
-  // and 24/7 support that do not exist. Rewrite those rows to what the app really does,
-  // but only while they still hold the original text, so edits made in the admin
-  // dashboard are never overwritten.
-  const honestTierCopy: {
-    id: string;
-    wasFeatures: string[];
-    features: string[];
-    button?: { wasText: string; text: string; wasLink: string; link: string };
-  }[] = [
-    {
-      id: "free",
-      wasFeatures: [
-        "Up to 100 MB max file size",
-        "10 conversions per day",
-        "Standard cloud processing speed",
-        "2-hour file retention",
-        "No account required",
-      ],
-      features: [
-        "Up to 100 MB max file size",
-        "10 conversions per day",
-        "Standard processing queue",
-        "Files kept for 24 hours",
-        "No account required",
-      ],
-    },
-    {
-      id: "pro",
-      wasFeatures: [
-        "Up to 2 GB max file size",
-        "Unlimited conversions",
-        "Priority Turbo Queue (5x faster)",
-        "Batch upload up to 50 files",
-        "24-hour file storage",
-        "100% Ad-free experience",
-      ],
-      features: [
-        "Up to 2 GB max file size",
-        "Unlimited conversions",
-        "Priority queue — your files convert first",
-        "Batch upload up to 50 files",
-        "Files kept for 24 hours",
-        "No ads, ever",
-      ],
-    },
-    {
-      id: "business",
-      wasFeatures: [
-        "50,000 API credits / month",
-        "Dedicated conversion workers",
-        "Webhooks & Cloudflare R2 export",
-        "99.9% Uptime SLA",
-        "24/7 Priority support",
-      ],
-      features: [
-        "Up to 5 GB max file size",
-        "Batch upload up to 100 files",
-        "Priority queue — your files convert first",
-        "Files kept for 24 hours",
-        "Email support",
-        "API access — join the waiting list",
-      ],
-      button: {
-        wasText: "Get API Access",
-        text: "Join the waiting list",
-        wasLink: "/login",
-        link: "/register",
-      },
-    },
-  ];
-
-  for (const tier of honestTierCopy) {
-    const row = db
-      .query("SELECT features, button_text, button_link FROM tiers WHERE id = ?")
-      .get(tier.id) as { features: string; button_text: string; button_link: string } | undefined;
-    if (!row) {
-      continue;
-    }
-
-    if (row.features === JSON.stringify(tier.wasFeatures)) {
-      db.query("UPDATE tiers SET features = ? WHERE id = ?").run(
-        JSON.stringify(tier.features),
-        tier.id,
-      );
-    }
-    if (
-      tier.button &&
-      row.button_text === tier.button.wasText &&
-      row.button_link === tier.button.wasLink
-    ) {
-      db.query("UPDATE tiers SET button_text = ?, button_link = ? WHERE id = ?").run(
-        tier.button.text,
-        tier.button.link,
-        tier.id,
-      );
     }
   }
 
@@ -362,7 +341,8 @@ export function updateTier(tier: Partial<Tier> & { id: string }): void {
       features = ?,
       button_text = ?,
       button_link = ?,
-      color_theme = ?
+      color_theme = ?,
+      retention_hours = ?
     WHERE id = ?
   `,
   ).run(
@@ -380,6 +360,7 @@ export function updateTier(tier: Partial<Tier> & { id: string }): void {
     merged.button_text,
     merged.button_link,
     merged.color_theme,
+    merged.retention_hours ?? 2,
     merged.id,
   );
 }

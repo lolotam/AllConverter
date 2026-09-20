@@ -261,7 +261,7 @@ export function systemHealth(features: { label: string; value: string }[] = []):
     databaseBytes: existsSync(dbPath) ? statSync(dbPath).size : 0,
     missingConverters: unavailableConverters(),
     settings: [
-      { label: "File retention", value: `${AUTO_DELETE_EVERY_N_HOURS} hours` },
+      { label: "File retention", value: "Per-tier (2h Free / 24h Pro / 7d Business)" },
       { label: "Free conversions for visitors", value: String(GUEST_FREE_CONVERSIONS) },
       { label: "Conversions at once", value: String(conversionQueue.stats().concurrency) },
       ...features,

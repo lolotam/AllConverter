@@ -217,19 +217,6 @@ export const root = new Elysia().use(userService).get(
                 <div class="relative mx-auto max-w-4xl text-left">
                   {/* Glowing border card */}
                   <div class="rounded-3xl border border-slate-200 bg-white/95 p-5 sm:p-8 backdrop-blur-2xl shadow-xl dark:border-neutral-700/60 dark:bg-neutral-900/90 dark:shadow-2xl transition-all">
-                    {/* File List Table (Visible when files uploaded) */}
-                    <div class="mb-4 scrollbar-thin max-h-[40vh] overflow-y-auto">
-                      <table
-                        id="file-list"
-                        class={`
-                          w-full table-auto rounded-xl bg-slate-100 text-slate-800 dark:bg-neutral-800/60 dark:text-neutral-200 text-sm
-                          [&_td]:p-3.5
-                          [&_td]:first:max-w-[28vw] [&_td]:first:truncate [&_td]:first:font-medium
-                          [&_tr]:rounded-lg [&_tr]:border-b [&_tr]:border-slate-200 dark:[&_tr]:border-neutral-700/60
-                        `}
-                      />
-                    </div>
-
                     {/* Interactive Dropzone */}
                     <div
                       id="dropzone"
@@ -293,6 +280,19 @@ export const root = new Elysia().use(userService).get(
                         name="file"
                         multiple
                         class="absolute inset-0 size-full cursor-pointer opacity-0"
+                      />
+                    </div>
+
+                    {/* File List Table (Visible when files uploaded) */}
+                    <div class="mt-4 scrollbar-thin max-h-[40vh] overflow-y-auto">
+                      <table
+                        id="file-list"
+                        class={`
+                          w-full table-auto rounded-xl bg-slate-100 text-slate-800 dark:bg-neutral-800/60 dark:text-neutral-200 text-sm
+                          [&_td]:p-3.5
+                          [&_td]:first:max-w-[28vw] [&_td]:first:truncate [&_td]:first:font-medium
+                          [&_tr]:rounded-lg [&_tr]:border-b [&_tr]:border-slate-200 dark:[&_tr]:border-neutral-700/60
+                        `}
                       />
                     </div>
 

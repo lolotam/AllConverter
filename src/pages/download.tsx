@@ -5,24 +5,61 @@ import * as tar from "tar";
 import { outputDir } from "..";
 import db from "../db/db";
 import { WEBROOT } from "../helpers/env";
+import { isHtmlPageRequest } from "../helpers/isHtmlPageRequest";
+import { verifyDownloadToken } from "../services/downloadToken";
 import { userService } from "./user";
+
+type JwtVerifier = { verify: (token: string) => Promise<{ id: string } | false> };
+
+/**
+ * Downloads accept either the session cookie or a signed link. Download managers fetch
+ * outside the browser's cookie jar, so without the signed link they would be refused and
+ * would ask the user for a password nothing on the server wants. See docs/download-auth.md.
+ */
+async function resolveDownloader(
+  jwt: JwtVerifier,
+  cookieValue: string | undefined,
+  token: string | undefined,
+  expect: { jobId: string; fileName?: string },
+): Promise<string | null> {
+  const signed = verifyDownloadToken(token, expect);
+  if (signed) {
+    return signed;
+  }
+
+  if (!cookieValue) {
+    return null;
+  }
+  const user = await jwt.verify(cookieValue);
+  return user ? String(user.id) : null;
+}
 
 export const download = new Elysia()
   .use(userService)
   .get(
     "/download/:userId/:jobId/:fileName",
-    async ({ params, query, redirect, set, user }) => {
-      const userId = user.id;
-      const job = await db
-        .query("SELECT * FROM jobs WHERE user_id = ? AND id = ?")
-        .get(user.id, params.jobId);
+    async ({ params, query, redirect, set, jwt, cookie, request }) => {
+      const jobId = decodeURIComponent(params.jobId);
+      const fileName = sanitize(decodeURIComponent(params.fileName));
 
+      const token = typeof query.token === "string" ? query.token : undefined;
+      const session = typeof cookie.auth?.value === "string" ? cookie.auth.value : undefined;
+      const userId = await resolveDownloader(jwt, session, token, {
+        jobId,
+        fileName,
+      });
+      if (!userId) {
+        if (isHtmlPageRequest(request)) {
+          return redirect(`${WEBROOT}/login`, 302);
+        }
+        set.status = 401;
+        return { success: false, message: "Unauthorized" };
+      }
+
+      const job = db.query("SELECT * FROM jobs WHERE user_id = ? AND id = ?").get(userId, jobId);
       if (!job) {
         return redirect(`${WEBROOT}/history`, 302);
       }
-      // parse from URL encoded string
-      const jobId = decodeURIComponent(params.jobId);
-      const fileName = sanitize(decodeURIComponent(params.fileName));
 
       const filePath = `${outputDir}${userId}/${jobId}/${fileName}`;
       const file = Bun.file(filePath);
@@ -37,39 +74,42 @@ export const download = new Elysia()
         `${disposition}; filename="${encodeURIComponent(fileName)}"; filename*=UTF-8''${encodeURIComponent(fileName)}`;
       return file;
     },
-    {
-      auth: true,
-    },
   )
-  .get(
-    "/archive/:jobId",
-    async ({ params, redirect, user }) => {
-      const userId = user.id;
-      const job = await db
-        .query("SELECT * FROM jobs WHERE user_id = ? AND id = ?")
-        .get(user.id, params.jobId);
+  .get("/archive/:jobId", async ({ params, query, redirect, set, jwt, cookie, request }) => {
+    const jobId = decodeURIComponent(params.jobId);
 
-      if (!job) {
-        return redirect(`${WEBROOT}/history`, 302);
+    const token = typeof query.token === "string" ? query.token : undefined;
+    const session = typeof cookie.auth?.value === "string" ? cookie.auth.value : undefined;
+    const userId = await resolveDownloader(jwt, session, token, { jobId });
+    if (!userId) {
+      if (isHtmlPageRequest(request)) {
+        return redirect(`${WEBROOT}/login`, 302);
       }
+      set.status = 401;
+      return { success: false, message: "Unauthorized" };
+    }
 
-      const jobId = decodeURIComponent(params.jobId);
-      const outputPath = `${outputDir}${userId}/${jobId}`;
-      const outputTar = path.join(outputPath, `converted_files_${jobId}.tar`);
+    const job = db.query("SELECT * FROM jobs WHERE user_id = ? AND id = ?").get(userId, jobId);
+    if (!job) {
+      return redirect(`${WEBROOT}/history`, 302);
+    }
 
-      await tar.create(
-        {
-          file: outputTar,
-          cwd: outputPath,
-          filter: (path) => {
-            return !path.match(".*\\.tar");
-          },
+    const outputPath = `${outputDir}${userId}/${jobId}`;
+    const archiveName = `converted_files_${jobId}.tar`;
+    const outputTar = path.join(outputPath, archiveName);
+
+    await tar.create(
+      {
+        file: outputTar,
+        cwd: outputPath,
+        filter: (path) => {
+          return !path.match(".*\\.tar");
         },
-        ["."],
-      );
-      return Bun.file(outputTar);
-    },
-    {
-      auth: true,
-    },
-  );
+      },
+      ["."],
+    );
+
+    // The URL ends in the job id, so without this the archive is saved as "12"
+    set.headers["content-disposition"] = `attachment; filename="${archiveName}"`;
+    return Bun.file(outputTar);
+  });

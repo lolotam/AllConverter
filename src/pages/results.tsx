@@ -8,6 +8,7 @@ import db from "../db/db";
 import { Filename, Jobs } from "../db/types";
 import { jobProgress, type FileProgress, type FileState } from "../converters/progress";
 import { buildDownloadUrl } from "../helpers/buildDownloadUrl";
+import { createDownloadToken } from "../services/downloadToken";
 import { outputDir } from "../helpers/paths";
 import { ALLOW_UNAUTHENTICATED, WEBROOT, BRANDING } from "../helpers/env";
 import { DownloadIcon } from "../icons/download";
@@ -59,8 +60,12 @@ type ResultEntry = {
   previewUrl: string;
 };
 
-/** Collects what the results view needs about each converted file. */
-function buildEntries(files: Filename[], outputPath: string): ResultEntry[] {
+/**
+ * Collects what the results view needs about each converted file. Every link carries a
+ * signed token so download managers, which fetch without the session cookie, are not
+ * refused and left asking the user for a password (see docs/download-auth.md).
+ */
+function buildEntries(files: Filename[], outputPath: string, token: string): ResultEntry[] {
   return files.map((file) => {
     const name = file.output_file_name;
     const extension = name.split(".").pop()?.toLowerCase() ?? "";
@@ -70,7 +75,7 @@ function buildEntries(files: Filename[], outputPath: string): ResultEntry[] {
     } catch {
       // The file may have been deleted or the conversion failed
     }
-    const downloadUrl = buildDownloadUrl(WEBROOT, outputPath, name);
+    const downloadUrl = `${buildDownloadUrl(WEBROOT, outputPath, name)}?token=${token}`;
     return {
       name,
       status: file.status,
@@ -79,7 +84,7 @@ function buildEntries(files: Filename[], outputPath: string): ResultEntry[] {
       size: humanSize(bytes),
       downloadUrl,
       // Served with an inline disposition so it can be shown instead of downloaded
-      previewUrl: `${downloadUrl}?inline=1`,
+      previewUrl: `${downloadUrl}&inline=1`,
     };
   });
 }
@@ -153,7 +158,9 @@ function ResultsArticle({
   tracked: FileProgress[] | undefined;
 }) {
   const finished = isFinished(job);
-  const entries = buildEntries(files, outputPath);
+  // One token per page render covers this job's files and its archive
+  const token = createDownloadToken(job.user_id, job.id);
+  const entries = buildEntries(files, outputPath, token);
   return (
     <article class="article" data-job-complete={String(finished)}>
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -185,7 +192,7 @@ function ResultsArticle({
           </form>
           <a
             style={finished ? "" : "pointer-events: none;"}
-            href={`${WEBROOT}/archive/${job.id}`}
+            href={`${WEBROOT}/archive/${job.id}?token=${token}`}
             download={`converted_files_${job.id}.tar`}
             class="btn-primary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5"
             {...(finished ? "" : { disabled: true, "aria-busy": "true" })}

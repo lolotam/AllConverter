@@ -82,3 +82,16 @@ export const UPLOAD_CHUNK_SIZE_MB =
   process.env.UPLOAD_CHUNK_SIZE_MB && Number(process.env.UPLOAD_CHUNK_SIZE_MB) > 0
     ? Number(process.env.UPLOAD_CHUNK_SIZE_MB)
     : 16;
+
+// How long a signed download link stays valid. The links let download managers and
+// command line tools fetch a file without the session cookie, so they are deliberately
+// short-lived: a shared link stops working soon after it leaves the page.
+export const DOWNLOAD_TOKEN_TTL_MINUTES =
+  process.env.DOWNLOAD_TOKEN_TTL_MINUTES && Number(process.env.DOWNLOAD_TOKEN_TTL_MINUTES) > 0
+    ? Number(process.env.DOWNLOAD_TOKEN_TTL_MINUTES)
+    : 60;
+
+// Sign in with Google is off until both credentials are set.
+export const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
+export const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? "";
+export const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI ?? "";

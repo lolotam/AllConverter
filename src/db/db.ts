@@ -58,7 +58,9 @@ export function initializeDatabase(db: Database): void {
   }
 
   // Ensure user ID 1 is Super Admin with Pro tier
-  const firstUser = db.query("SELECT id FROM users ORDER BY id ASC LIMIT 1").get() as { id: number } | null;
+  const firstUser = db.query("SELECT id FROM users ORDER BY id ASC LIMIT 1").get() as {
+    id: number;
+  } | null;
   if (firstUser) {
     db.query("UPDATE users SET role = 'admin', tier = 'pro' WHERE id = ?").run(firstUser.id);
   }
@@ -85,7 +87,8 @@ export function initializeDatabase(db: Database): void {
   `);
 
   // Seed default tiers if empty
-  const tierCount = (db.query("SELECT COUNT(*) as count FROM tiers").get() as { count: number }).count;
+  const tierCount = (db.query("SELECT COUNT(*) as count FROM tiers").get() as { count: number })
+    .count;
   if (tierCount === 0) {
     const insertTier = db.query(`
       INSERT INTO tiers (
@@ -169,13 +172,15 @@ export function initializeDatabase(db: Database): void {
     );
   }
 
-  // Paddle subscription state, written by the billing webhook (see services/paddle.ts)
+  // Paddle subscription state, written by the billing webhook (see services/paddle.ts),
+  // and the Google account id for people who signed in with Google (see services/google.ts)
   const billingColumns = db.query("PRAGMA table_info(users)").all() as { name: string }[];
   for (const column of [
     "paddle_customer_id",
     "paddle_subscription_id",
     "subscription_status",
     "subscription_event_at",
+    "google_id",
   ]) {
     if (!billingColumns.some((c) => c.name.toLowerCase() === column)) {
       db.exec(`ALTER TABLE users ADD COLUMN ${column} TEXT;`);
@@ -205,7 +210,12 @@ export default db;
 
 // Helper functions for Admin Dashboard & Tiers
 export function getTiers(): Tier[] {
-  return db.query("SELECT * FROM tiers ORDER BY CASE id WHEN 'free' THEN 1 WHEN 'pro' THEN 2 WHEN 'business' THEN 3 ELSE 4 END").as(Tier).all();
+  return db
+    .query(
+      "SELECT * FROM tiers ORDER BY CASE id WHEN 'free' THEN 1 WHEN 'pro' THEN 2 WHEN 'business' THEN 3 ELSE 4 END",
+    )
+    .as(Tier)
+    .all();
 }
 
 export function getTierById(id: string): Tier | null {
@@ -217,7 +227,8 @@ export function updateTier(tier: Partial<Tier> & { id: string }): void {
   if (!current) return;
 
   const merged = { ...current, ...tier };
-  db.query(`
+  db.query(
+    `
     UPDATE tiers SET
       name = ?,
       price = ?,
@@ -234,7 +245,8 @@ export function updateTier(tier: Partial<Tier> & { id: string }): void {
       button_link = ?,
       color_theme = ?
     WHERE id = ?
-  `).run(
+  `,
+  ).run(
     merged.name,
     merged.price,
     merged.billing_period,
@@ -254,7 +266,9 @@ export function updateTier(tier: Partial<Tier> & { id: string }): void {
 }
 
 export function getAllUsers(): (User & { jobs_count: number })[] {
-  return db.query(`
+  return db
+    .query(
+      `
     SELECT
       u.id,
       u.email,
@@ -267,11 +281,18 @@ export function getAllUsers(): (User & { jobs_count: number })[] {
     LEFT JOIN jobs j ON j.user_id = u.id
     GROUP BY u.id
     ORDER BY u.id ASC
-  `).all() as (User & { jobs_count: number })[];
+  `,
+    )
+    .all() as (User & { jobs_count: number })[];
 }
 
 export function getUserById(id: number | string): User | null {
-  return db.query("SELECT id, email, password, COALESCE(role, 'user') as role, COALESCE(tier, 'free') as tier, COALESCE(created_at, 'N/A') as created_at FROM users WHERE id = ?").as(User).get(id);
+  return db
+    .query(
+      "SELECT id, email, password, COALESCE(role, 'user') as role, COALESCE(tier, 'free') as tier, COALESCE(created_at, 'N/A') as created_at FROM users WHERE id = ?",
+    )
+    .as(User)
+    .get(id);
 }
 
 export function updateUserTier(id: number | string, tier: string): void {
@@ -293,10 +314,18 @@ export function deleteUserById(id: number | string): void {
 }
 
 export function getStats() {
-  const totalUsers = (db.query("SELECT COUNT(*) as count FROM users").get() as { count: number }).count;
-  const proUsers = (db.query("SELECT COUNT(*) as count FROM users WHERE tier IN ('pro', 'business')").get() as { count: number }).count;
-  const totalJobs = (db.query("SELECT COUNT(*) as count FROM jobs").get() as { count: number }).count;
-  const totalFiles = (db.query("SELECT COUNT(*) as count FROM file_names").get() as { count: number }).count;
+  const totalUsers = (db.query("SELECT COUNT(*) as count FROM users").get() as { count: number })
+    .count;
+  const proUsers = (
+    db.query("SELECT COUNT(*) as count FROM users WHERE tier IN ('pro', 'business')").get() as {
+      count: number;
+    }
+  ).count;
+  const totalJobs = (db.query("SELECT COUNT(*) as count FROM jobs").get() as { count: number })
+    .count;
+  const totalFiles = (
+    db.query("SELECT COUNT(*) as count FROM file_names").get() as { count: number }
+  ).count;
 
   return {
     totalUsers,

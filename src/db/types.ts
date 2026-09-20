@@ -27,6 +27,7 @@ export class User {
   paddle_subscription_id!: string | null;
   subscription_status!: string | null;
   subscription_event_at!: string | null;
+  google_id!: string | null;
 }
 
 export class Tier {
@@ -51,4 +52,3 @@ export class SystemSetting {
   key!: string;
   value!: string;
 }
-

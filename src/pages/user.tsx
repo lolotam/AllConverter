@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { Elysia, t } from "elysia";
 import { BaseHtml } from "../components/base";
+import { AuthTabs, GoogleButton } from "../components/authTabs";
 import { Header } from "../components/header";
 import db, { getTierById } from "../db/db";
 import { User } from "../db/types";
@@ -11,6 +13,7 @@ import {
   WEBROOT,
   BRANDING,
 } from "../helpers/env";
+import { GOOGLE_ENABLED, authorizationUrl, exchangeCode, redirectUri } from "../services/google";
 import { PADDLE_ENABLED, PADDLE_PORTAL_ENABLED } from "../services/paddle";
 import { userService } from "../services/user";
 
@@ -116,6 +119,15 @@ export const user = new Elysia()
                   if you already have one.
                 </p>
               )}
+              <AuthTabs
+                webroot={WEBROOT}
+                active="register"
+                accountRegistration={ACCOUNT_REGISTRATION}
+                reason={typeof query.reason === "string" ? query.reason : undefined}
+              />
+              {GOOGLE_ENABLED ? (
+                <GoogleButton webroot={WEBROOT} label="Continue with Google" />
+              ) : null}
               <form method="post" class="flex flex-col gap-4">
                 <fieldset class="mb-4 flex flex-col gap-4">
                   <label class="flex flex-col gap-1">
@@ -272,6 +284,25 @@ export const user = new Elysia()
                     .
                   </p>
                 )}
+                <AuthTabs
+                  webroot={WEBROOT}
+                  active="login"
+                  accountRegistration={ACCOUNT_REGISTRATION}
+                  reason={typeof query.reason === "string" ? query.reason : undefined}
+                />
+                {query.error ? (
+                  <p
+                    role="alert"
+                    class="mb-4 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-sm"
+                  >
+                    {query.error === "closed"
+                      ? "Registration is closed, so that Google account cannot be used to create an account here."
+                      : "Signing in with Google did not work. Please try again."}
+                  </p>
+                ) : null}
+                {GOOGLE_ENABLED ? (
+                  <GoogleButton webroot={WEBROOT} label="Sign in with Google" />
+                ) : null}
                 <form method="post" class="flex flex-col gap-4">
                   <fieldset class="mb-4 flex flex-col gap-4">
                     <label class="flex flex-col gap-1">
@@ -364,6 +395,87 @@ export const user = new Elysia()
     },
     { body: "signIn" },
   )
+  .get("/auth/google", ({ request, redirect, cookie }) => {
+    if (!GOOGLE_ENABLED) {
+      return redirect(`${WEBROOT}/login`, 302);
+    }
+
+    // The state is echoed back by Google and compared with this cookie, so a callback
+    // someone else triggered cannot sign this browser into their account
+    const state = randomUUID();
+    cookie.oauth_state?.set({
+      value: state,
+      httpOnly: true,
+      secure: !HTTP_ALLOWED,
+      maxAge: 10 * 60,
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return redirect(authorizationUrl(redirectUri(request, WEBROOT), state), 302);
+  })
+  .get("/auth/google/callback", async ({ request, query, redirect, jwt, cookie }) => {
+    if (!GOOGLE_ENABLED) {
+      return redirect(`${WEBROOT}/login`, 302);
+    }
+
+    const expectedState = cookie.oauth_state?.value;
+    cookie.oauth_state?.remove();
+
+    const code = typeof query.code === "string" ? query.code : "";
+    if (!code || !expectedState || query.state !== expectedState) {
+      return redirect(`${WEBROOT}/login?error=google`, 302);
+    }
+
+    const identity = await exchangeCode(code, redirectUri(request, WEBROOT));
+    if (!identity) {
+      return redirect(`${WEBROOT}/login?error=google`, 302);
+    }
+
+    let existingUser = db
+      .query("SELECT * FROM users WHERE google_id = ? OR email = ?")
+      .as(User)
+      .get(identity.sub, identity.email);
+
+    if (existingUser) {
+      // Link the Google account the first time an email user signs in this way
+      if (!existingUser.google_id) {
+        db.query("UPDATE users SET google_id = ? WHERE id = ?").run(identity.sub, existingUser.id);
+      }
+    } else {
+      if (!ACCOUNT_REGISTRATION && !FIRST_RUN) {
+        return redirect(`${WEBROOT}/login?error=closed`, 302);
+      }
+      FIRST_RUN = false;
+
+      // Google is the only way into this account: the password is random and never shown
+      const unusablePassword = await Bun.password.hash(randomUUID());
+      db.query("INSERT INTO users (email, password, google_id) VALUES (?, ?, ?)").run(
+        identity.email,
+        unusablePassword,
+        identity.sub,
+      );
+      existingUser = db.query("SELECT * FROM users WHERE email = ?").as(User).get(identity.email);
+    }
+
+    if (!existingUser) {
+      return redirect(`${WEBROOT}/login?error=google`, 302);
+    }
+
+    const accessToken = await jwt.sign({ id: String(existingUser.id) });
+    cookie.auth?.set({
+      value: accessToken,
+      httpOnly: true,
+      secure: !HTTP_ALLOWED,
+      maxAge: 60 * 60 * 24 * 7,
+      // Lax, not strict: the browser arrives here from accounts.google.com, and a strict
+      // cookie would not be sent on the redirect that follows, showing the user signed out
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return redirect(`${WEBROOT}/`, 302);
+  })
   .get("/logoff", ({ redirect, cookie: { auth } }) => {
     if (auth?.value) {
       auth.remove();

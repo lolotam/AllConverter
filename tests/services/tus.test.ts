@@ -175,6 +175,50 @@ test("uploads without a session are rejected", async () => {
   expect([401, 302]).toContain(res.status);
 });
 
+test("another account cannot read or continue someone else's upload", async () => {
+  const created = await createUpload(1000, "private.pdf");
+  const url = created.headers.get("location") as string;
+
+  const other = db
+    .query("INSERT INTO users (email, password) VALUES ('tus-other@test', 'x') RETURNING id")
+    .get() as { id: number };
+  const otherJob = db
+    .query("INSERT INTO jobs (user_id, date_created) VALUES (?, ?) RETURNING id")
+    .get(other.id, new Date().toISOString()) as { id: number };
+
+  const signer = new Elysia().use(
+    jwt({
+      name: "jwt",
+      schema: t.Object({ id: t.String() }),
+      secret: process.env.JWT_SECRET as string,
+    }),
+  );
+  // @ts-expect-error reaching into the plugin's decorator to mint a session for the test
+  const token = await signer.decorator.jwt.sign({ id: String(other.id) });
+  const otherCookie = `auth=${token}; jobId=${otherJob.id}`;
+
+  const head = await fetch(url, {
+    method: "HEAD",
+    headers: { "Tus-Resumable": "1.0.0", cookie: otherCookie },
+  });
+  expect(head.status).toBe(403);
+
+  const patch = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      "Tus-Resumable": "1.0.0",
+      "Upload-Offset": "0",
+      "Content-Type": "application/offset+octet-stream",
+      cookie: otherCookie,
+    },
+    body: Buffer.alloc(10),
+  });
+  expect(patch.status).toBe(403);
+
+  db.query("DELETE FROM jobs WHERE id = ?").run(otherJob.id);
+  db.query("DELETE FROM users WHERE id = ?").run(other.id);
+});
+
 test("a file larger than the plan allows is refused at creation", async () => {
   const res = await createUpload(200 * 1024 * 1024, "huge.mp4");
   expect(res.status).toBe(413);

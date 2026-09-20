@@ -4,9 +4,9 @@ import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
 import "./helpers/printVersions";
 import { unavailableConverters } from "./converters/availability";
-import db, { getTiers } from "./db/db";
+import db from "./db/db";
 import { Jobs } from "./db/types";
-import { AUTO_DELETE_EVERY_N_HOURS, WEBROOT } from "./helpers/env";
+import { AUTO_DELETE_EVERY_N_HOURS, UPLOAD_CHUNK_SIZE_MB, WEBROOT } from "./helpers/env";
 import { chooseConverter } from "./pages/chooseConverter";
 import { convert } from "./pages/convert";
 import { deleteFile } from "./pages/deleteFile";
@@ -33,9 +33,9 @@ process.getBuiltinModule = require;
 
 const app = new Elysia({
   serve: {
-    // Reject bodies larger than the biggest plan allows before they are buffered.
-    // Tier limits are read at startup, so restart after raising one in /admin.
-    maxRequestBodySize: (Math.max(100, ...getTiers().map((t) => t.max_file_size_mb)) + 1) * MB,
+    // Files arrive as chunks over the tus protocol, so no request should ever carry
+    // a whole file. The margin covers headers and the legacy /upload form encoding.
+    maxRequestBodySize: (UPLOAD_CHUNK_SIZE_MB + 16) * MB,
   },
   prefix: WEBROOT,
 })
@@ -86,6 +86,11 @@ app.listen(process.env.PORT || 3000);
 for (const { converter, missing } of unavailableConverters()) {
   console.warn(`Converter "${converter}" is disabled: ${missing.join(", ")} not found in PATH.`);
 }
+
+// The upload client ships with the app rather than from a CDN
+await Bun.write("public/tus.min.js", Bun.file("node_modules/tus-js-client/dist/tus.min.js")).catch(
+  (error) => console.error("Could not publish tus.min.js:", error),
+);
 
 console.log(`🦊 Elysia is running at http://${app.server?.hostname}:${app.server?.port}${WEBROOT}`);
 

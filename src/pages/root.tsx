@@ -11,6 +11,7 @@ import { User } from "../db/types";
 import {
   ACCOUNT_REGISTRATION,
   AUTO_DELETE_EVERY_N_HOURS,
+  UPLOAD_CHUNK_SIZE_MB,
   ALLOW_UNAUTHENTICATED,
   HIDE_HISTORY,
   HTTP_ALLOWED,
@@ -29,8 +30,10 @@ const fileDeletionPromise =
     : "You can permanently delete your uploaded and converted files at any time.";
 
 const LIMIT_MESSAGES: Record<string, string> = {
-  daily: "You've used all of today's conversions on your plan. Upgrade to Pro for unlimited conversions.",
-  batch: "Your plan doesn't allow that many files in one conversion. Upgrade to Pro for bigger batches.",
+  daily:
+    "You've used all of today's conversions on your plan. Upgrade to Pro for unlimited conversions.",
+  batch:
+    "Your plan doesn't allow that many files in one conversion. Upgrade to Pro for bigger batches.",
   upload:
     "Those files haven't finished uploading yet. Wait for every upload to complete, then convert.",
 };
@@ -142,10 +145,16 @@ export const root = new Elysia().use(userService).get(
         ? null
         : Math.max(0, tier.daily_conversions - getConversionsToday(subject));
     const limitMessage =
-      query.limit && Object.hasOwn(LIMIT_MESSAGES, query.limit) ? LIMIT_MESSAGES[query.limit] : undefined;
+      query.limit && Object.hasOwn(LIMIT_MESSAGES, query.limit)
+        ? LIMIT_MESSAGES[query.limit]
+        : undefined;
 
     return (
-      <BaseHtml webroot={WEBROOT} title={`${BRANDING} - Universal Cloud File Converter`} customFooter={true}>
+      <BaseHtml
+        webroot={WEBROOT}
+        title={`${BRANDING} - Universal Cloud File Converter`}
+        customFooter={true}
+      >
         <>
           <Header
             webroot={WEBROOT}
@@ -173,7 +182,8 @@ export const root = new Elysia().use(userService).get(
             <div class="border-b border-slate-200 dark:border-neutral-800/60 bg-gradient-to-r from-accent-500/10 via-lime-500/5 to-emerald-500/10 py-2.5 px-4 text-center text-xs sm:text-sm text-slate-700 dark:text-neutral-300">
               <span class="inline-flex items-center gap-1.5 font-medium">
                 <span class="flex size-2 rounded-full bg-accent-500 animate-pulse" />
-                <strong class="text-lime-700 dark:text-accent-400">New:</strong> Fast cloud conversion for over 1,000+ formats with 100% privacy!
+                <strong class="text-lime-700 dark:text-accent-400">New:</strong> Fast cloud
+                conversion for over 1,000+ formats with 100% privacy!
               </span>
             </div>
 
@@ -199,14 +209,14 @@ export const root = new Elysia().use(userService).get(
 
                 {/* Subtitle */}
                 <p class="mx-auto max-w-2xl text-base sm:text-lg text-slate-600 dark:text-neutral-300 mb-10 leading-relaxed">
-                  Transform audio, video, documents, images, and eBooks effortlessly with zero quality loss. 100% private, cloud-powered, and free.
+                  Transform audio, video, documents, images, and eBooks effortlessly with zero
+                  quality loss. 100% private, cloud-powered, and free.
                 </p>
 
                 {/* CONVERTER CARD (CORE ENGINE) */}
                 <div class="relative mx-auto max-w-4xl text-left">
                   {/* Glowing border card */}
                   <div class="rounded-3xl border border-slate-200 bg-white/95 p-5 sm:p-8 backdrop-blur-2xl shadow-xl dark:border-neutral-700/60 dark:bg-neutral-900/90 dark:shadow-2xl transition-all">
-                    
                     {/* File List Table (Visible when files uploaded) */}
                     <div class="mb-4 scrollbar-thin max-h-[40vh] overflow-y-auto">
                       <table
@@ -225,6 +235,8 @@ export const root = new Elysia().use(userService).get(
                       id="dropzone"
                       data-max-file-size-mb={String(tier.max_file_size_mb)}
                       data-batch-limit={String(tier.batch_limit)}
+                      data-chunk-size-mb={String(UPLOAD_CHUNK_SIZE_MB)}
+                      data-job-id={String(id)}
                       class={`
                         group relative flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl
                         border-2 border-dashed border-slate-300 bg-slate-50/70 p-6 text-center transition-all duration-300
@@ -235,19 +247,33 @@ export const root = new Elysia().use(userService).get(
                     >
                       {/* Upload Icon */}
                       <div class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-accent-500/20 to-lime-500/20 text-lime-600 dark:text-accent-400 border border-lime-500/30 group-hover:scale-110 transition-transform">
-                        <svg class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        <svg
+                          class="size-8"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                          />
                         </svg>
                       </div>
 
                       <div class="space-y-1">
                         <p class="text-lg font-bold text-slate-900 dark:text-white">
-                          <span class="text-lime-600 dark:text-accent-400 group-hover:underline">Choose Files</span> or drag & drop them here
+                          <span class="text-lime-600 dark:text-accent-400 group-hover:underline">
+                            Choose Files
+                          </span>{" "}
+                          or drag & drop them here
                         </p>
                         <p class="text-xs text-slate-500 dark:text-neutral-400">
-                          Video, Audio, Document, Image, eBook & Archives · up to {tier.max_file_size_mb} MB per
-                          file · {tier.batch_limit} files at once
-                          {conversionsLeft !== null && ` · ${conversionsLeft} conversions left today`}
+                          Video, Audio, Document, Image, eBook & Archives · up to{" "}
+                          {tier.max_file_size_mb} MB per file · {tier.batch_limit} files at once
+                          {conversionsLeft !== null &&
+                            ` · ${conversionsLeft} conversions left today`}
                         </p>
                       </div>
 
@@ -271,7 +297,10 @@ export const root = new Elysia().use(userService).get(
                     </div>
 
                     {/* Quick Recent Formats Bar (Dynamic) */}
-                    <div id="quick-recent-pills" class="hidden mt-4 pt-3 border-t border-slate-200 dark:border-neutral-800/80">
+                    <div
+                      id="quick-recent-pills"
+                      class="hidden mt-4 pt-3 border-t border-slate-200 dark:border-neutral-800/80"
+                    >
                       <div class="flex items-center gap-2 flex-wrap text-xs">
                         <span class="font-bold text-slate-600 dark:text-neutral-400 flex items-center gap-1">
                           <span>🕒</span> Recent:
@@ -283,7 +312,9 @@ export const root = new Elysia().use(userService).get(
                     {/* Popular formats quick tags */}
                     <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-neutral-400">
                       <div class="flex flex-wrap items-center gap-1.5">
-                        <span class="font-semibold text-slate-600 dark:text-neutral-400">Popular:</span>
+                        <span class="font-semibold text-slate-600 dark:text-neutral-400">
+                          Popular:
+                        </span>
                         {["PDF", "MP4", "MP3", "JPG", "PNG", "DOCX", "EPUB", "WEBP"].map((fmt) => (
                           <button
                             type="button"
@@ -294,7 +325,9 @@ export const root = new Elysia().use(userService).get(
                           </button>
                         ))}
                       </div>
-                      <span class="text-lime-600 dark:text-accent-400 font-medium">1,000+ total formats</span>
+                      <span class="text-lime-600 dark:text-accent-400 font-medium">
+                        1,000+ total formats
+                      </span>
                     </div>
 
                     {/* Conversion Settings & Form */}
@@ -304,11 +337,21 @@ export const root = new Elysia().use(userService).get(
                       class="relative mt-6 w-full space-y-4"
                     >
                       <input type="hidden" name="file_names" id="file_names" />
-                      
+
                       <div class="relative">
                         <div class="flex items-center rounded-xl bg-slate-100 dark:bg-neutral-800/90 border border-slate-300 dark:border-neutral-700 px-4 py-3 focus-within:border-accent-500 transition-colors">
-                          <svg class="size-5 text-slate-400 dark:text-neutral-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          <svg
+                            class="size-5 text-slate-400 dark:text-neutral-400 mr-2"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                            />
                           </svg>
                           <input
                             type="search"
@@ -336,7 +379,10 @@ export const root = new Elysia().use(userService).get(
                               <header class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
                                 <span>🕒</span> Recently Used (المستخدمة مؤخراً)
                               </header>
-                              <ul id="recent-formats-list" class="convert_to_target flex flex-row flex-wrap gap-1.5" />
+                              <ul
+                                id="recent-formats-list"
+                                class="convert_to_target flex flex-row flex-wrap gap-1.5"
+                              />
                             </article>
 
                             {/* Popular Formats Group inside popup */}
@@ -348,7 +394,18 @@ export const root = new Elysia().use(userService).get(
                                 <span>🔥</span> Popular Formats (الأكثر شهرة)
                               </header>
                               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">
-                                {["pdf", "mp4", "mp3", "jpg", "png", "docx", "webp", "epub", "xlsx", "csv"].map((pop) => (
+                                {[
+                                  "pdf",
+                                  "mp4",
+                                  "mp3",
+                                  "jpg",
+                                  "png",
+                                  "docx",
+                                  "webp",
+                                  "epub",
+                                  "xlsx",
+                                  "csv",
+                                ].map((pop) => (
                                   <button
                                     tabindex={0}
                                     class="target rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-accent-500 hover:text-neutral-950 transition-colors"
@@ -370,7 +427,10 @@ export const root = new Elysia().use(userService).get(
                                 `}
                                 data-converter={converter}
                               >
-                                <header class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-lime-600 dark:text-accent-400" safe>
+                                <header
+                                  class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-lime-600 dark:text-accent-400"
+                                  safe
+                                >
                                   {converter}
                                 </header>
                                 <ul class={`convert_to_target flex flex-row flex-wrap gap-1.5`}>
@@ -446,7 +506,10 @@ export const root = new Elysia().use(userService).get(
             </section>
 
             {/* CATEGORY TOOLS GRID (Inspired by iLovePDF & Online-Convert) */}
-            <section id="tools" class="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-neutral-800/60 bg-slate-50/70 dark:bg-neutral-950/40">
+            <section
+              id="tools"
+              class="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-neutral-800/60 bg-slate-50/70 dark:bg-neutral-950/40"
+            >
               <div class="mx-auto max-w-7xl">
                 <div class="text-center max-w-3xl mx-auto mb-14">
                   <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">
@@ -461,108 +524,222 @@ export const root = new Elysia().use(userService).get(
                   {/* Tool 1: Document */}
                   <div class="tool-card group">
                     <div class="flex size-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 mb-5 group-hover:scale-110 transition-transform">
-                      <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <svg
+                        class="size-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Document Converter</h3>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                      Document Converter
+                    </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Convert PDF, Word (DOCX), Excel (XLSX), PowerPoint (PPTX), and TXT with pixel-perfect accuracy.
+                      Convert PDF, Word (DOCX), Excel (XLSX), PowerPoint (PPTX), and TXT with
+                      pixel-perfect accuracy.
                     </p>
                     <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">PDF to Word</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">Word to PDF</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">Excel to PDF</span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        PDF to Word
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        Word to PDF
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        Excel to PDF
+                      </span>
                     </div>
                   </div>
 
                   {/* Tool 2: Video */}
                   <div class="tool-card group">
                     <div class="flex size-12 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 mb-5 group-hover:scale-110 transition-transform">
-                      <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                      <svg
+                        class="size-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
+                        />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Video Converter</h3>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                      Video Converter
+                    </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Compress and convert video files across MP4, MKV, AVI, MOV, WEBM, and animated GIF formats.
+                      Compress and convert video files across MP4, MKV, AVI, MOV, WEBM, and animated
+                      GIF formats.
                     </p>
                     <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">MP4 to MP3</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">MOV to MP4</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">MKV to MP4</span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        MP4 to MP3
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        MOV to MP4
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        MKV to MP4
+                      </span>
                     </div>
                   </div>
 
                   {/* Tool 3: Audio */}
                   <div class="tool-card group">
                     <div class="flex size-12 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 mb-5 group-hover:scale-110 transition-transform">
-                      <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                      <svg
+                        class="size-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
+                        />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Audio Converter</h3>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                      Audio Converter
+                    </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Extract audio tracks and convert between MP3, WAV, FLAC, AAC, M4A, OGG, and high-res formats.
+                      Extract audio tracks and convert between MP3, WAV, FLAC, AAC, M4A, OGG, and
+                      high-res formats.
                     </p>
                     <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">WAV to MP3</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">FLAC to MP3</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">M4A to MP3</span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        WAV to MP3
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        FLAC to MP3
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        M4A to MP3
+                      </span>
                     </div>
                   </div>
 
                   {/* Tool 4: Image */}
                   <div class="tool-card group">
                     <div class="flex size-12 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20 mb-5 group-hover:scale-110 transition-transform">
-                      <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      <svg
+                        class="size-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Image Converter</h3>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                      Image Converter
+                    </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Convert between PNG, JPG, WEBP, SVG, HEIC, TIFF, and vector formats with smart compression.
+                      Convert between PNG, JPG, WEBP, SVG, HEIC, TIFF, and vector formats with smart
+                      compression.
                     </p>
                     <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">HEIC to JPG</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">PNG to JPG</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">WEBP to PNG</span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        HEIC to JPG
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        PNG to JPG
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        WEBP to PNG
+                      </span>
                     </div>
                   </div>
 
                   {/* Tool 5: E-Book */}
                   <div class="tool-card group">
                     <div class="flex size-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-5 group-hover:scale-110 transition-transform">
-                      <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      <svg
+                        class="size-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                        />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">E-Book Converter</h3>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                      E-Book Converter
+                    </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Read your books on any device. Transform between EPUB, MOBI, PDF, AZW3, and Kindle formats.
+                      Read your books on any device. Transform between EPUB, MOBI, PDF, AZW3, and
+                      Kindle formats.
                     </p>
                     <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">EPUB to PDF</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">PDF to EPUB</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">MOBI to EPUB</span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        EPUB to PDF
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        PDF to EPUB
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        MOBI to EPUB
+                      </span>
                     </div>
                   </div>
 
                   {/* Tool 6: Data & Archives */}
                   <div class="tool-card group">
                     <div class="flex size-12 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 mb-5 group-hover:scale-110 transition-transform">
-                      <svg class="size-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                      <svg
+                        class="size-6"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"
+                        />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Data & Archives</h3>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                      Data & Archives
+                    </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      Convert structured data (JSON, CSV, XML, YAML) and compress or unpack ZIP, TAR, and GZ archives.
+                      Convert structured data (JSON, CSV, XML, YAML) and compress or unpack ZIP,
+                      TAR, and GZ archives.
                     </p>
                     <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">JSON to CSV</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">CSV to JSON</span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">XML to JSON</span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        JSON to CSV
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        CSV to JSON
+                      </span>
+                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
+                        XML to JSON
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -587,9 +764,12 @@ export const root = new Elysia().use(userService).get(
                     <div class="flex size-14 items-center justify-center rounded-2xl bg-slate-100 border border-slate-300 text-slate-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-accent-400 text-xl font-bold mb-4 shadow-md">
                       1
                     </div>
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Upload File</h3>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                      Upload File
+                    </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 max-w-xs">
-                      Drag and drop your file or select it directly from your computer or mobile phone.
+                      Drag and drop your file or select it directly from your computer or mobile
+                      phone.
                     </p>
                   </div>
 
@@ -598,7 +778,9 @@ export const root = new Elysia().use(userService).get(
                     <div class="flex size-14 items-center justify-center rounded-2xl bg-slate-100 border border-slate-300 text-slate-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-accent-400 text-xl font-bold mb-4 shadow-md">
                       2
                     </div>
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Choose Target Format</h3>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                      Choose Target Format
+                    </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 max-w-xs">
                       Pick your desired output format from over 1,000 supported options.
                     </p>
@@ -609,9 +791,12 @@ export const root = new Elysia().use(userService).get(
                     <div class="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-accent-500 to-lime-400 text-neutral-950 text-xl font-bold mb-4 shadow-lg shadow-lime-500/20">
                       3
                     </div>
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Download Instantly</h3>
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                      Download Instantly
+                    </h3>
                     <p class="text-sm text-slate-600 dark:text-neutral-400 max-w-xs">
-                      Our high-speed servers process your file in seconds. Download your file right away!
+                      Our high-speed servers process your file in seconds. Download your file right
+                      away!
                     </p>
                   </div>
                 </div>
@@ -619,7 +804,10 @@ export const root = new Elysia().use(userService).get(
             </section>
 
             {/* FREEMIUM PRICING SECTION (SaaS Monetization) */}
-            <section id="pricing" class="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-neutral-800/60 bg-slate-100/60 dark:bg-neutral-950/60">
+            <section
+              id="pricing"
+              class="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-neutral-800/60 bg-slate-100/60 dark:bg-neutral-950/60"
+            >
               <div class="mx-auto max-w-7xl">
                 <div class="text-center max-w-3xl mx-auto mb-16">
                   <div class="inline-flex items-center gap-2 rounded-full border border-lime-500/30 bg-lime-500/10 px-3.5 py-1.5 text-xs font-semibold text-lime-700 dark:text-accent-400 mb-4">
@@ -629,7 +817,8 @@ export const root = new Elysia().use(userService).get(
                     Simple, Transparent Pricing
                   </h2>
                   <p class="text-slate-600 dark:text-neutral-400 text-base">
-                    Use our platform for free, or upgrade for massive file sizes and unlimited conversions.
+                    Use our platform for free, or upgrade for massive file sizes and unlimited
+                    conversions.
                   </p>
                 </div>
 
@@ -657,16 +846,25 @@ export const root = new Elysia().use(userService).get(
                         ) : null}
 
                         <div>
-                          <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">{t.name}</h3>
-                          <p class="text-sm text-slate-600 dark:text-neutral-400 mb-6">{t.description}</p>
+                          <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                            {t.name}
+                          </h3>
+                          <p class="text-sm text-slate-600 dark:text-neutral-400 mb-6">
+                            {t.description}
+                          </p>
                           <div class="flex items-baseline gap-1 mb-6">
-                            <span class="text-4xl font-extrabold text-slate-900 dark:text-white">{t.price}</span>
-                            <span class="text-slate-500 dark:text-neutral-400 text-sm">{t.billing_period}</span>
+                            <span class="text-4xl font-extrabold text-slate-900 dark:text-white">
+                              {t.price}
+                            </span>
+                            <span class="text-slate-500 dark:text-neutral-400 text-sm">
+                              {t.billing_period}
+                            </span>
                           </div>
                           <ul class="space-y-3.5 text-sm text-slate-700 dark:text-neutral-300 mb-8">
                             {featuresList.map((feat) => (
                               <li class="flex items-center gap-2.5">
-                                <span class="text-lime-600 dark:text-accent-400 font-bold">✓</span> {feat}
+                                <span class="text-lime-600 dark:text-accent-400 font-bold">✓</span>{" "}
+                                {feat}
                               </li>
                             ))}
                           </ul>
@@ -707,7 +905,10 @@ export const root = new Elysia().use(userService).get(
             </section>
 
             {/* WHY CHOOSE US & SECURITY */}
-            <section id="features" class="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-neutral-800/60">
+            <section
+              id="features"
+              class="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-neutral-800/60"
+            >
               <div class="mx-auto max-w-7xl">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div>
@@ -715,7 +916,8 @@ export const root = new Elysia().use(userService).get(
                       Engineered for Speed, Privacy & Precision
                     </h2>
                     <p class="text-slate-600 dark:text-neutral-300 text-base mb-8 leading-relaxed">
-                      Unlike other services that sell or retain your documents, ConvertX operates under a strict privacy-first architecture. {fileDeletionPromise}
+                      Unlike other services that sell or retain your documents, ConvertX operates
+                      under a strict privacy-first architecture. {fileDeletionPromise}
                     </p>
                     <div class="space-y-4">
                       <div class="flex items-start gap-4">
@@ -723,8 +925,12 @@ export const root = new Elysia().use(userService).get(
                           🛡️
                         </div>
                         <div>
-                          <h4 class="font-bold text-slate-900 dark:text-white text-base">Automatic File Deletion</h4>
-                          <p class="text-sm text-slate-600 dark:text-neutral-400">{fileDeletionPromise}</p>
+                          <h4 class="font-bold text-slate-900 dark:text-white text-base">
+                            Automatic File Deletion
+                          </h4>
+                          <p class="text-sm text-slate-600 dark:text-neutral-400">
+                            {fileDeletionPromise}
+                          </p>
                         </div>
                       </div>
                       <div class="flex items-start gap-4">
@@ -732,8 +938,13 @@ export const root = new Elysia().use(userService).get(
                           ⚡
                         </div>
                         <div>
-                          <h4 class="font-bold text-slate-900 dark:text-white text-base">Industry-Standard Engines</h4>
-                          <p class="text-sm text-slate-600 dark:text-neutral-400">Powered by FFmpeg, LibreOffice, ImageMagick, Pandoc, and Calibre for the highest quality possible.</p>
+                          <h4 class="font-bold text-slate-900 dark:text-white text-base">
+                            Industry-Standard Engines
+                          </h4>
+                          <p class="text-sm text-slate-600 dark:text-neutral-400">
+                            Powered by FFmpeg, LibreOffice, ImageMagick, Pandoc, and Calibre for the
+                            highest quality possible.
+                          </p>
                         </div>
                       </div>
                       <div class="flex items-start gap-4">
@@ -741,36 +952,49 @@ export const root = new Elysia().use(userService).get(
                           📱
                         </div>
                         <div>
-                          <h4 class="font-bold text-slate-900 dark:text-white text-base">Zero Installation Required</h4>
-                          <p class="text-sm text-slate-600 dark:text-neutral-400">Runs smoothly in any modern browser on iOS, Android, macOS, Windows, and Linux.</p>
+                          <h4 class="font-bold text-slate-900 dark:text-white text-base">
+                            Zero Installation Required
+                          </h4>
+                          <p class="text-sm text-slate-600 dark:text-neutral-400">
+                            Runs smoothly in any modern browser on iOS, Android, macOS, Windows, and
+                            Linux.
+                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
 
                   <div class="rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-neutral-700/60 dark:bg-gradient-to-tr dark:from-neutral-900 dark:to-neutral-850 p-8">
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-4">Supported Converters & Libraries</h3>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-4">
+                      Supported Converters & Libraries
+                    </h3>
                     <div class="grid grid-cols-2 gap-3 text-sm text-slate-700 dark:text-neutral-300">
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> FFmpeg (Video/Audio)
+                        <span class="text-lime-600 dark:text-accent-400">●</span> FFmpeg
+                        (Video/Audio)
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> LibreOffice (Office Docs)
+                        <span class="text-lime-600 dark:text-accent-400">●</span> LibreOffice
+                        (Office Docs)
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> ImageMagick (Raster)
+                        <span class="text-lime-600 dark:text-accent-400">●</span> ImageMagick
+                        (Raster)
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> Pandoc (Markdown/TeX)
+                        <span class="text-lime-600 dark:text-accent-400">●</span> Pandoc
+                        (Markdown/TeX)
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
                         <span class="text-lime-600 dark:text-accent-400">●</span> Calibre (eBooks)
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> Inkscape (Vectors/SVG)
+                        <span class="text-lime-600 dark:text-accent-400">●</span> Inkscape
+                        (Vectors/SVG)
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span> Potrace (Raster to Vector)
+                        <span class="text-lime-600 dark:text-accent-400">●</span> Potrace (Raster to
+                        Vector)
                       </div>
                       <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
                         <span class="text-lime-600 dark:text-accent-400">●</span> Assimp (3D Assets)
@@ -790,12 +1014,16 @@ export const root = new Elysia().use(userService).get(
                   <div class="flex size-7 items-center justify-center rounded-lg bg-gradient-to-tr from-accent-500 to-lime-400 text-neutral-950 font-bold text-sm">
                     CX
                   </div>
-                  <span class="text-lg font-bold text-slate-900 dark:text-white tracking-tight" safe>
+                  <span
+                    class="text-lg font-bold text-slate-900 dark:text-white tracking-tight"
+                    safe
+                  >
                     {BRANDING}
                   </span>
                 </div>
                 <p class="text-slate-500 dark:text-neutral-400 text-xs max-w-sm leading-relaxed mb-4">
-                  The modern, secure online file converter. Transform thousands of file formats in the cloud with zero software installation.
+                  The modern, secure online file converter. Transform thousands of file formats in
+                  the cloud with zero software installation.
                 </p>
                 <p class="text-slate-500 dark:text-neutral-400 text-xs">
                   © {new Date().getFullYear()} {BRANDING}. All rights reserved.
@@ -803,40 +1031,152 @@ export const root = new Elysia().use(userService).get(
               </div>
 
               <div>
-                <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">Converters</h5>
+                <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">
+                  Converters
+                </h5>
                 <ul class="space-y-2 text-xs text-slate-600 dark:text-neutral-400">
-                  <li><a href="#tools" class="hover:text-slate-900 dark:hover:text-white transition-colors">PDF Converter</a></li>
-                  <li><a href="#tools" class="hover:text-slate-900 dark:hover:text-white transition-colors">Video Converter</a></li>
-                  <li><a href="#tools" class="hover:text-slate-900 dark:hover:text-white transition-colors">Audio Converter</a></li>
-                  <li><a href="#tools" class="hover:text-slate-900 dark:hover:text-white transition-colors">Image Converter</a></li>
-                  <li><a href="#tools" class="hover:text-slate-900 dark:hover:text-white transition-colors">eBook Converter</a></li>
+                  <li>
+                    <a
+                      href="#tools"
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      PDF Converter
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#tools"
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Video Converter
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#tools"
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Audio Converter
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#tools"
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Image Converter
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#tools"
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      eBook Converter
+                    </a>
+                  </li>
                 </ul>
               </div>
 
               <div>
-                <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">Product</h5>
+                <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">
+                  Product
+                </h5>
                 <ul class="space-y-2 text-xs text-slate-600 dark:text-neutral-400">
-                  <li><a href="#pricing" class="hover:text-slate-900 dark:hover:text-white transition-colors">Pricing Plans</a></li>
-                  <li><a href="#how-it-works" class="hover:text-slate-900 dark:hover:text-white transition-colors">How It Works</a></li>
-                  <li><a href="#features" class="hover:text-slate-900 dark:hover:text-white transition-colors">Security & Privacy</a></li>
-                  <li><a href={`${WEBROOT}/history`} class="hover:text-slate-900 dark:hover:text-white transition-colors">Conversion History</a></li>
+                  <li>
+                    <a
+                      href="#pricing"
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Pricing Plans
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#how-it-works"
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      How It Works
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href="#features"
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Security & Privacy
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href={`${WEBROOT}/history`}
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Conversion History
+                    </a>
+                  </li>
                 </ul>
               </div>
 
               <div>
-                <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">Account</h5>
+                <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">
+                  Account
+                </h5>
                 <ul class="space-y-2 text-xs text-slate-600 dark:text-neutral-400">
-                  <li><a href={`${WEBROOT}/login`} class="hover:text-slate-900 dark:hover:text-white transition-colors">Sign In</a></li>
-                  <li><a href={`${WEBROOT}/register`} class="hover:text-slate-900 dark:hover:text-white transition-colors">Create Account</a></li>
-                  <li><a href={`${WEBROOT}/account`} class="hover:text-slate-900 dark:hover:text-white transition-colors">Account Settings</a></li>
-                  <li><a href={`${WEBROOT}/terms`} class="hover:text-slate-900 dark:hover:text-white transition-colors">Terms of Service</a></li>
-                  <li><a href={`${WEBROOT}/privacy`} class="hover:text-slate-900 dark:hover:text-white transition-colors">Privacy Policy</a></li>
-                  <li><a href={`${WEBROOT}/refunds`} class="hover:text-slate-900 dark:hover:text-white transition-colors">Refund Policy</a></li>
+                  <li>
+                    <a
+                      href={`${WEBROOT}/login`}
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Sign In
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href={`${WEBROOT}/register`}
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Create Account
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href={`${WEBROOT}/account`}
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Account Settings
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href={`${WEBROOT}/terms`}
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Terms of Service
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href={`${WEBROOT}/privacy`}
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Privacy Policy
+                    </a>
+                  </li>
+                  <li>
+                    <a
+                      href={`${WEBROOT}/refunds`}
+                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
+                    >
+                      Refund Policy
+                    </a>
+                  </li>
                 </ul>
               </div>
             </div>
           </footer>
 
+          <script src={assetUrl(WEBROOT, "tus.min.js")} defer />
           <script src={assetUrl(WEBROOT, "script.js")} defer />
           {checkout && (
             <>

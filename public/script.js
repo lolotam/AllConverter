@@ -9,6 +9,11 @@ let formatSelected = false;
 // Plan limits rendered by the server; the server enforces them too
 const maxFileSizeMb = Number(dropZone.dataset.maxFileSizeMb) || Infinity;
 const batchLimit = Number(dropZone.dataset.batchLimit) || Infinity;
+// Files are sent in chunks: Cloudflare rejects proxied requests over 100 MB and cuts
+// one off after 100 seconds, so a whole file can never travel in a single request.
+const chunkSize = (Number(dropZone.dataset.chunkSizeMb) || 16) * 1024 * 1024;
+const currentJobId = dropZone.dataset.jobId || "";
+const uploads = new Map();
 
 const showRejectedFile = (file, reason) => {
   const row = document.createElement("tr");
@@ -69,12 +74,31 @@ function handleFile(file) {
   const fileList = document.querySelector("#file-list");
 
   const row = document.createElement("tr");
-  row.innerHTML = `
-    <td>${file.name}</td>
-    <td><progress max="100" class="inline-block h-2 appearance-none overflow-hidden rounded-full border-0 bg-neutral-700 bg-none text-accent-500 accent-accent-500 [&::-moz-progress-bar]:bg-accent-500 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:[background:none] [&[value]::-webkit-progress-value]:bg-accent-500 [&[value]::-webkit-progress-value]:transition-[inline-size]"></progress></td>
-    <td>${(file.size / 1024).toFixed(2)} kB</td>
-    <td><button type="button" class="text-accent-500 hover:underline" onclick="deleteRow(this)">Remove</button></td>
+  const nameCell = document.createElement("td");
+  nameCell.textContent = file.name;
+  const progressCell = document.createElement("td");
+  progressCell.innerHTML = `
+    <div class="flex items-center gap-2">
+      <progress max="100" value="0" class="inline-block h-2 grow appearance-none overflow-hidden rounded-full border-0 bg-neutral-700 bg-none text-accent-500 accent-accent-500 [&::-moz-progress-bar]:bg-accent-500 [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:[background:none] [&[value]::-webkit-progress-value]:bg-accent-500 [&[value]::-webkit-progress-value]:transition-[inline-size]"></progress>
+      <span data-upload-percent class="w-10 shrink-0 text-right text-xs tabular-nums text-neutral-400">0%</span>
+    </div>
+    <span data-upload-status class="text-xs text-neutral-400"></span>
   `;
+  const sizeCell = document.createElement("td");
+  sizeCell.textContent = `${(file.size / 1024).toFixed(2)} kB`;
+  const actionCell = document.createElement("td");
+  actionCell.className = "whitespace-nowrap";
+  const pauseButton = document.createElement("button");
+  pauseButton.type = "button";
+  pauseButton.className = "text-accent-500 hover:underline";
+  pauseButton.textContent = "Pause";
+  const removeButton = document.createElement("button");
+  removeButton.type = "button";
+  removeButton.className = "ml-3 text-accent-500 hover:underline";
+  removeButton.textContent = "Remove";
+  removeButton.addEventListener("click", () => removeFile(file.name, row));
+  actionCell.append(pauseButton, removeButton);
+  row.append(nameCell, progressCell, sizeCell, actionCell);
 
   if (!fileType) {
     fileType = file.name.split(".").pop();
@@ -97,7 +121,7 @@ function handleFile(file) {
   fileList.appendChild(row);
   file.htmlRow = row;
   fileNames.push(file.name);
-  uploadFile(file);
+  uploadFile(file, pauseButton);
 }
 
 function saveRecentTarget(target, converter, value) {
@@ -127,7 +151,8 @@ function renderRecentPills() {
     recent.slice(0, 6).forEach((item) => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "rounded-md bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 text-xs font-bold hover:bg-accent-500 hover:text-neutral-950 transition-colors cursor-pointer";
+      btn.className =
+        "rounded-md bg-blue-500/10 border border-blue-500/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 text-xs font-bold hover:bg-accent-500 hover:text-neutral-950 transition-colors cursor-pointer";
       btn.textContent = item.target.toUpperCase();
       btn.onclick = () => {
         selectTarget(item.target, item.converter, item.value);
@@ -177,7 +202,8 @@ const updateSearchBar = () => {
           const btn = document.createElement("button");
           btn.tabIndex = 0;
           btn.type = "button";
-          btn.className = "target rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-600 dark:text-blue-300 hover:bg-accent-500 hover:text-neutral-950 transition-colors";
+          btn.className =
+            "target rounded-lg border border-blue-500/40 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-600 dark:text-blue-300 hover:bg-accent-500 hover:text-neutral-950 transition-colors";
           btn.dataset.value = r.value || `${r.target},${r.converter}`;
           btn.dataset.target = r.target;
           btn.dataset.converter = r.converter;
@@ -276,98 +302,134 @@ const setTitle = () => {
   title.textContent = `Convert ${fileType ? `.${fileType}` : ""}`;
 };
 
-// Add a onclick for the delete button
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const deleteRow = (target) => {
-  const filename = target.parentElement.parentElement.children[0].textContent;
-  const row = target.parentElement.parentElement;
-  row.remove();
+const uploadFinished = () => {
+  pendingFiles -= 1;
+  if (pendingFiles === 0) {
+    convertButton.disabled = !(formatSelected && fileNames.length > 0);
+    convertButton.textContent = "Convert";
+  }
+};
 
-  // remove from fileNames
-  const index = fileNames.indexOf(filename);
-  fileNames.splice(index, 1);
-
-  // reset fileInput
-  fileInput.value = "";
-
-  // if fileNames is empty, reset fileType
+const forgetFile = (name) => {
+  const index = fileNames.indexOf(name);
+  if (index !== -1) {
+    fileNames.splice(index, 1);
+  }
+  uploads.delete(name);
   if (fileNames.length === 0) {
     fileType = null;
     fileInput.removeAttribute("accept");
+    fileInput.value = "";
     convertButton.disabled = true;
     setTitle();
+  }
+};
+
+// Removing a file that is still uploading also cancels it on the server
+const removeFile = (name, row) => {
+  const entry = uploads.get(name);
+  row.remove();
+  forgetFile(name);
+
+  if (entry && !entry.done) {
+    entry.upload.abort(true).catch((err) => console.log(err));
+    uploadFinished();
+    return;
   }
 
   fetch(`${webroot}/delete`, {
     method: "POST",
-    body: JSON.stringify({ filename: filename }),
-    headers: {
-      "Content-Type": "application/json",
-    },
+    body: JSON.stringify({ filename: name }),
+    headers: { "Content-Type": "application/json" },
   }).catch((err) => console.log(err));
 };
 
-const uploadFile = (file) => {
+const uploadFile = (file, pauseButton) => {
   convertButton.disabled = true;
   convertButton.textContent = "Uploading...";
   pendingFiles += 1;
 
-  const formData = new FormData();
-  formData.append("file", file, file.name);
+  const row = file.htmlRow;
+  const bar = row.querySelector("progress");
+  const percent = row.querySelector("[data-upload-percent]");
+  const status = row.querySelector("[data-upload-status]");
 
-  let xhr = new XMLHttpRequest();
+  const upload = new tus.Upload(file, {
+    endpoint: `${webroot}/files`,
+    chunkSize,
+    // Keep going through a dropped connection instead of losing the whole upload
+    retryDelays: [0, 3000, 10000, 30000, 60000],
+    metadata: { filename: file.name, filetype: file.type, jobId: currentJobId },
+    storeFingerprintForResuming: true,
+    removeFingerprintOnSuccess: true,
+    onProgress: (sent, total) => {
+      const value = total > 0 ? (100 * sent) / total : 0;
+      bar.value = value;
+      percent.textContent = `${Math.floor(value)}%`;
+      status.textContent = "";
+    },
+    onSuccess: () => {
+      const entry = uploads.get(file.name);
+      if (entry) {
+        entry.done = true;
+      }
+      bar.value = 100;
+      percent.textContent = "100%";
+      status.textContent = "Uploaded";
+      pauseButton.remove();
+      uploadFinished();
+    },
+    onShouldRetry: (error) => {
+      const code = error?.originalResponse?.getStatus?.() ?? 0;
+      // The server refused the file itself: retrying would fail the same way
+      if ([400, 401, 403, 413, 429].includes(code)) {
+        return false;
+      }
+      status.textContent = "Connection lost, retrying…";
+      return true;
+    },
+    onError: (error) => {
+      const message = error?.originalResponse?.getBody?.() || "Upload failed";
+      row.remove();
+      forgetFile(file.name);
+      showRejectedFile(file, message);
+      uploadFinished();
+    },
+  });
 
-  xhr.open("POST", `${webroot}/upload`, true);
+  uploads.set(file.name, { upload, done: false, paused: false });
 
-  xhr.onload = () => {
-    let data = {};
-    try {
-      data = JSON.parse(xhr.responseText);
-    } catch {
-      // e.g. a plain-text 413 from the server's body size cap
+  pauseButton.addEventListener("click", () => {
+    const entry = uploads.get(file.name);
+    if (!entry || entry.done) {
+      return;
     }
-
-    pendingFiles -= 1;
-
-    if (xhr.status >= 400) {
-      const index = fileNames.indexOf(file.name);
-      if (index !== -1) {
-        fileNames.splice(index, 1);
-      }
-      file.htmlRow.remove();
-      showRejectedFile(file, data.message || "Upload failed");
-      if (fileNames.length === 0) {
-        fileType = null;
-        fileInput.removeAttribute("accept");
-        setTitle();
-      }
+    if (entry.paused) {
+      entry.paused = false;
+      pauseButton.textContent = "Pause";
+      status.textContent = "Resuming…";
+      entry.upload.start();
     } else {
-      //Remove the progress bar when upload is done
-      let progressbar = file.htmlRow.getElementsByTagName("progress");
-      progressbar[0].parentElement.remove();
-      console.log(data);
+      entry.paused = true;
+      pauseButton.textContent = "Resume";
+      status.textContent = "Paused";
+      entry.upload.abort().catch((err) => console.log(err));
     }
+  });
 
-    if (pendingFiles === 0) {
-      convertButton.disabled = !(formatSelected && fileNames.length > 0);
-      convertButton.textContent = "Convert";
-    }
-  };
-
-  xhr.upload.onprogress = (e) => {
-    let sent = e.loaded;
-    let total = e.total;
-    console.log(`upload progress (${file.name}):`, (100 * sent) / total);
-
-    let progressbar = file.htmlRow.getElementsByTagName("progress");
-    progressbar[0].value = (100 * sent) / total;
-  };
-
-  xhr.onerror = (e) => {
-    console.log(e);
-  };
-
-  xhr.send(formData);
+  // Choosing the same file again after a refresh or a lost connection continues
+  // from the offset the server already holds instead of starting over
+  upload
+    .findPreviousUploads()
+    .then((previous) => {
+      const match = previous.find((item) => item.metadata?.jobId === currentJobId);
+      if (match) {
+        upload.resumeFromPreviousUpload(match);
+        status.textContent = "Resuming previous upload…";
+      }
+      upload.start();
+    })
+    .catch(() => upload.start());
 };
 
 const formConvert = document.querySelector(`form[action='${webroot}/convert']`);

@@ -49,15 +49,32 @@ export function assertUploadAllowed(
   }
 }
 
+const datastore = new FileStore({
+  directory: incompleteUploadsDir,
+  expirationPeriodInMilliseconds: TUS_UPLOAD_EXPIRY_HOURS * 60 * 60 * 1000,
+});
+
 export const tusServer = new Server({
   path: `${WEBROOT}/files`,
-  datastore: new FileStore({
-    directory: incompleteUploadsDir,
-    expirationPeriodInMilliseconds: TUS_UPLOAD_EXPIRY_HOURS * 60 * 60 * 1000,
-  }),
+  datastore,
   locker: new MemoryLocker(),
   // Dokploy's proxy terminates TLS, so the upload URL must follow the forwarded host
   respectForwardedHeaders: true,
+  // Every follow-up request (offset check, chunk, cancel) must come from the user
+  // who created the upload: the id alone must not grant access to it
+  async onIncomingRequest(_req, uploadId) {
+    if (!uploadId) {
+      return;
+    }
+    const context = uploadContext.getStore();
+    if (!context) {
+      throw { status_code: 401, body: "Unauthorized" };
+    }
+    const upload = await datastore.getUpload(uploadId).catch(() => null);
+    if (upload && upload.metadata?.userId !== context.userId) {
+      throw { status_code: 403, body: "This upload belongs to another account." };
+    }
+  },
   async onUploadCreate(_req, upload) {
     const context = uploadContext.getStore();
     if (!context) {

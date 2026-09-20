@@ -31,6 +31,12 @@ export { outputDir, uploadsDir } from "./helpers/paths";
 // Fix for Elysia issue with Bun, (see https://github.com/oven-sh/bun/issues/12161)
 process.getBuiltinModule = require;
 
+// The upload client ships with the app rather than from a CDN. This must run before
+// the static plugin below indexes the public folder, or the file is served as 404.
+await Bun.write("public/tus.min.js", Bun.file("node_modules/tus-js-client/dist/tus.min.js")).catch(
+  (error) => console.error("Could not publish tus.min.js:", error),
+);
+
 const app = new Elysia({
   serve: {
     // Files arrive as chunks over the tus protocol, so no request should ever carry
@@ -86,11 +92,6 @@ app.listen(process.env.PORT || 3000);
 for (const { converter, missing } of unavailableConverters()) {
   console.warn(`Converter "${converter}" is disabled: ${missing.join(", ")} not found in PATH.`);
 }
-
-// The upload client ships with the app rather than from a CDN
-await Bun.write("public/tus.min.js", Bun.file("node_modules/tus-js-client/dist/tus.min.js")).catch(
-  (error) => console.error("Could not publish tus.min.js:", error),
-);
 
 console.log(`🦊 Elysia is running at http://${app.server?.hostname}:${app.server?.port}${WEBROOT}`);
 

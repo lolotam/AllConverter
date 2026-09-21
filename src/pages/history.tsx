@@ -66,7 +66,7 @@ export const history = new Elysia().use(userService).get(
                   <button
                     id="delete-selected-btn"
                     class={`
-                      flex btn-secondary flex-row gap-2 text-contrast
+                      flex btn-secondary flex-row gap-2
                       disabled:cursor-not-allowed disabled:opacity-50
                     `}
                     disabled

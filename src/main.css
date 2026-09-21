@@ -6,7 +6,6 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-contrast: var(--contrast);
   --color-neutral-900: var(--neutral-900);
   --color-neutral-800: var(--neutral-800);
   --color-neutral-700: var(--neutral-700);
@@ -40,4 +39,3 @@
 @utility tool-card {
   @apply relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-gradient-to-b dark:from-neutral-800 dark:to-neutral-900/90 p-6 transition-all duration-300 hover:-translate-y-1 hover:border-accent-500/50 hover:shadow-xl;
 }
-

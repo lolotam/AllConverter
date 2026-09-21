@@ -7,6 +7,7 @@
 import { onlyAvailable } from "../converters/availability";
 import { categoryOf, type Category } from "../converters/categories";
 import { getAllTargets, getPossibleSources, getPossibleTargets } from "../converters/main";
+import { normalizeFiletype } from "../helpers/normalizeFiletype";
 import { getJsonSetting, getSetting, setSetting } from "./settings";
 
 const HIDDEN_KEY = "formats.hidden";
@@ -18,7 +19,10 @@ const OLD_CONVERTERS_KEY = "converters.hidden";
 const OLD_FORMATS_KEY = "converters.hiddenFormats";
 
 export type FormatRow = {
+  /** The canonical key this format is stored under. */
   format: string;
+  /** The extension people actually type, for display. */
+  label: string;
   category: Category;
   /** Every installed converter that can produce this format. */
   converters: string[];
@@ -29,20 +33,40 @@ export type FormatRow = {
   visible: boolean;
 };
 
-/** Every output format an installed converter can produce, lowercased and deduplicated. */
-function everyFormat(): Map<string, string[]> {
-  const byFormat = new Map<string, string[]>();
+/**
+ * The key a format is stored under. Converters spell the same format several ways — jpg and
+ * jpeg, md and markdown, tex and latex — and `/convert` runs the target through
+ * normalizeFiletype before doing anything with it. Keying off anything else means an admin
+ * can switch off "jpeg", watch "jpg" stay on the landing page, and have the conversion
+ * refused as hidden the moment somebody picks it.
+ */
+const canonical = (format: string): string => normalizeFiletype(String(format).toLowerCase());
+
+/** The reverse, for display: the internal key is not what anyone calls the format. */
+const FRIENDLY: Record<string, string> = { jpeg: "jpg", latex: "tex", markdown: "md" };
+
+/**
+ * Every output format an installed converter can produce, keyed canonically so aliases are
+ * one entry. `raw` keeps the spellings the converters themselves use, which is what the
+ * input-format index is keyed by.
+ */
+function everyFormat(): Map<string, { converters: string[]; raw: Set<string> }> {
+  const byFormat = new Map<string, { converters: string[]; raw: Set<string> }>();
 
   for (const [converter, targets] of Object.entries(onlyAvailable(getAllTargets()))) {
     for (const target of Array.isArray(targets) ? targets : []) {
-      const format = String(target).toLowerCase();
-      const converters = byFormat.get(format);
-      if (converters) {
-        if (!converters.includes(converter)) {
-          converters.push(converter);
+      const format = canonical(target);
+      const entry = byFormat.get(format);
+      if (entry) {
+        if (!entry.converters.includes(converter)) {
+          entry.converters.push(converter);
         }
+        entry.raw.add(String(target).toLowerCase());
       } else {
-        byFormat.set(format, [converter]);
+        byFormat.set(format, {
+          converters: [converter],
+          raw: new Set([String(target).toLowerCase()]),
+        });
       }
     }
   }
@@ -59,7 +83,7 @@ export function hiddenOutputFormats(): string[] {
 export function setOfferedFormats(formats: string[]): void {
   // Marks the migration done, so a later read cannot overwrite what is being saved here
   migrateFromConverterSettings();
-  const offered = new Set(formats.map((format) => format.toLowerCase()));
+  const offered = new Set(formats.map(canonical));
   const hidden = [...everyFormat().keys()].filter((format) => !offered.has(format)).sort();
   setSetting(HIDDEN_KEY, JSON.stringify(hidden));
 }
@@ -74,9 +98,9 @@ export function setPreferredConverters(choices: Record<string, string>): void {
   const capable = everyFormat();
 
   for (const [format, converter] of Object.entries(choices)) {
-    const key = format.toLowerCase();
+    const key = canonical(format);
     // Never trust a posted converter name: it has to be one that really produces this
-    if (!converter || !(capable.get(key) ?? []).includes(converter)) {
+    if (!converter || !(capable.get(key)?.converters ?? []).includes(converter)) {
       delete all[key];
     } else {
       all[key] = converter;
@@ -92,19 +116,24 @@ export function formatCatalogue(): FormatRow[] {
   const preferred = preferredConverters();
 
   return [...everyFormat().entries()]
-    .map(([format, converters]) => {
-      const sources = getPossibleSources(format);
+    .map(([format, { converters, raw }]) => {
+      // The input index is keyed by the spellings converters use, so every alias of this
+      // format has to be asked, not just the canonical one
       const accepts = [
         ...new Set(
-          converters
-            .flatMap((converter) => sources[converter] ?? [])
-            .map((from) => from.toLowerCase()),
+          [...raw].flatMap((name) => {
+            const sources = getPossibleSources(name);
+            return converters.flatMap((converter) => sources[converter] ?? []);
+          }),
         ),
-      ].sort((a, b) => a.localeCompare(b));
+      ]
+        .map((from) => from.toLowerCase())
+        .sort((a, b) => a.localeCompare(b));
 
       const choice = preferred[format];
       return {
         format,
+        label: FRIENDLY[format] ?? format,
         category: categoryOf(format),
         converters: [...converters].sort((a, b) => a.localeCompare(b)),
         // A converter that has since been uninstalled falls back to whatever is left
@@ -113,7 +142,7 @@ export function formatCatalogue(): FormatRow[] {
         visible: !hidden.has(format),
       };
     })
-    .sort((a, b) => a.format.localeCompare(b.format));
+    .sort((a, b) => a.label.localeCompare(b.label));
 }
 
 /**
@@ -124,13 +153,13 @@ export function formatCatalogue(): FormatRow[] {
  * Inkscape sits at the top of it.
  */
 export function resolveConverter(from: string, to: string): string | null {
-  const target = to.toLowerCase();
+  const target = canonical(to);
   if (hiddenOutputFormats().includes(target)) {
     return null;
   }
 
   const capable = Object.entries(onlyAvailable(getPossibleTargets(from)))
-    .filter(([, targets]) => targets.some((format) => format.toLowerCase() === target))
+    .filter(([, targets]) => targets.some((format) => canonical(format) === target))
     .map(([converter]) => converter);
 
   return pickConverter(capable, preferredConverters()[target]);
@@ -156,7 +185,9 @@ export function visibleTargets(byConverter: Record<string, string[]>): Record<st
     Object.entries(byConverter)
       .map(
         ([converter, formats]) =>
-          [converter, formats.filter((format) => !hidden.has(format.toLowerCase()))] as const,
+          // Compared canonically, so switching off "jpeg" takes "jpg" with it instead of
+          // leaving a card that /convert would refuse
+          [converter, formats.filter((format) => !hidden.has(canonical(format)))] as const,
       )
       .filter(([, formats]) => formats.length > 0),
   );
@@ -176,18 +207,41 @@ function migrateFromConverterSettings(): void {
 
   const hiddenConverters = new Set(getJsonSetting<string[]>(OLD_CONVERTERS_KEY, []));
   const hiddenFormats = getJsonSetting<Record<string, string[]>>(OLD_FORMATS_KEY, {});
+  const wasHidden = (converter: string, format: string, aliases: Set<string>) =>
+    hiddenConverters.has(converter) ||
+    (hiddenFormats[converter] ?? []).some((name) => name === format || aliases.has(name));
 
-  const hidden = [...everyFormat().entries()]
-    .filter(([format, converters]) =>
-      converters.every(
-        (converter) =>
-          hiddenConverters.has(converter) || (hiddenFormats[converter] ?? []).includes(format),
-      ),
+  const catalogue = [...everyFormat().entries()];
+
+  const hidden = catalogue
+    .filter(([format, { converters, raw }]) =>
+      converters.every((converter) => wasHidden(converter, format, raw)),
     )
     .map(([format]) => format)
     .sort();
 
+  // An admin who switched a converter off usually did so because it was unreliable. The new
+  // model has no converter-level off switch, so that intent is carried over as a per-format
+  // preference: anything it used to produce now points at a converter that was left on,
+  // wherever one exists. Without this the disabled tool would quietly become the default,
+  // since the fallback is simply the first capable converter.
+  const stillHidden = new Set(hidden);
+  const preferences: Record<string, string> = {};
+  for (const [format, { converters, raw }] of catalogue) {
+    if (stillHidden.has(format)) {
+      continue;
+    }
+    const allowed = converters.filter((converter) => !wasHidden(converter, format, raw));
+    const wouldDefaultTo = converters[0];
+    if (allowed.length > 0 && wouldDefaultTo && !allowed.includes(wouldDefaultTo)) {
+      preferences[format] = allowed[0] as string;
+    }
+  }
+
   setSetting(HIDDEN_KEY, JSON.stringify(hidden));
+  if (Object.keys(preferences).length > 0) {
+    setSetting(PREFERRED_KEY, JSON.stringify({ ...preferences, ...preferredConverters() }));
+  }
   setSetting(MIGRATED_KEY, new Date().toISOString());
 }
 

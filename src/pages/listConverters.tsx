@@ -82,10 +82,10 @@ export const listConverters = new Elysia().use(userService).get(
                         <tr
                           class="border-b border-rule last:border-none hover:bg-surface-2"
                           data-format-entry
-                          data-search={`${row.format} ${row.category}`.toLowerCase()}
+                          data-search={`${row.label} ${row.format} ${row.category}`.toLowerCase()}
                         >
                           <td class={`${td} font-bold uppercase text-ink`} safe>
-                            {row.format}
+                            {row.label}
                           </td>
                           <td class={td}>{t(locale, `formats.category.${category}`)}</td>
                           <td class={td}>

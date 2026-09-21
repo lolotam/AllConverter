@@ -815,11 +815,11 @@ export function SitePanel({
                   <tr
                     class="border-b border-rule last:border-none hover:bg-surface-2"
                     data-format-row
-                    data-search={`${row.format} ${row.category} ${row.converters.join(" ")}`.toLowerCase()}
+                    data-search={`${row.label} ${row.format} ${row.category} ${row.converters.join(" ")}`.toLowerCase()}
                   >
                     <td class={`${td} text-ink-muted`}>{index + 1}</td>
                     <td class={`${td} font-bold text-ink uppercase`} safe>
-                      {row.format}
+                      {row.label}
                     </td>
                     <td class={td}>{row.category}</td>
                     <td class={`${td} max-w-xs`}>
@@ -855,11 +855,7 @@ export function SitePanel({
                       )}
                     </td>
                     <td class={`${td} text-end tabular-nums`}>
-                      {usage[row.format] ? (
-                        String(usage[row.format])
-                      ) : (
-                        <span class={subtle}>—</span>
-                      )}
+                      {usage[row.label] ? String(usage[row.label]) : <span class={subtle}>—</span>}
                     </td>
                     <td class={`${td} text-end`}>
                       <input

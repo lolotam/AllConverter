@@ -100,7 +100,18 @@ export function setOfferedFormats(formats: string[]): void {
   migrateFromConverterSettings();
   const offered = new Set(formats.map(canonical));
   const wasHiddenBefore = new Set(getJsonSetting<string[]>(HIDDEN_KEY, []));
-  const hidden = [...everyFormat().keys()].filter((format) => !offered.has(format)).sort();
+
+  // Only formats the running image can actually produce are on the form, so the ones whose
+  // converter is missing today keep whatever was decided about them. Rebuilding the list
+  // from the catalogue alone would quietly switch them all back on the day the tool
+  // reappears — an admin saving an unrelated change would undo their own earlier one.
+  const known = new Set(everyFormat().keys());
+  const hidden = [
+    ...new Set([
+      ...[...known].filter((format) => !offered.has(format)),
+      ...[...wasHiddenBefore].filter((format) => !known.has(format)),
+    ]),
+  ].sort();
   setSetting(HIDDEN_KEY, JSON.stringify(hidden));
 
   // Switching a format back on is the admin asking for it, whatever was disabled before the
@@ -142,16 +153,25 @@ export function setPreferredConverters(choices: Record<string, string>): void {
 export function formatCatalogue(): FormatRow[] {
   const hidden = new Set(hiddenOutputFormats());
   const preferred = preferredConverters();
+  const excluded = exclusions();
 
   return [...everyFormat().entries()]
     .map(([format, { converters, raw }]) => {
+      // Only the converters resolution would really use: listing an input that a switched-off
+      // converter alone supports advertises a conversion that /convert then refuses. The
+      // admin's own choice counts as using it, so it stays in.
+      const excludedHere = new Set(excluded[format] ?? []);
+      const usable = converters.filter(
+        (converter) => !excludedHere.has(converter) || preferred[format] === converter,
+      );
+
       // The input index is keyed by the spellings converters use, so every alias of this
       // format has to be asked, not just the canonical one
       const accepts = [
         ...new Set(
           [...raw].flatMap((name) => {
             const sources = getPossibleSources(name);
-            return converters.flatMap((converter) => sources[converter] ?? []);
+            return usable.flatMap((converter) => sources[converter] ?? []);
           }),
         ),
       ]

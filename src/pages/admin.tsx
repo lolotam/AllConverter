@@ -25,6 +25,7 @@ import {
   HIDE_HISTORY,
   WEBROOT,
 } from "../helpers/env";
+import { activeJobs } from "../converters/progress";
 import { headerAccount } from "../helpers/headerUser";
 import {
   analytics,
@@ -1085,15 +1086,18 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
 
       const placeholders = body.jobIds.map(() => "?").join(", ");
       const jobs = db
-        .query(`SELECT id, user_id, status FROM jobs WHERE id IN (${placeholders})`)
-        .all(...body.jobIds) as { id: number; user_id: number; status: string }[];
+        .query(`SELECT id, user_id FROM jobs WHERE id IN (${placeholders})`)
+        .all(...body.jobIds) as { id: number; user_id: number }[];
 
-      // A job still converting has a task running against its folders. Deleting it would
-      // pull them out from under that task mid-way, break somebody's conversion and leave
-      // file_names rows pointing at a job that no longer exists, so it is skipped and the
-      // admin is told. Everything else goes.
-      const running = jobs.filter((job) => job.status === "pending");
-      const deletable = jobs.filter((job) => job.status !== "pending");
+      // A job with a task running against its folders must not be deleted: that would pull
+      // them out from under the task mid-way, break somebody's conversion and leave
+      // file_names rows pointing at a job that no longer exists. What matters is whether the
+      // work is really in flight, not the stored status — only the background task's own
+      // `finally` ever moves a job off "pending", so one interrupted by a restart keeps that
+      // status for good, and going by it alone would leave the row undeletable.
+      const inFlight = new Set(activeJobs().map((job) => String(job.jobId)));
+      const running = jobs.filter((job) => inFlight.has(String(job.id)));
+      const deletable = jobs.filter((job) => !inFlight.has(String(job.id)));
 
       return {
         success: true,

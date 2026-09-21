@@ -74,7 +74,7 @@ function Notices({
         <p
           role="status"
           safe
-          class="mb-4 rounded-lg border border-accent-500/40 bg-accent-500/10 p-3 text-sm"
+          class="mb-4 rounded-button border border-rule bg-surface-2 p-3 text-caption text-ink-body"
         >
           {tr(locale, noticeMessage)}
         </p>
@@ -83,7 +83,7 @@ function Notices({
         <p
           role="alert"
           safe
-          class="mb-4 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-sm"
+          class="mb-4 rounded-button border border-terracotta/40 bg-terracotta/10 p-3 text-caption text-terracotta"
         >
           {tr(locale, errorMessage.key, errorMessage.params)}
         </p>
@@ -92,9 +92,9 @@ function Notices({
   );
 }
 
-const field = `w-full rounded-lg border border-slate-300 bg-white p-3 text-slate-900 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white`;
-const card = `rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6`;
-const heading = `mb-4 text-lg font-bold text-slate-900 dark:text-white`;
+const field = "field";
+const card = `glass-card p-5 sm:p-6`;
+const heading = `mb-4 text-subheading font-bold text-ink`;
 
 export const account = new Elysia()
   .use(userService)
@@ -134,9 +134,7 @@ export const account = new Elysia()
               {...headerAccount(user.id)}
             />
             <main class="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
-              <h1 class="mb-6 text-2xl font-black text-slate-900 dark:text-white">
-                {tr(locale, "account.title")}
-              </h1>
+              <h1 class="display-lg mb-6 text-ink">{tr(locale, "account.title")}</h1>
               <Notices
                 locale={locale}
                 notice={typeof notice === "string" ? notice : undefined}
@@ -151,23 +149,23 @@ export const account = new Elysia()
                       alt={tr(locale, "account.pictureAlt")}
                       width="96"
                       height="96"
-                      class="size-24 rounded-2xl object-cover"
+                      class="size-24 rounded-card object-cover"
                     />
                   ) : (
-                    <span class="flex size-24 items-center justify-center rounded-2xl bg-gradient-to-tr from-accent-500 to-lime-400 text-2xl font-black text-neutral-950">
+                    <span class="flex size-24 items-center justify-center rounded-card bg-frame text-heading-sm font-black text-frame-ink">
                       {initialsOf(userData.display_name, userData.email)}
                     </span>
                   )}
 
                   <div class="flex-1 text-center sm:text-start">
-                    <p safe class="text-lg font-bold text-slate-900 dark:text-white">
+                    <p safe class="text-subheading font-bold text-ink">
                       {userData.display_name || userData.email}
                     </p>
-                    <p safe class="text-sm text-slate-500 dark:text-neutral-400">
+                    <p safe class="text-caption text-ink-muted">
                       {userData.email}
                     </p>
-                    <p class="mt-2 text-xs text-slate-500 dark:text-neutral-400">
-                      <span safe class="font-bold text-lime-700 dark:text-accent-400">
+                    <p class="mt-2 text-caption text-ink-muted">
+                      <span safe class="font-bold text-ink">
                         {tier?.name ?? userData.tier ?? tr(locale, "account.tierFree")}
                       </span>
                       {userData.created_at
@@ -183,14 +181,14 @@ export const account = new Elysia()
                       enctype="multipart/form-data"
                       class="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:items-end"
                     >
-                      <label class="flex w-full flex-col gap-1 text-sm sm:w-auto">
+                      <label class="flex w-full flex-col gap-1 text-caption sm:w-auto">
                         <span class="font-medium">{tr(locale, "account.picture")}</span>
                         <input
                           type="file"
                           name="avatar"
                           accept={Object.keys(AVATAR_TYPES).join(",")}
                           required
-                          class="text-sm file:me-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-slate-200 file:px-3 file:py-2 file:text-sm file:font-semibold dark:file:bg-neutral-700 dark:file:text-white"
+                          class="text-caption file:me-3 file:cursor-pointer file:rounded-button file:border-0 file:bg-surface-2 file:px-3 file:py-2 file:text-caption file:font-semibold file:text-ink"
                         />
                       </label>
                       <button type="submit" class="btn-primary px-4 py-2 text-sm">
@@ -201,7 +199,7 @@ export const account = new Elysia()
                       <form method="post" action={`${WEBROOT}/account/avatar/delete`} class="mt-2">
                         <button
                           type="submit"
-                          class="text-xs font-medium text-red-600 hover:underline dark:text-red-400"
+                          class="text-caption font-medium text-terracotta hover:underline"
                         >
                           {tr(locale, "account.removePicture")}
                         </button>
@@ -218,7 +216,7 @@ export const account = new Elysia()
                   action={`${WEBROOT}/account/profile`}
                   class="flex flex-col gap-4"
                 >
-                  <label class="flex flex-col gap-1 text-sm">
+                  <label class="flex flex-col gap-1 text-caption">
                     {tr(locale, "account.displayName")}
                     <input
                       type="text"
@@ -229,7 +227,7 @@ export const account = new Elysia()
                       value={userData.display_name ?? ""}
                     />
                   </label>
-                  <label class="flex flex-col gap-1 text-sm">
+                  <label class="flex flex-col gap-1 text-caption">
                     {tr(locale, "auth.email")}
                     <input
                       type="email"
@@ -255,7 +253,7 @@ export const account = new Elysia()
                     : tr(locale, "account.setPasswordHeading")}
                 </h2>
                 {!knowsPassword ? (
-                  <p class="mb-4 text-sm text-slate-500 dark:text-neutral-400">
+                  <p class="mb-4 text-caption text-ink-muted">
                     {tr(locale, "account.googlePasswordNote")}
                   </p>
                 ) : null}
@@ -265,7 +263,7 @@ export const account = new Elysia()
                   class="flex flex-col gap-4"
                 >
                   {knowsPassword ? (
-                    <label class="flex flex-col gap-1 text-sm">
+                    <label class="flex flex-col gap-1 text-caption">
                       {tr(locale, "account.currentPassword")}
                       <input
                         type="password"
@@ -276,7 +274,7 @@ export const account = new Elysia()
                       />
                     </label>
                   ) : null}
-                  <label class="flex flex-col gap-1 text-sm">
+                  <label class="flex flex-col gap-1 text-caption">
                     {tr(locale, "account.newPassword")}
                     <input
                       type="password"
@@ -287,7 +285,7 @@ export const account = new Elysia()
                       required
                     />
                   </label>
-                  <label class="flex flex-col gap-1 text-sm">
+                  <label class="flex flex-col gap-1 text-caption">
                     {tr(locale, "account.repeatPassword")}
                     <input
                       type="password"
@@ -310,7 +308,7 @@ export const account = new Elysia()
 
               <section id="plan" class={`${card} mb-6`}>
                 <h2 class={heading}>{tr(locale, "account.plan")}</h2>
-                <p safe class="mb-4 text-sm text-slate-600 dark:text-neutral-300">
+                <p safe class="mb-4 text-caption text-ink-body">
                   {tier?.name ?? userData.tier}
                   {userData.subscription_status ? ` · ${userData.subscription_status}` : ""}
                 </p>
@@ -328,41 +326,39 @@ export const account = new Elysia()
               {!HIDE_HISTORY ? (
                 <section class={`${card} mb-6`}>
                   <div class="mb-4 flex items-center justify-between">
-                    <h2 class="text-lg font-bold text-slate-900 dark:text-white">
+                    <h2 class="text-subheading font-bold text-ink">
                       {tr(locale, "account.recentConversions")}
                     </h2>
                     <a
                       href={`${WEBROOT}/history`}
-                      class="text-sm font-medium text-lime-700 hover:underline dark:text-accent-400"
+                      class="text-caption font-medium text-link hover:underline"
                     >
                       {tr(locale, "account.viewAll")}
                     </a>
                   </div>
                   {recentJobs.length === 0 ? (
-                    <p class="text-sm text-slate-500 dark:text-neutral-400">
-                      {tr(locale, "account.emptyHistory")}
-                    </p>
+                    <p class="text-caption text-ink-muted">{tr(locale, "account.emptyHistory")}</p>
                   ) : (
-                    <ul class="divide-y divide-slate-200 text-sm dark:divide-neutral-800">
+                    <ul class="divide-y divide-rule text-caption">
                       {recentJobs.map((job) => (
                         <li class="flex items-center justify-between gap-4 py-2.5">
                           <div>
-                            <p class="font-medium text-slate-900 dark:text-white">
+                            <p class="font-medium text-ink">
                               {job.num_files === 1
                                 ? tr(locale, "account.oneFile")
                                 : tr(locale, "account.files", { count: job.num_files })}{" "}
                               ·{" "}
-                              <span safe class="text-slate-500 dark:text-neutral-400">
+                              <span safe class="text-ink-muted">
                                 {job.status}
                               </span>
                             </p>
-                            <p safe class="text-xs text-slate-500 dark:text-neutral-400">
+                            <p safe class="text-caption text-ink-muted">
                               {formatDate(job.date_created)}
                             </p>
                           </div>
                           <a
                             href={`${WEBROOT}/results/${job.id}`}
-                            class="shrink-0 text-sm font-medium text-lime-700 hover:underline dark:text-accent-400"
+                            class="shrink-0 text-caption font-medium text-link hover:underline"
                           >
                             {tr(locale, "account.open")}
                           </a>
@@ -375,13 +371,11 @@ export const account = new Elysia()
 
               <section class={card}>
                 <h2 class={heading}>{tr(locale, "account.signOutTitle")}</h2>
-                <p class="mb-4 text-sm text-slate-500 dark:text-neutral-400">
-                  {tr(locale, "account.signOutNote")}
-                </p>
+                <p class="mb-4 text-caption text-ink-muted">{tr(locale, "account.signOutNote")}</p>
                 <form method="post" action={`${WEBROOT}/logoff`}>
                   <button
                     type="submit"
-                    class="rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-2.5 text-sm font-bold text-red-600 transition-colors hover:bg-red-500/20 dark:text-red-400"
+                    class="rounded-button border border-terracotta/40 bg-terracotta/10 px-5 py-2.5 text-caption font-bold text-terracotta transition-colors hover:bg-terracotta/20"
                   >
                     {tr(locale, "menu.signOut")}
                   </button>

@@ -75,7 +75,7 @@ afterEach(() => {
   if (existsSync(testDbPath)) {
     try {
       unlinkSync(testDbPath);
-    } catch (err) {
+    } catch {
       // Ignore Windows EBUSY file lock during test cleanup
     }
   }
@@ -182,17 +182,23 @@ test("db handles migration from version 0 to version 1", () => {
     if (existsSync(migrateDbPath)) {
       try {
         unlinkSync(migrateDbPath);
-      } catch (err) {}
+      } catch {
+        // The file may still be locked by Windows; cleanup is best effort
+      }
     }
     if (existsSync(`${migrateDbPath}-wal`)) {
       try {
         unlinkSync(`${migrateDbPath}-wal`);
-      } catch (err) {}
+      } catch {
+        // The file may still be locked by Windows; cleanup is best effort
+      }
     }
     if (existsSync(`${migrateDbPath}-shm`)) {
       try {
         unlinkSync(`${migrateDbPath}-shm`);
-      } catch (err) {}
+      } catch {
+        // The file may still be locked by Windows; cleanup is best effort
+      }
     }
   }
 });

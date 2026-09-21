@@ -168,7 +168,10 @@ function saveRecentTarget(target, converter, value) {
     if (recent.length > 8) recent = recent.slice(0, 8);
     localStorage.setItem("convertx_recent_targets", JSON.stringify(recent));
     renderRecentPills();
-  } catch (e) {}
+  } catch {
+    // localStorage is unavailable in private mode and when cookies are blocked; the
+    // recent list is a convenience, so losing it is not worth breaking the page over
+  }
 }
 
 function renderRecentPills() {
@@ -195,7 +198,9 @@ function renderRecentPills() {
       };
       list.appendChild(btn);
     });
-  } catch (e) {}
+  } catch {
+    // As above: a broken recent list must not stop the converter working
+  }
 }
 
 // Problems with the conversion itself are shown next to the button rather than thrown
@@ -239,7 +244,9 @@ function selectTarget(targetName, converterName, fullValue) {
   }
 
   convertToElement.value = finalVal;
-  convertToInput.value = `${targetName.toUpperCase()}${converterName ? ` (${converterName})` : ""}`;
+  // Only the format is shown. Which tool runs is an admin setting, and the server picks it
+  // again from the upload anyway, so naming one here would be noise at best and wrong at worst.
+  convertToInput.value = targetName.toUpperCase();
   formatSelected = true;
   updateQualityOption();
   if (pendingFiles === 0 && fileNames.length > 0) {
@@ -259,7 +266,6 @@ const updateSearchBar = () => {
   const convertToPopup = document.querySelector(".convert_to_popup");
   const convertToGroupElements = document.querySelectorAll(".convert_to_group");
   const convertToGroups = {};
-  const convertToElement = document.querySelector("select[name='convert_to']");
 
   // Populate recent formats group inside popup if present
   const recentGroup = document.getElementById("recent-formats-group");
@@ -288,7 +294,9 @@ const updateSearchBar = () => {
         recentGroup.classList.remove("hidden");
         recentGroup.classList.add("flex");
       }
-    } catch (e) {}
+    } catch {
+      // As above
+    }
   }
 
   const showMatching = (search) => {

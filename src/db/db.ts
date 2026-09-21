@@ -4,7 +4,6 @@ import { dirname } from "node:path";
 import { Tier, User } from "./types";
 
 export function initializeDatabase(db: Database): void {
-  const dbVersion = db.query("PRAGMA user_version").get() as { user_version?: number };
   const hasTables = db.query("SELECT * FROM sqlite_master WHERE type='table'").get();
 
   if (!hasTables) {
@@ -55,6 +54,16 @@ export function initializeDatabase(db: Database): void {
     }
 
     db.exec("PRAGMA user_version = 2;");
+  }
+
+  // What each job was asked to produce, and which tool ran. Older rows keep NULL; the admin
+  // dashboard reads their formats back off the stored filenames instead.
+  const jobColumns = db.query("PRAGMA table_info(jobs)").all() as { name: string }[];
+  if (!jobColumns.some((c) => c.name.toLowerCase() === "convert_to")) {
+    db.exec("ALTER TABLE jobs ADD COLUMN convert_to TEXT;");
+  }
+  if (!jobColumns.some((c) => c.name.toLowerCase() === "converter")) {
+    db.exec("ALTER TABLE jobs ADD COLUMN converter TEXT;");
   }
 
   // Ensure user ID 1 is Super Admin with Pro tier

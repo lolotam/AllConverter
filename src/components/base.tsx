@@ -1,11 +1,11 @@
 import { version } from "../../package.json";
 import { assetUrl } from "../helpers/assetUrl";
-import { isRtl, t, type Locale } from "../i18n";
+import { isRtl, safeT, type Locale } from "../i18n";
 import { brandingUrl } from "../services/branding";
 
 export const BaseHtml = ({
   children,
-  title = "ConvertX - Fast, Secure & Free Online File Converter",
+  title = "AllConverter Tech - Fast, Secure & Free Online File Converter",
   webroot = "",
   customFooter = false,
   locale = "en",
@@ -81,22 +81,22 @@ export const BaseHtml = ({
       {!customFooter && (
         <footer class="w-full border-t border-rule py-6">
           <div class="p-4 text-center text-caption text-ink-muted">
-            <span>{t(locale, "base.poweredBy")} </span>
+            <span>{safeT(locale, "base.poweredBy")} </span>
             <a href="https://github.com/C4illin/ConvertX" class="text-ink-muted hover:text-link">
               ConvertX{" "}
             </a>
             <span safe>v{version || ""}</span>
             <span class="mx-2">·</span>
             <a href={`${webroot}/terms`} class="text-ink-muted hover:text-link">
-              {t(locale, "base.terms")}
+              {safeT(locale, "base.terms")}
             </a>
             <span class="mx-2">·</span>
             <a href={`${webroot}/privacy`} class="text-ink-muted hover:text-link">
-              {t(locale, "base.privacy")}
+              {safeT(locale, "base.privacy")}
             </a>
             <span class="mx-2">·</span>
             <a href={`${webroot}/refunds`} class="text-ink-muted hover:text-link">
-              {t(locale, "base.refunds")}
+              {safeT(locale, "base.refunds")}
             </a>
           </div>
         </footer>

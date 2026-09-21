@@ -1,0 +1,19 @@
+# Build output and vendored files: not ours to format.
+dist/
+public/generated.css
+public/tus.min.js
+
+# Runtime data and uploads
+data/
+output/
+uploads/
+
+# Scratch space belonging to editor tooling. It holds a second copy of the whole repo,
+# which otherwise accounts for most of what `lint:prettier` reports.
+.kilo/
+.playwright-mcp/
+
+# Dependency and lock files
+node_modules/
+bun.lock
+package-lock.json

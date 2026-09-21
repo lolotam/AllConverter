@@ -1,6 +1,7 @@
 // The insight tabs of the admin dashboard. Kept out of admin.tsx, which is already long.
 import type { Analytics, QueueSnapshot, StorageUsage, SystemHealth } from "../services/adminStats";
-import { humanBytes } from "../services/adminStats";
+import { safeHumanBytes, JOB_LIMIT_CHOICES } from "../services/adminStats";
+import type { FormatRow } from "../services/features";
 
 const panel = `glass-card p-5`;
 const title = `text-body font-bold text-ink`;
@@ -117,8 +118,9 @@ export function StoragePanel({
           <div class="mb-2 flex items-center justify-between">
             <span class="font-semibold text-ink">Volume</span>
             <span class={subtle}>
-              {humanBytes(usage.disk.totalBytes - usage.disk.freeBytes)} of{" "}
-              {humanBytes(usage.disk.totalBytes)} used · {humanBytes(usage.disk.freeBytes)} free
+              {safeHumanBytes(usage.disk.totalBytes - usage.disk.freeBytes)} of{" "}
+              {safeHumanBytes(usage.disk.totalBytes)} used · {safeHumanBytes(usage.disk.freeBytes)}{" "}
+              free
             </span>
           </div>
           <Bar percent={usage.disk.usedPercent} danger={lowOnSpace} />
@@ -136,7 +138,7 @@ export function StoragePanel({
             <p class={subtle} safe>
               {area.name}
             </p>
-            <p class="text-heading-sm font-extrabold text-ink">{humanBytes(area.bytes)}</p>
+            <p class="text-heading-sm font-extrabold text-ink">{safeHumanBytes(area.bytes)}</p>
             <p class={subtle}>
               {area.files} file{area.files === 1 ? "" : "s"}
             </p>
@@ -164,7 +166,7 @@ export function StoragePanel({
                   <td class={td}>#{job.jobId}</td>
                   <td class={td}>{job.userId}</td>
                   <td class={td}>{job.files}</td>
-                  <td class={td}>{humanBytes(job.bytes)}</td>
+                  <td class={td}>{safeHumanBytes(job.bytes)}</td>
                 </tr>
               ))}
             </tbody>
@@ -175,8 +177,15 @@ export function StoragePanel({
   );
 }
 
-export function ConversionsPanel({ snapshot }: { snapshot: QueueSnapshot }) {
-  const { queue, active, recentJobs, recentFailures } = snapshot;
+export function ConversionsPanel({
+  snapshot,
+  webroot,
+}: {
+  snapshot: QueueSnapshot;
+  webroot: string;
+}) {
+  const { queue, active, recentJobs, recentFailures, filters, choices } = snapshot;
+  const filterField = `rounded-button border border-rule bg-surface px-2 py-1.5 text-caption text-ink`;
   return (
     <div class="space-y-6">
       <div>
@@ -208,7 +217,9 @@ export function ConversionsPanel({ snapshot }: { snapshot: QueueSnapshot }) {
           <ul class="space-y-2">
             {active.map((job) => (
               <li class="flex items-center justify-between gap-4 text-sm">
-                <span class="font-medium text-ink">Job #{job.jobId}</span>
+                <span class="font-medium text-ink" safe>
+                  Job #{job.jobId}
+                </span>
                 <span class={subtle}>
                   {job.converting} converting · {job.queued} queued
                 </span>
@@ -219,12 +230,101 @@ export function ConversionsPanel({ snapshot }: { snapshot: QueueSnapshot }) {
       ) : null}
 
       <div class={panel}>
-        <h3 class="mb-3 font-bold text-ink">Recent jobs</h3>
+        <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+          <h3 class="font-bold text-ink">Recent jobs</h3>
+          <div id="job-delete-container" class="hidden">
+            <button
+              type="button"
+              id="job-delete-btn"
+              class="rounded-button border border-terracotta/40 bg-terracotta/10 px-4 py-2 text-caption font-bold text-terracotta transition-colors hover:bg-terracotta/20"
+            >
+              Delete selected (<span id="job-selected-count">0</span>)
+            </button>
+          </div>
+        </div>
+
+        {/* GET, so a filtered view can be reloaded, bookmarked or shared */}
+        <form
+          method="get"
+          action={`${webroot}/admin`}
+          class="mb-4 flex flex-wrap items-end gap-2 border-b border-rule pb-4"
+        >
+          <input type="hidden" name="tab" value="conversions" />
+          <label class="flex flex-col gap-1 text-xs">
+            <span class="font-medium text-ink-muted">Status</span>
+            <select name="status" class={filterField}>
+              <option value="" selected={!filters.status}>
+                Any
+              </option>
+              <option value="done" selected={filters.status === "done"}>
+                No failures
+              </option>
+              <option value="failed" selected={filters.status === "failed"}>
+                Has failures
+              </option>
+              {choices.statuses.map((status) => (
+                <option value={status} selected={filters.status === status} safe>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label class="flex flex-col gap-1 text-xs">
+            <span class="font-medium text-ink-muted">To format</span>
+            <select name="format" class={filterField}>
+              <option value="" selected={!filters.format}>
+                Any
+              </option>
+              {choices.formats.map((format) => (
+                <option value={format} selected={filters.format === format} safe>
+                  {format}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label class="flex flex-col gap-1 text-xs">
+            <span class="font-medium text-ink-muted">Owner</span>
+            <select name="owner" class={filterField}>
+              <option value="" selected={!filters.owner}>
+                Anyone
+              </option>
+              {choices.owners.map((owner) => (
+                <option value={String(owner)} selected={filters.owner === String(owner)}>
+                  {owner}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label class="flex flex-col gap-1 text-xs">
+            <span class="font-medium text-ink-muted">Show</span>
+            <select name="limit" class={filterField}>
+              {JOB_LIMIT_CHOICES.map((limit) => (
+                <option value={String(limit)} selected={filters.limit === limit}>
+                  {limit}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button type="submit" class="btn-secondary px-4 py-2 text-sm">
+            Apply
+          </button>
+          <a href={`${webroot}/admin?tab=conversions`} class={`${subtle} pb-2 hover:underline`}>
+            Clear
+          </a>
+        </form>
+
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead>
               <tr class="border-b border-rule">
+                <th class={`${th} w-10`}>
+                  <input type="checkbox" id="job-select-all" class="size-4 accent-cta" />
+                </th>
+                <th class={`${th} w-12`}>#</th>
                 <th class={th}>Job</th>
+                <th class={th}>From</th>
+                <th class={th}>To</th>
+                <th class={th}>Converter</th>
                 <th class={th}>Owner</th>
                 <th class={th}>Started</th>
                 <th class={th}>Files</th>
@@ -232,28 +332,101 @@ export function ConversionsPanel({ snapshot }: { snapshot: QueueSnapshot }) {
                 <th class={th}>Status</th>
               </tr>
             </thead>
-            <tbody>
-              {recentJobs.map((job) => (
-                <tr class="border-b border-rule">
-                  <td class={td}>#{job.id}</td>
-                  <td class={td}>{job.user_id}</td>
-                  <td class={td} safe>
-                    {job.date_created.replace("T", " ").slice(0, 16)}
-                  </td>
-                  <td class={td}>{job.num_files}</td>
-                  <td class={`${td} ${job.failed > 0 ? "font-bold text-terracotta" : ""}`}>
-                    {job.failed}
-                  </td>
-                  <td class={td} safe>
-                    {job.status}
+            {/* Cell styling on the one element rather than on every cell, as in the format
+                table: this list goes up to 250 rows of eleven columns. */}
+            <tbody
+              class={`
+                [&_td]:px-3 [&_td]:py-2 [&_td]:text-caption [&_td]:text-ink-body
+                [&_td:nth-child(2)]:text-ink-muted
+                [&_td:nth-child(4)]:uppercase
+                [&_td:nth-child(5)]:font-medium [&_td:nth-child(5)]:uppercase [&_td:nth-child(5)]:text-ink
+                [&_tr]:border-b [&_tr]:border-rule
+                [&_input]:size-4 [&_input]:accent-cta
+              `}
+            >
+              {recentJobs.length === 0 ? (
+                <tr>
+                  <td colspan="11">
+                    <span class={subtle}>No jobs match these filters.</span>
                   </td>
                 </tr>
-              ))}
+              ) : (
+                recentJobs.map((job, index) => (
+                  <tr>
+                    <td>
+                      <input type="checkbox" data-job-id={String(job.id)} />
+                    </td>
+                    <td>{index + 1}</td>
+                    <td>#{job.id}</td>
+                    <td safe>{job.from_format || "—"}</td>
+                    <td safe>{job.to_format || "—"}</td>
+                    <td safe>{job.converter || "—"}</td>
+                    <td>{job.user_id}</td>
+                    <td safe>{job.date_created.replace("T", " ").slice(0, 16)}</td>
+                    <td>{job.num_files}</td>
+                    <td class={job.failed > 0 ? "font-bold text-terracotta" : ""}>{job.failed}</td>
+                    <td safe>{job.status}</td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-      </div>
 
+        <script>
+          {`
+            (() => {
+              const boxes = Array.from(document.querySelectorAll("[data-job-id]"));
+              const all = document.getElementById("job-select-all");
+              const container = document.getElementById("job-delete-container");
+              const button = document.getElementById("job-delete-btn");
+              const count = document.getElementById("job-selected-count");
+              if (!all || !container || !button || !count) return;
+
+              const selected = () => boxes.filter((box) => box.checked).map((box) => box.dataset.jobId);
+
+              const refresh = () => {
+                const chosen = selected();
+                count.textContent = String(chosen.length);
+                container.classList.toggle("hidden", chosen.length === 0);
+              };
+
+              all.addEventListener("change", () => {
+                for (const box of boxes) box.checked = all.checked;
+                refresh();
+              });
+              for (const box of boxes) box.addEventListener("change", refresh);
+
+              button.addEventListener("click", async () => {
+                const jobIds = selected();
+                if (jobIds.length === 0) return;
+                if (!confirm("Delete " + jobIds.length + " jobs and every file they produced? This cannot be undone.")) return;
+
+                button.disabled = true;
+                button.textContent = "Deleting...";
+                try {
+                  const response = await fetch("${webroot}/admin/conversions/delete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ jobIds }),
+                  });
+                  if (!response.ok) throw new Error("Request failed");
+                  // A job still converting is left alone; say so rather than silently
+                  // deleting fewer rows than were ticked
+                  const result = await response.json().catch(() => ({}));
+                  if (result.message) alert(result.message);
+                  window.location.reload();
+                } catch (error) {
+                  button.disabled = false;
+                  button.textContent = "Delete failed - try again";
+                }
+              });
+
+              refresh();
+            })();
+          `}
+        </script>
+      </div>
       <div class={panel}>
         <h3 class="mb-3 font-bold text-ink">Recent failures</h3>
         {recentFailures.length === 0 ? (
@@ -302,7 +475,9 @@ export function HealthPanel({ health }: { health: SystemHealth }) {
         </div>
         <div class={panel}>
           <p class={subtle}>Database file</p>
-          <p class="text-heading-sm font-extrabold text-ink">{humanBytes(health.databaseBytes)}</p>
+          <p class="text-heading-sm font-extrabold text-ink">
+            {safeHumanBytes(health.databaseBytes)}
+          </p>
         </div>
       </div>
 
@@ -436,14 +611,17 @@ export function SitePanel({
   faviconUrl,
   siteName,
   siteTagline,
-  converters,
+  formats,
+  usage,
 }: {
   webroot: string;
   logoUrl: string | null;
   faviconUrl: string | null;
   siteName: string;
   siteTagline: string;
-  converters: { name: string; visible: boolean; formats: { format: string; visible: boolean }[] }[];
+  formats: FormatRow[];
+  /** Files produced per format, keyed by lowercase extension. */
+  usage: Record<string, number>;
 }) {
   const uploadField = `text-caption file:me-3 file:cursor-pointer file:rounded-button file:border-0 file:bg-surface-2 file:px-3 file:py-2 file:text-caption file:font-semibold file:text-ink`;
   const input = `field text-caption`;
@@ -455,7 +633,6 @@ export function SitePanel({
           Name, artwork and which converters the site offers. Changes apply on the next page load.
         </p>
       </div>
-
       <div class={panel}>
         <h3 class="mb-3 font-bold text-ink">Name</h3>
         <form
@@ -485,7 +662,6 @@ export function SitePanel({
           </div>
         </form>
       </div>
-
       <div class="grid gap-4 lg:grid-cols-2">
         <div class={panel}>
           <h3 class="mb-3 font-bold text-ink">Logo</h3>
@@ -581,95 +757,167 @@ export function SitePanel({
           ) : null}
         </div>
       </div>
-
       <div class={panel}>
-        <h3 class="mb-1 font-bold text-ink">Converters offered</h3>
+        <h3 class="mb-1 font-bold text-ink">Formats offered</h3>
         <p class={`${subtle} mb-4`}>
-          Open a converter to choose which of its formats the site offers. A format you untick
-          disappears from the landing page and the converter chooser, so nobody can start a
-          conversion into it. Converters whose tools are missing from the image never appear here at
-          all.
+          One row per format a customer can convert into. Untick a format and it disappears from the
+          landing page, so nobody can start a conversion into it. The converter is yours to choose
+          and is never shown to customers — when it cannot read the file somebody uploads, the next
+          capable one runs instead. Formats whose tools are missing from the image never appear here
+          at all.
         </p>
 
-        <div class="space-y-2">
-          {converters.map((converter) => {
-            const shown = converter.formats.filter((format) => format.visible).length;
-            return (
-              <details class="group rounded-card border border-rule">
-                <summary class="flex cursor-pointer list-none items-center gap-3 p-3 text-caption hover:bg-surface-2">
-                  <span
-                    class={`size-2.5 shrink-0 rounded-full ${converter.visible ? "bg-cta" : "bg-rule"}`}
-                  />
-                  <span class="font-bold text-ink" safe>
-                    {converter.name}
-                  </span>
-                  <span class={subtle}>
-                    {converter.visible
-                      ? `${shown} of ${converter.formats.length} formats offered`
-                      : "switched off"}
-                  </span>
-                  <span class={`${subtle} ml-auto group-open:hidden`}>Open</span>
-                </summary>
+        <form method="post" action={`${webroot}/admin/site/formats`}>
+          <div class="mb-3 flex flex-wrap items-center gap-2">
+            <input
+              type="search"
+              id="format-filter"
+              placeholder="Filter by format, category or converter…"
+              autocomplete="off"
+              class="field w-64 text-caption"
+            />
+            <span class={subtle}>
+              <span id="format-shown" safe>
+                {String(formats.length)}
+              </span>{" "}
+              of {formats.length} formats · {formats.filter((row) => row.visible).length} offered
+            </span>
+            <div class="ms-auto flex flex-wrap gap-2">
+              <button type="submit" class="btn-primary px-4 py-2 text-sm">
+                Save formats
+              </button>
+              <button type="submit" name="all" value="1" class="btn-secondary px-4 py-2 text-sm">
+                Offer every format
+              </button>
+            </div>
+          </div>
 
-                <form
-                  method="post"
-                  action={`${webroot}/admin/features/${converter.name}`}
-                  class="border-t border-rule p-3"
-                >
-                  <div class="mb-3 flex flex-wrap items-center gap-4">
-                    <label class="flex items-center gap-2 text-sm">
+          <div class="max-h-[32rem] overflow-auto rounded-card border border-rule">
+            <table class="w-full" id="format-table">
+              <thead class="sticky top-0 z-10 bg-surface">
+                <tr class="border-b border-rule">
+                  <th class={`${th} w-12`}>#</th>
+                  <th class={th}>Format</th>
+                  <th class={th}>Category</th>
+                  <th class={th}>Accepted formats</th>
+                  <th class={th}>Converter</th>
+                  <th class={`${th} text-end`}>Usage</th>
+                  <th class={`${th} text-end`}>
+                    <label class="flex items-center justify-end gap-2">
+                      <span>Offered</span>
+                      <input type="checkbox" id="format-all" class="size-4 accent-cta" />
+                    </label>
+                  </th>
+                </tr>
+              </thead>
+              {/* Every cell's styling lives here, on the one element, instead of being
+                  repeated as a class attribute on all 3,500 of them. Same idiom as the
+                  history and landing-page tables; it is what keeps this page a sane size
+                  once a full image offers 500-odd formats. */}
+              <tbody
+                class={`
+                  [&_td]:px-3 [&_td]:py-2 [&_td]:text-caption [&_td]:text-ink-body
+                  [&_td:nth-child(1)]:text-ink-muted
+                  [&_td:nth-child(2)]:font-bold [&_td:nth-child(2)]:uppercase [&_td:nth-child(2)]:text-ink
+                  [&_td:nth-child(4)]:max-w-xs
+                  [&_td:nth-child(6)]:text-end [&_td:nth-child(6)]:tabular-nums
+                  [&_td:nth-child(7)]:text-end
+                  [&_tr]:border-b [&_tr]:border-rule [&_tr]:last:border-none
+                  [&_tr]:hover:bg-surface-2
+                  [&_input]:size-4 [&_input]:accent-cta
+                  [&_select]:rounded-button [&_select]:border [&_select]:border-rule
+                  [&_select]:bg-surface [&_select]:px-2 [&_select]:py-1 [&_select]:text-xs
+                  [&_select]:text-ink
+                `}
+              >
+                {/* The rows carry no data-search attribute: the format, category and
+                    converter are already in the cells, and repeating them 507 times is pure
+                    weight. The filter reads them off the cells instead. */}
+                {formats.map((row, index) => (
+                  <tr data-format-row>
+                    <td>{index + 1}</td>
+                    <td safe>{row.label}</td>
+                    <td>{row.category}</td>
+                    <td>
+                      {row.accepts.length === 0 ? (
+                        <span class={subtle}>none</span>
+                      ) : (
+                        <span safe>
+                          {`${row.accepts.length} (${row.accepts.slice(0, 4).join(", ")}${
+                            row.accepts.length > 4 ? `, +${row.accepts.length - 4}` : ""
+                          })`}
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      {row.converters.length === 1 ? (
+                        <span safe>{row.converter}</span>
+                      ) : (
+                        <select name={`converter.${row.format}`}>
+                          {row.converters.map((converter) => (
+                            <option value={converter} selected={converter === row.converter} safe>
+                              {converter}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </td>
+                    <td>{usage[row.label] ? String(usage[row.label]) : "—"}</td>
+                    <td>
                       <input
                         type="checkbox"
-                        name="converterVisible"
-                        value="1"
-                        checked={converter.visible}
-                        class="size-4 accent-cta"
+                        name="format"
+                        value={row.format}
+                        checked={row.visible}
+                        data-format-offered
                       />
-                      <span class="font-medium text-ink">Offer this converter</span>
-                    </label>
-                    <span class={subtle}>
-                      Tick the formats to offer. Unticking them all switches the converter off.
-                    </span>
-                  </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </form>
 
-                  <div class="max-h-72 overflow-y-auto rounded-button border border-rule p-2">
-                    <div class="grid gap-1 sm:grid-cols-3 lg:grid-cols-5">
-                      {converter.formats.map((format) => (
-                        <label class="flex items-center gap-2 rounded px-1.5 py-1 text-xs hover:bg-surface-2">
-                          <input
-                            type="checkbox"
-                            name="format"
-                            value={format.format}
-                            checked={format.visible}
-                            class="size-3.5 accent-cta"
-                          />
-                          <span class="truncate text-ink-body" safe>
-                            {format.format}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+        <script>
+          {`
+            (() => {
+              const filter = document.getElementById("format-filter");
+              const all = document.getElementById("format-all");
+              const shown = document.getElementById("format-shown");
+              const rows = Array.from(document.querySelectorAll("[data-format-row]"));
+              if (!filter || !all || !rows.length) return;
 
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    <button type="submit" class="btn-primary px-4 py-2 text-sm">
-                      Save {converter.name}
-                    </button>
-                    <button
-                      type="submit"
-                      name="all"
-                      value="1"
-                      class="btn-secondary px-4 py-2 text-sm"
-                    >
-                      Offer every format
-                    </button>
-                  </div>
-                </form>
-              </details>
-            );
-          })}
-        </div>
-      </div>
+              // Format, category and converter — not the accepted-formats cell, where
+              // nearly every row lists nearly every extension and would match anything
+              const keys = rows.map((row) =>
+                [row.cells[1], row.cells[2], row.cells[4]]
+                  .map((cell) => (cell ? cell.textContent : ""))
+                  .join(" ")
+                  .toLowerCase(),
+              );
+
+              const visibleRows = () => rows.filter((row) => !row.classList.contains("hidden"));
+
+              filter.addEventListener("input", () => {
+                const search = filter.value.trim().toLowerCase();
+                rows.forEach((row, index) => {
+                  row.classList.toggle("hidden", search !== "" && !keys[index].includes(search));
+                });
+                if (shown) shown.textContent = String(visibleRows().length);
+              });
+
+              // Ticking the header box applies to what is on screen, so it works with a filter
+              all.addEventListener("change", () => {
+                for (const row of visibleRows()) {
+                  const box = row.querySelector("[data-format-offered]");
+                  if (box) box.checked = all.checked;
+                }
+              });
+            })();
+          `}
+        </script>
+      </div>{" "}
     </div>
   );
 }

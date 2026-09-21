@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { ar } from "../../src/i18n/ar";
 import { en, type MessageKey } from "../../src/i18n/en";
-import { isRtl, localeFromRequest, messages, t } from "../../src/i18n";
+import { isRtl, localeFromRequest, messages, safeT } from "../../src/i18n";
 
 const requestWith = (headers: Record<string, string>) =>
   new Request("http://localhost/", { headers });
@@ -20,30 +20,44 @@ describe("message parity", () => {
   });
 });
 
-describe("t()", () => {
+describe("safeT()", () => {
   it("returns the message in the requested locale", () => {
-    expect(t("en", "header.signIn")).toBe("Sign In");
-    expect(t("ar", "header.signIn")).toBe("تسجيل الدخول");
+    expect(safeT("en", "header.signIn")).toBe("Sign In");
+    expect(safeT("ar", "header.signIn")).toBe("تسجيل الدخول");
   });
 
   it("falls back to English when the Arabic string is missing", () => {
     const key: MessageKey = "header.signIn";
     const backup = messages.ar[key];
     delete messages.ar[key];
-    expect(t("ar", key)).toBe(messages.en[key]);
+    expect(safeT("ar", key)).toBe(messages.en[key]);
     messages.ar[key] = backup;
   });
 
   it("falls back to the key itself when unknown", () => {
-    expect(t("en", "made.up.key" as MessageKey)).toBe("made.up.key");
-    expect(t("ar", "made.up.key" as MessageKey)).toBe("made.up.key");
+    expect(safeT("en", "made.up.key" as MessageKey)).toBe("made.up.key");
+    expect(safeT("ar", "made.up.key" as MessageKey)).toBe("made.up.key");
   });
 
   it("substitutes {name} placeholders and leaves unknown ones alone", () => {
-    expect(t("en", "home.tag", { from: "PDF", to: "Word" })).toBe("PDF to Word");
-    expect(t("ar", "home.tag", { from: "PDF", to: "Word" })).toBe("PDF إلى Word");
-    expect(t("en", "home.tag")).toBe("{from} to {to}");
-    expect(t("en", "home.tag", { from: "PDF" })).toBe("PDF to {to}");
+    expect(safeT("en", "home.tag", { from: "PDF", to: "Word" })).toBe("PDF to Word");
+    expect(safeT("ar", "home.tag", { from: "PDF", to: "Word" })).toBe("PDF إلى Word");
+    expect(safeT("en", "home.tag")).toBe("{from} to {to}");
+    expect(safeT("en", "home.tag", { from: "PDF" })).toBe("PDF to {to}");
+  });
+
+  // The name is a promise the callers rely on: pages interpolate the result without a
+  // `safe` attribute, and @kitajs/html escapes nothing on its own. Parameters are the part
+  // we do not write — filenames, values an admin typed into the dashboard.
+  it("escapes what callers pass in, so the result is safe to render raw", () => {
+    expect(safeT("en", "home.tag", { from: "<img src=x onerror=alert(1)>", to: "Word" })).toBe(
+      "&lt;img src=x onerror=alert(1)&gt; to Word",
+    );
+    expect(safeT("en", "home.tag", { from: '"', to: "&" })).toBe("&quot; to &amp;");
+  });
+
+  it("leaves the messages themselves alone, which we do write", () => {
+    expect(safeT("en", "header.signIn")).not.toContain("&");
   });
 });
 

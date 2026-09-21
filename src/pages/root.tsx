@@ -10,7 +10,8 @@ import { Header } from "../components/header";
 import { headerAccount } from "../helpers/headerUser";
 import { isRegisteredSession } from "../helpers/session";
 import { onlyAvailable } from "../converters/availability";
-import { visibleTargets } from "../services/features";
+import { categoryOf, groupByCategory } from "../converters/categories";
+import { formatLabel, visibleTargets } from "../services/features";
 import { deletionIsAutomatic, retentionSentence } from "../services/retention";
 import { getAllTargets } from "../converters/main";
 import db, { getTiers, getUserById } from "../db/db";
@@ -27,16 +28,16 @@ import {
 } from "../helpers/env";
 import { checkoutConfig, priceIdForTier } from "../services/paddle";
 import { getConversionsToday, getQuotaContext, UNLIMITED_THRESHOLD } from "../services/quota";
-import { localeFromRequest, t as tr, type Locale, type MessageKey } from "../i18n";
+import { localeFromRequest, safeT as safeTr, type Locale, type MessageKey } from "../i18n";
 import { FIRST_RUN, userService } from "./user";
 
 // Must match the real cleanup schedule; the privacy policy states the same retention.
 // Read per request, because retention is per tier and editable in the admin dashboard.
 // The retention sentence itself comes from the database and stays in its own language.
-const fileDeletionPromise = (locale: Locale) =>
+const safeFileDeletionPromise = (locale: Locale) =>
   deletionIsAutomatic()
-    ? tr(locale, "home.filesDeletedAuto", { retention: retentionSentence() })
-    : tr(locale, "home.filesDeletedManual");
+    ? safeTr(locale, "home.filesDeletedAuto", { retention: retentionSentence() })
+    : safeTr(locale, "home.filesDeletedManual");
 
 const LIMIT_MESSAGE_KEYS: Record<string, MessageKey> = {
   daily: "home.limit.daily",
@@ -179,15 +180,40 @@ export const root = new Elysia().use(userService).get(
     });
 
     const allTargets = visibleTargets(onlyAvailable(getAllTargets()));
-    // Offering a shortcut to a format no visible converter produces would only fail later
-    const offeredFormats = new Set(
-      Object.values(allTargets)
-        .flat()
-        .map((format) => String(format).toLowerCase()),
+    // What the site actually offers — a shortcut to anything else would only fail later.
+    // One entry per conversion, not per spelling: a converter listing both jpg and jpeg
+    // would otherwise put two cards on screen that do exactly the same thing.
+    const offeredFormats = new Set(Object.values(allTargets).flat().map(formatLabel));
+    // Before a file is uploaded there is nothing to resolve a converter against, so each
+    // card carries whichever tool can produce that format at all. It is only a placeholder
+    // that keeps the form well-formed — /convert works the real one out from the upload.
+    const formatCards = groupByCategory(
+      [...offeredFormats].sort().map((format) => ({
+        format,
+        converter:
+          Object.entries(allTargets).find(([, targets]) =>
+            targets.some((target) => formatLabel(target) === format),
+          )?.[0] ?? "",
+      })),
+      (entry) => categoryOf(entry.format),
     );
     const popularFormats = ["PDF", "MP4", "MP3", "JPG", "PNG", "DOCX", "EPUB", "WEBP"].filter(
       (format) => offeredFormats.has(format.toLowerCase()),
     );
+    // The shortcuts inside the picker, filtered the same way: a format an admin has
+    // switched off must not keep a chip that only leads to a refused conversion
+    const popularCards = [
+      "pdf",
+      "mp4",
+      "mp3",
+      "jpg",
+      "png",
+      "docx",
+      "webp",
+      "epub",
+      "xlsx",
+      "csv",
+    ].filter((format) => offeredFormats.has(format));
     const dbTiers = getTiers();
     const currentUser = user && user.id ? getUserById(user.id) : null;
     const checkout = checkoutConfig(currentUser);
@@ -224,9 +250,9 @@ export const root = new Elysia().use(userService).get(
                 role="alert"
                 class="border-b border-rule bg-marigold/25 px-4 py-3 text-center text-caption font-medium text-ink"
               >
-                <span safe>{tr(locale, limitMessageKey)}</span>{" "}
+                <span>{safeTr(locale, limitMessageKey)}</span>{" "}
                 <a href="#pricing" class="font-semibold text-link underline">
-                  {tr(locale, "home.seePlans")}
+                  {safeTr(locale, "home.seePlans")}
                 </a>
               </div>
             )}
@@ -234,9 +260,9 @@ export const root = new Elysia().use(userService).get(
             <div class="w-full border-b border-rule bg-surface-2 px-4 py-3 text-center text-caption text-ink-body">
               <span class="inline-flex items-center gap-2">
                 <strong class="font-semibold text-link">
-                  {tr(locale, "home.announcementNew")}
+                  {safeTr(locale, "home.announcementNew")}
                 </strong>
-                {tr(locale, "home.announcement")}
+                {safeTr(locale, "home.announcement")}
               </span>
             </div>
 
@@ -245,20 +271,20 @@ export const root = new Elysia().use(userService).get(
               <div class="relative mx-auto max-w-[1200px] text-center">
                 {/* Marigold is the reference's chip hue; it stays a chip and goes nowhere else */}
                 <div class="chip mb-6 bg-marigold text-[#181d26]">
-                  <span>{tr(locale, "home.badge")}</span>
+                  <span>{safeTr(locale, "home.badge")}</span>
                 </div>
 
                 {/* Display 900, no tracking — the reference is explicit that the display
                     face is drawn tight and must not be letter-spaced */}
                 <h1 class="display-xl mb-6 text-ink">
-                  {tr(locale, "home.heroTitle")} {tr(locale, "home.heroTitleHighlight")}
+                  {safeTr(locale, "home.heroTitle")} {safeTr(locale, "home.heroTitleHighlight")}
                 </h1>
 
                 <p
                   class="mx-auto mb-10 max-w-2xl text-body text-ink-body"
                   style="text-wrap: pretty"
                 >
-                  {tr(locale, "home.heroSubtitle")}
+                  {safeTr(locale, "home.heroSubtitle")}
                 </p>
 
                 {/* CONVERTER CARD (CORE ENGINE) */}
@@ -280,16 +306,16 @@ export const root = new Elysia().use(userService).get(
                       }
                       data-quota-message={
                         isGuest
-                          ? tr(locale, "home.quotaSpentGuest")
-                          : tr(locale, "home.quotaSpentUser")
+                          ? safeTr(locale, "home.quotaSpentGuest")
+                          : safeTr(locale, "home.quotaSpentUser")
                       }
                       data-quota-action-url={
                         isGuest ? `${WEBROOT}/register?reason=free-used` : `${WEBROOT}/#pricing`
                       }
                       data-quota-action-label={
                         isGuest
-                          ? tr(locale, "home.quotaActionRegister")
-                          : tr(locale, "home.quotaActionUpgrade")
+                          ? safeTr(locale, "home.quotaActionRegister")
+                          : safeTr(locale, "home.quotaActionUpgrade")
                       }
                       class={`
                         group relative flex min-h-[220px] w-full flex-col items-center justify-center rounded-card
@@ -318,26 +344,27 @@ export const root = new Elysia().use(userService).get(
                       <div class="space-y-1">
                         <p class="text-subheading font-semibold text-frame-ink">
                           <span class="underline decoration-frame-ink-muted underline-offset-4">
-                            {tr(locale, "home.chooseFiles")}
+                            {safeTr(locale, "home.chooseFiles")}
                           </span>{" "}
-                          {tr(locale, "home.orDragDrop")}
+                          {safeTr(locale, "home.orDragDrop")}
                         </p>
                         <p class="text-caption text-frame-ink-muted">
-                          {tr(locale, "home.fileTypes")} ·{" "}
-                          {tr(locale, "home.upTo", { size: tier.max_file_size_mb })} ·{" "}
-                          {tr(locale, "home.filesAtOnce", { count: tier.batch_limit })}
+                          {safeTr(locale, "home.fileTypes")} ·{" "}
+                          {safeTr(locale, "home.upTo", { size: tier.max_file_size_mb })} ·{" "}
+                          {safeTr(locale, "home.filesAtOnce", { count: tier.batch_limit })}
+                          {conversionsLeft !== null && " · "}
                           {conversionsLeft !== null &&
-                            ` · ${tr(locale, "home.conversionsLeft", { count: conversionsLeft })}`}
+                            safeTr(locale, "home.conversionsLeft", { count: conversionsLeft })}
                         </p>
                       </div>
 
                       {/* File source buttons mockup */}
                       <div class="mt-4 flex items-center gap-2">
                         <span class="chip border border-frame-rule bg-frame-surface text-frame-ink-muted">
-                          {tr(locale, "home.fromDevice")}
+                          {safeTr(locale, "home.fromDevice")}
                         </span>
                         <span class="chip border border-frame-rule bg-frame-surface text-frame-ink-muted">
-                          {tr(locale, "home.cloudStorage")}
+                          {safeTr(locale, "home.cloudStorage")}
                         </span>
                       </div>
 
@@ -370,7 +397,7 @@ export const root = new Elysia().use(userService).get(
                     >
                       <div class="flex items-center gap-2 flex-wrap text-xs">
                         <span class="flex items-center gap-1 font-semibold text-frame-ink-muted">
-                          {tr(locale, "home.recent")}
+                          {safeTr(locale, "home.recent")}
                         </span>
                         <div class="recent-pills-list flex flex-wrap gap-1.5" />
                       </div>
@@ -380,7 +407,7 @@ export const root = new Elysia().use(userService).get(
                     <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-caption text-frame-ink-muted">
                       <div class="flex flex-wrap items-center gap-1.5">
                         <span class="font-semibold text-frame-ink-muted">
-                          {tr(locale, "home.popular")}
+                          {safeTr(locale, "home.popular")}
                         </span>
                         {popularFormats.map((fmt) => (
                           <button
@@ -388,12 +415,12 @@ export const root = new Elysia().use(userService).get(
                             onclick={`selectTarget('${fmt.toLowerCase()}', 'popular', '${fmt.toLowerCase()},popular')`}
                             class="cursor-pointer rounded-tag border border-frame-rule bg-frame-surface px-3 py-1 text-frame-ink transition-colors hover:bg-frame-ink/15"
                           >
-                            {fmt}
+                            <span safe>{fmt}</span>
                           </button>
                         ))}
                       </div>
                       <span class="font-medium text-frame-ink-muted">
-                        {tr(locale, "home.totalFormats")}
+                        {safeTr(locale, "home.totalFormats")}
                       </span>
                     </div>
 
@@ -423,7 +450,7 @@ export const root = new Elysia().use(userService).get(
                           <input
                             type="search"
                             name="convert_to_search"
-                            placeholder={tr(locale, "home.searchPlaceholder")}
+                            placeholder={safeTr(locale, "home.searchPlaceholder")}
                             autocomplete="off"
                             class="w-full bg-transparent text-body-sm text-frame-ink placeholder-frame-ink-muted focus:outline-none"
                           />
@@ -440,10 +467,10 @@ export const root = new Elysia().use(userService).get(
                             <article
                               id="recent-formats-group"
                               class="convert_to_group mb-1 hidden w-full flex-col rounded-card border-b border-rule bg-sky/25 p-3"
-                              data-converter={tr(locale, "home.recentFormatsGroup")}
+                              data-converter={safeTr(locale, "home.recentFormatsGroup")}
                             >
                               <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
-                                {tr(locale, "home.recentlyUsed")}
+                                {safeTr(locale, "home.recentlyUsed")}
                               </header>
                               <ul
                                 id="recent-formats-list"
@@ -454,24 +481,13 @@ export const root = new Elysia().use(userService).get(
                             {/* Popular Formats Group inside popup */}
                             <article
                               class="convert_to_group mb-1 flex w-full flex-col rounded-card border-b border-rule bg-marigold/20 p-3"
-                              data-converter={tr(locale, "home.popularFormatsGroup")}
+                              data-converter={safeTr(locale, "home.popularFormatsGroup")}
                             >
                               <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
-                                {tr(locale, "home.popularFormatsGroup")}
+                                {safeTr(locale, "home.popularFormatsGroup")}
                               </header>
                               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">
-                                {[
-                                  "pdf",
-                                  "mp4",
-                                  "mp3",
-                                  "jpg",
-                                  "png",
-                                  "docx",
-                                  "webp",
-                                  "epub",
-                                  "xlsx",
-                                  "csv",
-                                ].map((pop) => (
+                                {popularCards.map((pop) => (
                                   <button
                                     tabindex={0}
                                     class="target rounded-tag border border-rule bg-surface px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-cta hover:text-cta-ink"
@@ -480,40 +496,36 @@ export const root = new Elysia().use(userService).get(
                                     data-converter="Popular"
                                     type="button"
                                   >
-                                    {pop.toUpperCase()}
+                                    <span safe>{pop.toUpperCase()}</span>
                                   </button>
                                 ))}
                               </ul>
                             </article>
 
-                            {Object.entries(allTargets).map(([converter, targets]) => (
+                            {formatCards.map(({ category, rows }) => (
                               <article
                                 class={`
                                   convert_to_group flex w-full flex-col border-b border-rule p-3 last:border-none
                                 `}
-                                data-converter={converter}
+                                data-converter={category}
                               >
-                                <header
-                                  class="mb-2 w-full text-xs font-semibold uppercase tracking-wider text-ink-muted"
-                                  safe
-                                >
-                                  {converter}
+                                <header class="mb-2 w-full text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                                  {safeTr(locale, `formats.category.${category}`)}
                                 </header>
                                 <ul class={`convert_to_target flex flex-row flex-wrap gap-1.5`}>
-                                  {targets.map((target) => (
+                                  {rows.map((entry) => (
                                     <button
                                       tabindex={0}
                                       class={`
                                         target rounded-tag border border-rule bg-surface-2 px-3 py-1 text-xs font-medium text-ink-body
                                         transition-colors hover:bg-cta hover:text-cta-ink
                                       `}
-                                      data-value={`${target},${converter}`}
-                                      data-target={target}
-                                      data-converter={converter}
+                                      data-value={`${entry.format},${entry.converter}`}
+                                      data-target={entry.format}
+                                      data-converter={entry.converter}
                                       type="button"
-                                      safe
                                     >
-                                      {target}
+                                      <span safe>{entry.format.toUpperCase()}</span>
                                     </button>
                                   ))}
                                 </ul>
@@ -528,17 +540,17 @@ export const root = new Elysia().use(userService).get(
                               choice is checked in script.js, and again on the server. */}
                           <select
                             name="convert_to"
-                            aria-label={tr(locale, "home.convertTo")}
+                            aria-label={safeTr(locale, "home.convertTo")}
                             hidden
                           >
                             <option selected disabled value="">
-                              {tr(locale, "home.convertTo")}
+                              {safeTr(locale, "home.convertTo")}
                             </option>
-                            {Object.entries(allTargets).map(([converter, targets]) => (
-                              <optgroup label={converter}>
-                                {targets.map((target) => (
-                                  <option value={`${target},${converter}`} safe>
-                                    {target}
+                            {formatCards.map(({ category, rows }) => (
+                              <optgroup label={safeTr(locale, `formats.category.${category}`)}>
+                                {rows.map((entry) => (
+                                  <option value={`${entry.format},${entry.converter}`} safe>
+                                    {entry.format}
                                   </option>
                                 ))}
                               </optgroup>
@@ -551,13 +563,13 @@ export const root = new Elysia().use(userService).get(
                           script.js only shows this when it applies to the chosen formats. */}
                       <div id="quality-option" hidden class="mt-4">
                         <label class="flex flex-col gap-1 text-caption text-frame-ink-muted">
-                          {tr(locale, "home.imageQuality")}
+                          {safeTr(locale, "home.imageQuality")}
                           <select
                             name="quality"
                             class="rounded-button border border-frame-rule bg-frame-surface p-3 text-frame-ink"
                           >
-                            <option value="150">{tr(locale, "home.qualityStandard")}</option>
-                            <option value="300">{tr(locale, "home.qualityHigh")}</option>
+                            <option value="150">{safeTr(locale, "home.qualityStandard")}</option>
+                            <option value="300">{safeTr(locale, "home.qualityHigh")}</option>
                           </select>
                         </label>
                       </div>
@@ -569,7 +581,7 @@ export const root = new Elysia().use(userService).get(
                           disabled:cursor-not-allowed disabled:opacity-40
                         `}
                         type="submit"
-                        value={tr(locale, "home.convertNow")}
+                        value={safeTr(locale, "home.convertNow")}
                         disabled
                       />
                     </form>
@@ -577,16 +589,16 @@ export const root = new Elysia().use(userService).get(
                     {/* Trust Badges */}
                     <div class="mt-6 grid grid-cols-2 gap-4 border-t border-frame-rule pt-5 text-center text-caption text-frame-ink-muted sm:grid-cols-4">
                       <div class="flex items-center justify-center gap-1.5">
-                        {tr(locale, "home.ssl")}
+                        {safeTr(locale, "home.ssl")}
                       </div>
                       <div class="flex items-center justify-center gap-1.5">
-                        {tr(locale, "home.autoDeleted")}
+                        {safeTr(locale, "home.autoDeleted")}
                       </div>
                       <div class="flex items-center justify-center gap-1.5">
-                        {tr(locale, "home.highSpeed")}
+                        {safeTr(locale, "home.highSpeed")}
                       </div>
                       <div class="flex items-center justify-center gap-1.5">
-                        {tr(locale, "home.privateSecure")}
+                        {safeTr(locale, "home.privateSecure")}
                       </div>
                     </div>
                   </div>
@@ -598,8 +610,8 @@ export const root = new Elysia().use(userService).get(
             <section id="tools" class="border-t border-rule px-4 py-16 sm:px-6 lg:px-8">
               <div class="mx-auto max-w-7xl">
                 <div class="text-center max-w-3xl mx-auto mb-14">
-                  <h2 class="display-lg mb-4 text-ink">{tr(locale, "home.toolsTitle")}</h2>
-                  <p class="text-body text-ink-body">{tr(locale, "home.toolsSubtitle")}</p>
+                  <h2 class="display-lg mb-4 text-ink">{safeTr(locale, "home.toolsTitle")}</h2>
+                  <p class="text-body text-ink-body">{safeTr(locale, "home.toolsSubtitle")}</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -621,21 +633,21 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="mb-5 text-heading-sm font-semibold text-[#faf5e8]">
-                      {tr(locale, "home.docConverter")}
+                      {safeTr(locale, "home.docConverter")}
                     </h3>
                     <div class="chapter-panel">
                       <p class="text-body-sm text-ink-body">
-                        {tr(locale, "home.docConverterDesc")}
+                        {safeTr(locale, "home.docConverterDesc")}
                       </p>
                       <div class="mt-4 flex flex-wrap gap-1.5">
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "PDF", to: "Word" })}
+                          {safeTr(locale, "home.tag", { from: "PDF", to: "Word" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "Word", to: "PDF" })}
+                          {safeTr(locale, "home.tag", { from: "Word", to: "PDF" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "Excel", to: "PDF" })}
+                          {safeTr(locale, "home.tag", { from: "Excel", to: "PDF" })}
                         </span>
                       </div>
                     </div>
@@ -659,21 +671,21 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="mb-5 text-heading-sm font-semibold text-[#faf5e8]">
-                      {tr(locale, "home.videoConverter")}
+                      {safeTr(locale, "home.videoConverter")}
                     </h3>
                     <div class="chapter-panel">
                       <p class="text-body-sm text-ink-body">
-                        {tr(locale, "home.videoConverterDesc")}
+                        {safeTr(locale, "home.videoConverterDesc")}
                       </p>
                       <div class="mt-4 flex flex-wrap gap-1.5">
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "MP4", to: "MP3" })}
+                          {safeTr(locale, "home.tag", { from: "MP4", to: "MP3" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "MOV", to: "MP4" })}
+                          {safeTr(locale, "home.tag", { from: "MOV", to: "MP4" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "MKV", to: "MP4" })}
+                          {safeTr(locale, "home.tag", { from: "MKV", to: "MP4" })}
                         </span>
                       </div>
                     </div>
@@ -697,21 +709,21 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="mb-5 text-heading-sm font-semibold text-[#faf5e8]">
-                      {tr(locale, "home.audioConverter")}
+                      {safeTr(locale, "home.audioConverter")}
                     </h3>
                     <div class="chapter-panel">
                       <p class="text-body-sm text-ink-body">
-                        {tr(locale, "home.audioConverterDesc")}
+                        {safeTr(locale, "home.audioConverterDesc")}
                       </p>
                       <div class="mt-4 flex flex-wrap gap-1.5">
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "WAV", to: "MP3" })}
+                          {safeTr(locale, "home.tag", { from: "WAV", to: "MP3" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "FLAC", to: "MP3" })}
+                          {safeTr(locale, "home.tag", { from: "FLAC", to: "MP3" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "M4A", to: "MP3" })}
+                          {safeTr(locale, "home.tag", { from: "M4A", to: "MP3" })}
                         </span>
                       </div>
                     </div>
@@ -735,21 +747,21 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="mb-5 text-heading-sm font-semibold text-[#181d26]">
-                      {tr(locale, "home.imageConverter")}
+                      {safeTr(locale, "home.imageConverter")}
                     </h3>
                     <div class="chapter-panel">
                       <p class="text-body-sm text-ink-body">
-                        {tr(locale, "home.imageConverterDesc")}
+                        {safeTr(locale, "home.imageConverterDesc")}
                       </p>
                       <div class="mt-4 flex flex-wrap gap-1.5">
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "HEIC", to: "JPG" })}
+                          {safeTr(locale, "home.tag", { from: "HEIC", to: "JPG" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "PNG", to: "JPG" })}
+                          {safeTr(locale, "home.tag", { from: "PNG", to: "JPG" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "WEBP", to: "PNG" })}
+                          {safeTr(locale, "home.tag", { from: "WEBP", to: "PNG" })}
                         </span>
                       </div>
                     </div>
@@ -773,21 +785,21 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="mb-5 text-heading-sm font-semibold text-[#181d26]">
-                      {tr(locale, "home.ebookConverter")}
+                      {safeTr(locale, "home.ebookConverter")}
                     </h3>
                     <div class="chapter-panel">
                       <p class="text-body-sm text-ink-body">
-                        {tr(locale, "home.ebookConverterDesc")}
+                        {safeTr(locale, "home.ebookConverterDesc")}
                       </p>
                       <div class="mt-4 flex flex-wrap gap-1.5">
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "EPUB", to: "PDF" })}
+                          {safeTr(locale, "home.tag", { from: "EPUB", to: "PDF" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "PDF", to: "EPUB" })}
+                          {safeTr(locale, "home.tag", { from: "PDF", to: "EPUB" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "MOBI", to: "EPUB" })}
+                          {safeTr(locale, "home.tag", { from: "MOBI", to: "EPUB" })}
                         </span>
                       </div>
                     </div>
@@ -811,21 +823,21 @@ export const root = new Elysia().use(userService).get(
                       </svg>
                     </div>
                     <h3 class="mb-5 text-heading-sm font-semibold text-[#181d26]">
-                      {tr(locale, "home.dataArchives")}
+                      {safeTr(locale, "home.dataArchives")}
                     </h3>
                     <div class="chapter-panel">
                       <p class="text-body-sm text-ink-body">
-                        {tr(locale, "home.dataArchivesDesc")}
+                        {safeTr(locale, "home.dataArchivesDesc")}
                       </p>
                       <div class="mt-4 flex flex-wrap gap-1.5">
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "JSON", to: "CSV" })}
+                          {safeTr(locale, "home.tag", { from: "JSON", to: "CSV" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "CSV", to: "JSON" })}
+                          {safeTr(locale, "home.tag", { from: "CSV", to: "JSON" })}
                         </span>
                         <span class="chip border border-rule bg-surface-2 text-ink-body">
-                          {tr(locale, "home.tag", { from: "XML", to: "JSON" })}
+                          {safeTr(locale, "home.tag", { from: "XML", to: "JSON" })}
                         </span>
                       </div>
                     </div>
@@ -838,8 +850,8 @@ export const root = new Elysia().use(userService).get(
             <section id="how-it-works" class="border-t border-rule px-4 py-16 sm:px-6 lg:px-8">
               <div class="mx-auto max-w-7xl">
                 <div class="text-center max-w-3xl mx-auto mb-16">
-                  <h2 class="display-lg mb-4 text-ink">{tr(locale, "home.howTitle")}</h2>
-                  <p class="text-body text-ink-body">{tr(locale, "home.howSubtitle")}</p>
+                  <h2 class="display-lg mb-4 text-ink">{safeTr(locale, "home.howTitle")}</h2>
+                  <p class="text-body text-ink-body">{safeTr(locale, "home.howSubtitle")}</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center relative">
@@ -848,8 +860,12 @@ export const root = new Elysia().use(userService).get(
                     <div class="mb-4 flex size-14 items-center justify-center rounded-card border border-rule bg-surface text-subheading font-semibold text-ink-muted">
                       1
                     </div>
-                    <h3 class="text-lg font-bold text-ink mb-2">{tr(locale, "home.step1Title")}</h3>
-                    <p class="text-sm text-ink-muted max-w-xs">{tr(locale, "home.step1Desc")}</p>
+                    <h3 class="text-lg font-bold text-ink mb-2">
+                      {safeTr(locale, "home.step1Title")}
+                    </h3>
+                    <p class="text-sm text-ink-muted max-w-xs">
+                      {safeTr(locale, "home.step1Desc")}
+                    </p>
                   </div>
 
                   {/* Step 2 */}
@@ -857,8 +873,12 @@ export const root = new Elysia().use(userService).get(
                     <div class="mb-4 flex size-14 items-center justify-center rounded-card border border-rule bg-surface text-subheading font-semibold text-ink-muted">
                       2
                     </div>
-                    <h3 class="text-lg font-bold text-ink mb-2">{tr(locale, "home.step2Title")}</h3>
-                    <p class="text-sm text-ink-muted max-w-xs">{tr(locale, "home.step2Desc")}</p>
+                    <h3 class="text-lg font-bold text-ink mb-2">
+                      {safeTr(locale, "home.step2Title")}
+                    </h3>
+                    <p class="text-sm text-ink-muted max-w-xs">
+                      {safeTr(locale, "home.step2Desc")}
+                    </p>
                   </div>
 
                   {/* Step 3 */}
@@ -866,8 +886,12 @@ export const root = new Elysia().use(userService).get(
                     <div class="mb-4 flex size-14 items-center justify-center rounded-card bg-cta text-subheading font-semibold text-cta-ink">
                       3
                     </div>
-                    <h3 class="text-lg font-bold text-ink mb-2">{tr(locale, "home.step3Title")}</h3>
-                    <p class="text-sm text-ink-muted max-w-xs">{tr(locale, "home.step3Desc")}</p>
+                    <h3 class="text-lg font-bold text-ink mb-2">
+                      {safeTr(locale, "home.step3Title")}
+                    </h3>
+                    <p class="text-sm text-ink-muted max-w-xs">
+                      {safeTr(locale, "home.step3Desc")}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -878,10 +902,10 @@ export const root = new Elysia().use(userService).get(
               <div class="mx-auto max-w-7xl">
                 <div class="text-center max-w-3xl mx-auto mb-16">
                   <div class="chip mb-4 bg-marigold text-[#181d26]">
-                    <span>{tr(locale, "home.pricingBadge")}</span>
+                    <span>{safeTr(locale, "home.pricingBadge")}</span>
                   </div>
-                  <h2 class="display-lg mb-4 text-ink">{tr(locale, "home.pricingTitle")}</h2>
-                  <p class="text-body text-ink-body">{tr(locale, "home.pricingSubtitle")}</p>
+                  <h2 class="display-lg mb-4 text-ink">{safeTr(locale, "home.pricingTitle")}</h2>
+                  <p class="text-body text-ink-body">{safeTr(locale, "home.pricingSubtitle")}</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
@@ -903,7 +927,7 @@ export const root = new Elysia().use(userService).get(
                       >
                         {t.is_popular ? (
                           <div class="absolute -top-4 left-1/2 -translate-x-1/2 rounded-tag bg-marigold px-4 py-1 text-xs font-semibold uppercase tracking-wider text-[#181d26]">
-                            <span safe>{t.badge || tr(locale, "home.mostPopular")}</span>
+                            <span safe>{t.badge || safeTr(locale, "home.mostPopular")}</span>
                           </div>
                         ) : null}
 
@@ -915,8 +939,12 @@ export const root = new Elysia().use(userService).get(
                             {t.description}
                           </p>
                           <div class="flex items-baseline gap-1 mb-6">
-                            <span class="text-4xl font-extrabold text-ink">{t.price}</span>
-                            <span class="text-ink-muted text-sm">{t.billing_period}</span>
+                            <span class="text-4xl font-extrabold text-ink" safe>
+                              {t.price}
+                            </span>
+                            <span class="text-ink-muted text-sm" safe>
+                              {t.billing_period}
+                            </span>
                           </div>
                           <ul class="space-y-3.5 text-sm text-ink-body mb-8">
                             {featuresList.map((feat) => (
@@ -932,7 +960,7 @@ export const root = new Elysia().use(userService).get(
                             href={`${WEBROOT}/account`}
                             class="w-full text-center text-sm font-bold btn-secondary"
                           >
-                            {tr(locale, "home.currentPlan")}
+                            {safeTr(locale, "home.currentPlan")}
                           </a>
                         ) : checkout && priceIdForTier(t.id) ? (
                           <button
@@ -967,10 +995,10 @@ export const root = new Elysia().use(userService).get(
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div>
                     <h2 class="text-3xl sm:text-4xl font-black text-ink tracking-tight mb-6">
-                      {tr(locale, "home.featuresTitle")}
+                      {safeTr(locale, "home.featuresTitle")}
                     </h2>
                     <p class="text-ink-body text-base mb-8 leading-relaxed">
-                      {tr(locale, "home.featuresIntro")} {fileDeletionPromise(locale)}
+                      {safeTr(locale, "home.featuresIntro")} {safeFileDeletionPromise(locale)}
                     </p>
                     <div class="space-y-4">
                       <div class="flex items-start gap-4">
@@ -979,9 +1007,9 @@ export const root = new Elysia().use(userService).get(
                         </div>
                         <div>
                           <h4 class="font-bold text-ink text-base">
-                            {tr(locale, "home.autoDeleteTitle")}
+                            {safeTr(locale, "home.autoDeleteTitle")}
                           </h4>
-                          <p class="text-sm text-ink-muted">{fileDeletionPromise(locale)}</p>
+                          <p class="text-sm text-ink-muted">{safeFileDeletionPromise(locale)}</p>
                         </div>
                       </div>
                       <div class="flex items-start gap-4">
@@ -990,9 +1018,11 @@ export const root = new Elysia().use(userService).get(
                         </div>
                         <div>
                           <h4 class="font-bold text-ink text-base">
-                            {tr(locale, "home.industryTitle")}
+                            {safeTr(locale, "home.industryTitle")}
                           </h4>
-                          <p class="text-sm text-ink-muted">{tr(locale, "home.industryDesc")}</p>
+                          <p class="text-sm text-ink-muted">
+                            {safeTr(locale, "home.industryDesc")}
+                          </p>
                         </div>
                       </div>
                       <div class="flex items-start gap-4">
@@ -1001,9 +1031,11 @@ export const root = new Elysia().use(userService).get(
                         </div>
                         <div>
                           <h4 class="font-bold text-ink text-base">
-                            {tr(locale, "home.zeroInstallTitle")}
+                            {safeTr(locale, "home.zeroInstallTitle")}
                           </h4>
-                          <p class="text-sm text-ink-muted">{tr(locale, "home.zeroInstallDesc")}</p>
+                          <p class="text-sm text-ink-muted">
+                            {safeTr(locale, "home.zeroInstallDesc")}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -1011,32 +1043,32 @@ export const root = new Elysia().use(userService).get(
 
                   <div class="rounded-feature border border-rule bg-surface p-8">
                     <h3 class="text-xl font-bold text-ink mb-4">
-                      {tr(locale, "home.librariesTitle")}
+                      {safeTr(locale, "home.librariesTitle")}
                     </h3>
                     <div class="grid grid-cols-2 gap-3 text-sm text-ink-body">
                       <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
-                        <span class="text-ink">●</span> {tr(locale, "home.lib.ffmpeg")}
+                        <span class="text-ink">●</span> {safeTr(locale, "home.lib.ffmpeg")}
                       </div>
                       <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
-                        <span class="text-ink">●</span> {tr(locale, "home.lib.libreoffice")}
+                        <span class="text-ink">●</span> {safeTr(locale, "home.lib.libreoffice")}
                       </div>
                       <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
-                        <span class="text-ink">●</span> {tr(locale, "home.lib.imagemagick")}
+                        <span class="text-ink">●</span> {safeTr(locale, "home.lib.imagemagick")}
                       </div>
                       <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
-                        <span class="text-ink">●</span> {tr(locale, "home.lib.pandoc")}
+                        <span class="text-ink">●</span> {safeTr(locale, "home.lib.pandoc")}
                       </div>
                       <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
-                        <span class="text-ink">●</span> {tr(locale, "home.lib.calibre")}
+                        <span class="text-ink">●</span> {safeTr(locale, "home.lib.calibre")}
                       </div>
                       <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
-                        <span class="text-ink">●</span> {tr(locale, "home.lib.inkscape")}
+                        <span class="text-ink">●</span> {safeTr(locale, "home.lib.inkscape")}
                       </div>
                       <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
-                        <span class="text-ink">●</span> {tr(locale, "home.lib.potrace")}
+                        <span class="text-ink">●</span> {safeTr(locale, "home.lib.potrace")}
                       </div>
                       <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
-                        <span class="text-ink">●</span> {tr(locale, "home.lib.assimp")}
+                        <span class="text-ink">●</span> {safeTr(locale, "home.lib.assimp")}
                       </div>
                     </div>
                   </div>
@@ -1058,10 +1090,10 @@ export const root = new Elysia().use(userService).get(
                   </span>
                 </div>
                 <p class="text-ink-muted text-xs max-w-sm leading-relaxed mb-4">
-                  {tr(locale, "home.footerTagline")}
+                  {safeTr(locale, "home.footerTagline")}
                 </p>
-                <p safe class="text-ink-muted text-xs">
-                  {tr(locale, "home.copyright", {
+                <p class="text-ink-muted text-xs">
+                  {safeTr(locale, "home.copyright", {
                     year: new Date().getFullYear(),
                     brand: BRANDING,
                   })}
@@ -1070,32 +1102,32 @@ export const root = new Elysia().use(userService).get(
 
               <div>
                 <h5 class="text-ink font-bold mb-3 text-xs uppercase tracking-wider">
-                  {tr(locale, "home.footerConverters")}
+                  {safeTr(locale, "home.footerConverters")}
                 </h5>
                 <ul class="space-y-2 text-xs text-ink-muted">
                   <li>
                     <a href="#tools" class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerPdf")}
+                      {safeTr(locale, "home.footerPdf")}
                     </a>
                   </li>
                   <li>
                     <a href="#tools" class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerVideo")}
+                      {safeTr(locale, "home.footerVideo")}
                     </a>
                   </li>
                   <li>
                     <a href="#tools" class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerAudio")}
+                      {safeTr(locale, "home.footerAudio")}
                     </a>
                   </li>
                   <li>
                     <a href="#tools" class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerImage")}
+                      {safeTr(locale, "home.footerImage")}
                     </a>
                   </li>
                   <li>
                     <a href="#tools" class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerEbook")}
+                      {safeTr(locale, "home.footerEbook")}
                     </a>
                   </li>
                 </ul>
@@ -1103,27 +1135,27 @@ export const root = new Elysia().use(userService).get(
 
               <div>
                 <h5 class="text-ink font-bold mb-3 text-xs uppercase tracking-wider">
-                  {tr(locale, "home.footerProduct")}
+                  {safeTr(locale, "home.footerProduct")}
                 </h5>
                 <ul class="space-y-2 text-xs text-ink-muted">
                   <li>
                     <a href="#pricing" class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerPricing")}
+                      {safeTr(locale, "home.footerPricing")}
                     </a>
                   </li>
                   <li>
                     <a href="#how-it-works" class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerHow")}
+                      {safeTr(locale, "home.footerHow")}
                     </a>
                   </li>
                   <li>
                     <a href="#features" class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerSecurity")}
+                      {safeTr(locale, "home.footerSecurity")}
                     </a>
                   </li>
                   <li>
                     <a href={`${WEBROOT}/history`} class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerHistory")}
+                      {safeTr(locale, "home.footerHistory")}
                     </a>
                   </li>
                 </ul>
@@ -1131,37 +1163,37 @@ export const root = new Elysia().use(userService).get(
 
               <div>
                 <h5 class="text-ink font-bold mb-3 text-xs uppercase tracking-wider">
-                  {tr(locale, "home.footerAccount")}
+                  {safeTr(locale, "home.footerAccount")}
                 </h5>
                 <ul class="space-y-2 text-xs text-ink-muted">
                   <li>
                     <a href={`${WEBROOT}/login`} class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerSignIn")}
+                      {safeTr(locale, "home.footerSignIn")}
                     </a>
                   </li>
                   <li>
                     <a href={`${WEBROOT}/register`} class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerCreate")}
+                      {safeTr(locale, "home.footerCreate")}
                     </a>
                   </li>
                   <li>
                     <a href={`${WEBROOT}/account`} class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerSettings")}
+                      {safeTr(locale, "home.footerSettings")}
                     </a>
                   </li>
                   <li>
                     <a href={`${WEBROOT}/terms`} class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerTerms")}
+                      {safeTr(locale, "home.footerTerms")}
                     </a>
                   </li>
                   <li>
                     <a href={`${WEBROOT}/privacy`} class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerPrivacy")}
+                      {safeTr(locale, "home.footerPrivacy")}
                     </a>
                   </li>
                   <li>
                     <a href={`${WEBROOT}/refunds`} class="transition-colors hover:text-ink">
-                      {tr(locale, "home.footerRefunds")}
+                      {safeTr(locale, "home.footerRefunds")}
                     </a>
                   </li>
                 </ul>
@@ -1171,7 +1203,7 @@ export const root = new Elysia().use(userService).get(
 
           <script src={assetUrl(WEBROOT, "tus.min.js")} defer />
           <script src={assetUrl(WEBROOT, "script.js")} defer />
-          {checkout && (
+          {checkout !== null && (
             <>
               <div
                 id="paddle-checkout"

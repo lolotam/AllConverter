@@ -10,7 +10,7 @@ import { avatarsDir, incompleteUploadsDir, outputDir, uploadsDir } from "../help
 import { conversionQueue } from "../helpers/queue";
 import { describeRetention, shortRetention } from "./retention";
 
-export const FAILED_STATUSES = ["Failed, check logs", "File type not supported"];
+const FAILED_STATUSES = ["Failed, check logs", "File type not supported"];
 
 const dbPath = process.env.DB_PATH ?? "./data/mydb.sqlite";
 
@@ -138,11 +138,32 @@ export type QueueSnapshot = {
     date_created: string;
     failed: number;
     done: number;
+    from_format: string | null;
+    to_format: string | null;
+    converter: string | null;
   }[];
   recentFailures: { job_id: number; file_name: string; output_file_name: string; status: string }[];
+  /** What was asked for, so the filter bar can show its own state back. */
+  filters: JobFilters;
+  /** Values actually present in the table, for the filter dropdowns. */
+  choices: { statuses: string[]; formats: string[]; owners: number[] };
 };
 
-export function queueSnapshot(): QueueSnapshot {
+export type JobFilters = {
+  status?: string | undefined;
+  format?: string | undefined;
+  owner?: string | undefined;
+  limit?: number | undefined;
+};
+
+export const JOB_LIMIT_CHOICES = [15, 50, 100, 250];
+
+// The extension of a stored filename, as SQL: everything after the last dot. `rtrim` strips
+// the trailing characters that are not dots, leaving "name.", which `replace` then removes.
+const EXTENSION_OF = (column: string) =>
+  `lower(replace(${column}, rtrim(${column}, replace(${column}, '.', '')), ''))`;
+
+export function queueSnapshot(filters: JobFilters = {}): QueueSnapshot {
   const active = activeJobs().map(({ jobId, files }) => ({
     jobId,
     converting: files.filter((file) => file.state === "converting").length,
@@ -151,19 +172,59 @@ export function queueSnapshot(): QueueSnapshot {
   }));
 
   const placeholders = FAILED_STATUSES.map(() => "?").join(", ");
+
+  // Jobs recorded before convert_to/converter existed still show what they did: the
+  // formats are read back off the filenames, which have always been stored
+  const toFormat = `COALESCE(j.convert_to, (SELECT ${EXTENSION_OF("f.output_file_name")}
+                                              FROM file_names f WHERE f.job_id = j.id LIMIT 1))`;
+  const fromFormat = `(SELECT ${EXTENSION_OF("f.file_name")}
+                         FROM file_names f WHERE f.job_id = j.id LIMIT 1)`;
+
+  const where: string[] = ["j.num_files > 0"];
+  const params: (string | number)[] = [];
+
+  if (filters.status === "failed") {
+    where.push(`EXISTS (SELECT 1 FROM file_names f
+                         WHERE f.job_id = j.id AND f.status IN (${placeholders}))`);
+    params.push(...FAILED_STATUSES);
+  } else if (filters.status === "done") {
+    where.push(`NOT EXISTS (SELECT 1 FROM file_names f
+                             WHERE f.job_id = j.id AND f.status IN (${placeholders}))`);
+    params.push(...FAILED_STATUSES);
+  } else if (filters.status) {
+    where.push("j.status = ?");
+    params.push(filters.status);
+  }
+
+  if (filters.format) {
+    where.push(`${toFormat} = ?`);
+    params.push(filters.format.toLowerCase());
+  }
+
+  if (filters.owner) {
+    where.push("j.user_id = ?");
+    params.push(filters.owner);
+  }
+
+  const limit = JOB_LIMIT_CHOICES.includes(filters.limit ?? 0) ? (filters.limit ?? 15) : 15;
+
   const recentJobs = db
     .query(
-      `SELECT j.id, j.user_id, j.status, j.num_files, j.date_created,
+      `SELECT j.id, j.user_id, j.status, j.num_files, j.date_created, j.converter,
+              ${fromFormat} AS from_format,
+              ${toFormat} AS to_format,
               (SELECT COUNT(*) FROM file_names f
                 WHERE f.job_id = j.id AND f.status IN (${placeholders})) AS failed,
               (SELECT COUNT(*) FROM file_names f
                 WHERE f.job_id = j.id AND f.status NOT IN (${placeholders})) AS done
          FROM jobs j
-        WHERE j.num_files > 0
+        WHERE ${where.join(" AND ")}
         ORDER BY j.id DESC
-        LIMIT 15`,
+        LIMIT ?`,
     )
-    .all(...FAILED_STATUSES, ...FAILED_STATUSES) as QueueSnapshot["recentJobs"];
+    // Bound in the order the placeholders appear in the text: the two counting subqueries
+    // in the SELECT come before anything in the WHERE
+    .all(...FAILED_STATUSES, ...FAILED_STATUSES, ...params, limit) as QueueSnapshot["recentJobs"];
 
   const recentFailures = db
     .query(
@@ -175,7 +236,50 @@ export function queueSnapshot(): QueueSnapshot {
     )
     .all(...FAILED_STATUSES) as QueueSnapshot["recentFailures"];
 
-  return { queue: conversionQueue.stats(), active, recentJobs, recentFailures };
+  // Offer only filters that would actually match something
+  const choices = {
+    statuses: (
+      db.query("SELECT DISTINCT status FROM jobs WHERE num_files > 0 ORDER BY status").all() as {
+        status: string;
+      }[]
+    ).map((row) => row.status),
+    formats: (
+      db
+        .query(
+          `SELECT DISTINCT ${toFormat} AS format FROM jobs j
+            WHERE j.num_files > 0 AND format IS NOT NULL AND format <> ''
+            ORDER BY format`,
+        )
+        .all() as { format: string }[]
+    ).map((row) => row.format),
+    owners: (
+      db.query("SELECT DISTINCT user_id FROM jobs WHERE num_files > 0 ORDER BY user_id").all() as {
+        user_id: number;
+      }[]
+    ).map((row) => row.user_id),
+  };
+
+  return {
+    queue: conversionQueue.stats(),
+    active,
+    recentJobs,
+    recentFailures,
+    filters: { ...filters, limit },
+    choices,
+  };
+}
+
+/** How many files have been produced in each output format, for the admin format table. */
+export function formatUsage(): Record<string, number> {
+  const rows = db
+    .query(
+      `SELECT ${EXTENSION_OF("output_file_name")} AS format, COUNT(*) AS count
+         FROM file_names
+        GROUP BY format`,
+    )
+    .all() as { format: string; count: number }[];
+
+  return Object.fromEntries(rows.filter((row) => row.format).map((row) => [row.format, row.count]));
 }
 
 export type Analytics = {
@@ -270,7 +374,7 @@ export function systemHealth(features: { label: string; value: string }[] = []):
   };
 }
 
-export function humanBytes(bytes: number): string {
+export function safeHumanBytes(bytes: number): string {
   if (bytes >= 1024 ** 3) {
     return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
   }

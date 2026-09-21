@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": ["tests/**/*.test.ts"],
+  "ignoreDependencies": ["tus-js-client"],
   "project": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.css", "tests/**/*.ts"],
   "ignoreBinaries": [
     "pandoc",

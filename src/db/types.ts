@@ -13,6 +13,9 @@ export class Jobs {
   date_created!: string;
   status!: string;
   num_files!: number;
+  /** The target format and the tool that ran; null for jobs recorded before these existed. */
+  convert_to!: string | null;
+  converter!: string | null;
   files_detailed!: Filename[];
 }
 
@@ -50,9 +53,4 @@ export class Tier {
   button_link!: string;
   color_theme!: string;
   retention_hours!: number;
-}
-
-export class SystemSetting {
-  key!: string;
-  value!: string;
 }

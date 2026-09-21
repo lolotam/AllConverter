@@ -16,7 +16,7 @@ import {
 } from "../helpers/env";
 import { GOOGLE_ENABLED, authorizationUrl, exchangeCode, redirectUri } from "../services/google";
 import { isRegisteredSession } from "../helpers/session";
-import { localeFromRequest, t as tr } from "../i18n";
+import { localeFromRequest, safeT as safeTr } from "../i18n";
 import { userService } from "../services/user";
 
 export { userService } from "../services/user";
@@ -52,12 +52,13 @@ export const user = new Elysia()
       return (
         <BaseHtml title="ConvertX | Setup" webroot={WEBROOT} locale={locale}>
           <main class="mx-auto w-full max-w-2xl flex-1 px-4">
-            <h1 class="my-8 text-3xl">{tr(locale, "setup.lockedTitle")}</h1>
+            <h1 class="my-8 text-3xl">{safeTr(locale, "setup.lockedTitle")}</h1>
             <article class="article">
               <p>
-                {tr(locale, "setup.lockedBody1")} <code class="mx-1">/setup?token=YOUR_TOKEN</code>{" "}
-                {tr(locale, "setup.lockedBody2")} <code>SETUP_TOKEN</code>{" "}
-                {tr(locale, "setup.lockedBody3")}
+                {safeTr(locale, "setup.lockedBody1")}{" "}
+                <code class="mx-1">/setup?token=YOUR_TOKEN</code>{" "}
+                {safeTr(locale, "setup.lockedBody2")} <code>SETUP_TOKEN</code>{" "}
+                {safeTr(locale, "setup.lockedBody3")}
               </p>
             </article>
           </main>
@@ -73,31 +74,31 @@ export const user = new Elysia()
             sm:px-4
           `}
         >
-          <h1 class="my-8 text-3xl">{tr(locale, "setup.welcome")}</h1>
+          <h1 class="my-8 text-3xl">{safeTr(locale, "setup.welcome")}</h1>
           <article class="article p-0">
             <header class="w-full border-b border-rule bg-surface-2 p-4 font-semibold text-ink">
-              {tr(locale, "setup.createAccount")}
+              {safeTr(locale, "setup.createAccount")}
             </header>
             <form method="post" action={`${WEBROOT}/register`} class="p-4">
               <fieldset class="mb-4 flex flex-col gap-4">
                 <label class="flex flex-col gap-1">
-                  {tr(locale, "auth.email")}
+                  {safeTr(locale, "auth.email")}
                   <input
                     type="email"
                     name="email"
                     class="field"
-                    placeholder={tr(locale, "auth.email")}
+                    placeholder={safeTr(locale, "auth.email")}
                     autocomplete="email"
                     required
                   />
                 </label>
                 <label class="flex flex-col gap-1">
-                  {tr(locale, "auth.password")}
+                  {safeTr(locale, "auth.password")}
                   <input
                     type="password"
                     name="password"
                     class="field"
-                    placeholder={tr(locale, "auth.password")}
+                    placeholder={safeTr(locale, "auth.password")}
                     autocomplete="current-password"
                     required
                   />
@@ -106,10 +107,14 @@ export const user = new Elysia()
               {SETUP_TOKEN ? (
                 <input type="hidden" name="setupToken" value={String(query.token ?? "")} />
               ) : null}
-              <input type="submit" value={tr(locale, "auth.createSubmit")} class="btn-primary" />
+              <input
+                type="submit"
+                value={safeTr(locale, "auth.createSubmit")}
+                class="btn-primary"
+              />
             </form>
             <footer class="p-4">
-              {tr(locale, "setup.reportIssues")}{" "}
+              {safeTr(locale, "setup.reportIssues")}{" "}
               <a class="text-link underline" href="https://github.com/C4illin/ConvertX">
                 GitHub
               </a>
@@ -150,11 +155,11 @@ export const user = new Elysia()
                   role="status"
                   class="mb-4 rounded-button border border-rule bg-surface-2 p-3 text-caption text-ink-body"
                 >
-                  {tr(locale, "auth.freeUsedRegister1")}{" "}
+                  {safeTr(locale, "auth.freeUsedRegister1")}{" "}
                   <a href={`${WEBROOT}/login?reason=free-used`} class="text-link underline">
-                    {tr(locale, "auth.signInLink")}
+                    {safeTr(locale, "auth.signInLink")}
                   </a>{" "}
-                  {tr(locale, "auth.freeUsedRegister2")}
+                  {safeTr(locale, "auth.freeUsedRegister2")}
                 </p>
               )}
               <AuthTabs
@@ -168,48 +173,48 @@ export const user = new Elysia()
                 <GoogleButton
                   webroot={WEBROOT}
                   locale={locale}
-                  label={tr(locale, "auth.continueGoogle")}
+                  label={safeTr(locale, "auth.continueGoogle")}
                 />
               ) : null}
               <form method="post" class="flex flex-col gap-4">
                 <fieldset class="mb-4 flex flex-col gap-4">
                   <label class="flex flex-col gap-1">
-                    {tr(locale, "auth.email")}
+                    {safeTr(locale, "auth.email")}
                     <input
                       type="email"
                       name="email"
                       class="field"
-                      placeholder={tr(locale, "auth.email")}
+                      placeholder={safeTr(locale, "auth.email")}
                       autocomplete="email"
                       required
                     />
                   </label>
                   <label class="flex flex-col gap-1">
-                    {tr(locale, "auth.password")}
+                    {safeTr(locale, "auth.password")}
                     <input
                       type="password"
                       name="password"
                       class="field"
-                      placeholder={tr(locale, "auth.password")}
+                      placeholder={safeTr(locale, "auth.password")}
                       autocomplete="current-password"
                       required
                     />
                   </label>
                 </fieldset>
                 <p class="text-caption text-ink-muted">
-                  {tr(locale, "auth.agreeTo")}{" "}
+                  {safeTr(locale, "auth.agreeTo")}{" "}
                   <a href={`${WEBROOT}/terms`} class="text-link underline">
-                    {tr(locale, "auth.termsLink")}
+                    {safeTr(locale, "auth.termsLink")}
                   </a>{" "}
-                  {tr(locale, "auth.and")}{" "}
+                  {safeTr(locale, "auth.and")}{" "}
                   <a href={`${WEBROOT}/privacy`} class="text-link underline">
-                    {tr(locale, "auth.privacyLink")}
+                    {safeTr(locale, "auth.privacyLink")}
                   </a>
                   .
                 </p>
                 <input
                   type="submit"
-                  value={tr(locale, "auth.register")}
+                  value={safeTr(locale, "auth.register")}
                   class="w-full btn-primary"
                 />
               </form>
@@ -334,15 +339,15 @@ export const user = new Elysia()
                     role="status"
                     class="mb-4 rounded-button border border-rule bg-surface-2 p-3 text-caption text-ink-body"
                   >
-                    {tr(locale, "auth.freeUsedLogin1")}
+                    {safeTr(locale, "auth.freeUsedLogin1")}
                     {ACCOUNT_REGISTRATION ? (
                       <>
-                        {tr(locale, "auth.freeUsedLoginOr")}{" "}
+                        {safeTr(locale, "auth.freeUsedLoginOr")}{" "}
                         <a
                           href={`${WEBROOT}/register?reason=free-used`}
                           class="text-link underline"
                         >
-                          {tr(locale, "auth.freeUsedLoginLink")}
+                          {safeTr(locale, "auth.freeUsedLoginLink")}
                         </a>
                       </>
                     ) : (
@@ -364,40 +369,40 @@ export const user = new Elysia()
                     class="mb-4 rounded-button border border-terracotta/40 bg-terracotta/10 p-3 text-caption text-terracotta"
                   >
                     {query.error === "closed"
-                      ? tr(locale, "auth.errorClosed")
+                      ? safeTr(locale, "auth.errorClosed")
                       : query.error === "setup"
-                        ? tr(locale, "auth.errorSetup")
-                        : tr(locale, "auth.errorGoogle")}
+                        ? safeTr(locale, "auth.errorSetup")
+                        : safeTr(locale, "auth.errorGoogle")}
                   </p>
                 ) : null}
                 {GOOGLE_ENABLED ? (
                   <GoogleButton
                     webroot={WEBROOT}
                     locale={locale}
-                    label={tr(locale, "auth.googleLogin")}
+                    label={safeTr(locale, "auth.googleLogin")}
                   />
                 ) : null}
                 <form method="post" class="flex flex-col gap-4">
                   <fieldset class="mb-4 flex flex-col gap-4">
                     <label class="flex flex-col gap-1">
-                      {tr(locale, "auth.email")}
+                      {safeTr(locale, "auth.email")}
                       <input
                         type="email"
                         name="email"
                         class="field"
-                        placeholder={tr(locale, "auth.email")}
+                        placeholder={safeTr(locale, "auth.email")}
                         autocomplete="email"
                         autofocus
                         required
                       />
                     </label>
                     <label class="flex flex-col gap-1">
-                      {tr(locale, "auth.password")}
+                      {safeTr(locale, "auth.password")}
                       <input
                         type="password"
                         name="password"
                         class="field"
-                        placeholder={tr(locale, "auth.password")}
+                        placeholder={safeTr(locale, "auth.password")}
                         autocomplete="current-password"
                         required
                       />
@@ -410,12 +415,12 @@ export const user = new Elysia()
                         role="button"
                         class="w-full btn-secondary text-center"
                       >
-                        {tr(locale, "auth.register")}
+                        {safeTr(locale, "auth.register")}
                       </a>
                     ) : null}
                     <input
                       type="submit"
-                      value={tr(locale, "auth.login")}
+                      value={safeTr(locale, "auth.login")}
                       class="w-full btn-primary"
                     />
                   </div>

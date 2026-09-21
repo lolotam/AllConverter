@@ -25,7 +25,7 @@ import {
   saveAvatar,
 } from "../services/avatar";
 import { PADDLE_ENABLED, PADDLE_PORTAL_ENABLED } from "../services/paddle";
-import { localeFromRequest, t as tr, type Locale, type MessageKey } from "../i18n";
+import { localeFromRequest, safeT as safeTr, type Locale, type MessageKey } from "../i18n";
 import { userService } from "./user";
 
 const NOTICES: Record<string, MessageKey> = {
@@ -73,19 +73,17 @@ function Notices({
       {noticeMessage ? (
         <p
           role="status"
-          safe
           class="mb-4 rounded-button border border-rule bg-surface-2 p-3 text-caption text-ink-body"
         >
-          {tr(locale, noticeMessage)}
+          {safeTr(locale, noticeMessage)}
         </p>
       ) : null}
       {errorMessage ? (
         <p
           role="alert"
-          safe
           class="mb-4 rounded-button border border-terracotta/40 bg-terracotta/10 p-3 text-caption text-terracotta"
         >
-          {tr(locale, errorMessage.key, errorMessage.params)}
+          {safeTr(locale, errorMessage.key, errorMessage.params)}
         </p>
       ) : null}
     </>
@@ -134,7 +132,7 @@ export const account = new Elysia()
               {...headerAccount(user.id)}
             />
             <main class="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
-              <h1 class="display-lg mb-6 text-ink">{tr(locale, "account.title")}</h1>
+              <h1 class="display-lg mb-6 text-ink">{safeTr(locale, "account.title")}</h1>
               <Notices
                 locale={locale}
                 notice={typeof notice === "string" ? notice : undefined}
@@ -146,13 +144,16 @@ export const account = new Elysia()
                   {picture ? (
                     <img
                       src={picture}
-                      alt={tr(locale, "account.pictureAlt")}
+                      alt={safeTr(locale, "account.pictureAlt")}
                       width="96"
                       height="96"
                       class="size-24 rounded-card object-cover"
                     />
                   ) : (
-                    <span class="flex size-24 items-center justify-center rounded-card bg-frame text-heading-sm font-black text-frame-ink">
+                    <span
+                      class="flex size-24 items-center justify-center rounded-card bg-frame text-heading-sm font-black text-frame-ink"
+                      safe
+                    >
                       {initialsOf(userData.display_name, userData.email)}
                     </span>
                   )}
@@ -166,10 +167,10 @@ export const account = new Elysia()
                     </p>
                     <p class="mt-2 text-caption text-ink-muted">
                       <span safe class="font-bold text-ink">
-                        {tier?.name ?? userData.tier ?? tr(locale, "account.tierFree")}
+                        {tier?.name ?? userData.tier ?? safeTr(locale, "account.tierFree")}
                       </span>
                       {userData.created_at
-                        ? tr(locale, "account.memberSince", {
+                        ? safeTr(locale, "account.memberSince", {
                             date: formatDate(userData.created_at),
                           })
                         : ""}
@@ -182,7 +183,7 @@ export const account = new Elysia()
                       class="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:items-end"
                     >
                       <label class="flex w-full flex-col gap-1 text-caption sm:w-auto">
-                        <span class="font-medium">{tr(locale, "account.picture")}</span>
+                        <span class="font-medium">{safeTr(locale, "account.picture")}</span>
                         <input
                           type="file"
                           name="avatar"
@@ -192,7 +193,7 @@ export const account = new Elysia()
                         />
                       </label>
                       <button type="submit" class="btn-primary px-4 py-2 text-sm">
-                        {tr(locale, "account.upload")}
+                        {safeTr(locale, "account.upload")}
                       </button>
                     </form>
                     {userData.avatar_path ? (
@@ -201,7 +202,7 @@ export const account = new Elysia()
                           type="submit"
                           class="text-caption font-medium text-terracotta hover:underline"
                         >
-                          {tr(locale, "account.removePicture")}
+                          {safeTr(locale, "account.removePicture")}
                         </button>
                       </form>
                     ) : null}
@@ -210,25 +211,25 @@ export const account = new Elysia()
               </section>
 
               <section class={`${card} mb-6`}>
-                <h2 class={heading}>{tr(locale, "account.details")}</h2>
+                <h2 class={heading}>{safeTr(locale, "account.details")}</h2>
                 <form
                   method="post"
                   action={`${WEBROOT}/account/profile`}
                   class="flex flex-col gap-4"
                 >
                   <label class="flex flex-col gap-1 text-caption">
-                    {tr(locale, "account.displayName")}
+                    {safeTr(locale, "account.displayName")}
                     <input
                       type="text"
                       name="displayName"
                       class={field}
                       maxlength="60"
-                      placeholder={tr(locale, "account.displayNamePlaceholder")}
+                      placeholder={safeTr(locale, "account.displayNamePlaceholder")}
                       value={userData.display_name ?? ""}
                     />
                   </label>
                   <label class="flex flex-col gap-1 text-caption">
-                    {tr(locale, "auth.email")}
+                    {safeTr(locale, "auth.email")}
                     <input
                       type="email"
                       name="email"
@@ -240,7 +241,7 @@ export const account = new Elysia()
                   </label>
                   <div>
                     <button type="submit" class="btn-primary px-5 py-2.5 text-sm">
-                      {tr(locale, "account.saveDetails")}
+                      {safeTr(locale, "account.saveDetails")}
                     </button>
                   </div>
                 </form>
@@ -249,12 +250,12 @@ export const account = new Elysia()
               <section id="password" class={`${card} mb-6`}>
                 <h2 class={heading}>
                   {knowsPassword
-                    ? tr(locale, "account.changePassword")
-                    : tr(locale, "account.setPasswordHeading")}
+                    ? safeTr(locale, "account.changePassword")
+                    : safeTr(locale, "account.setPasswordHeading")}
                 </h2>
                 {!knowsPassword ? (
                   <p class="mb-4 text-caption text-ink-muted">
-                    {tr(locale, "account.googlePasswordNote")}
+                    {safeTr(locale, "account.googlePasswordNote")}
                   </p>
                 ) : null}
                 <form
@@ -264,7 +265,7 @@ export const account = new Elysia()
                 >
                   {knowsPassword ? (
                     <label class="flex flex-col gap-1 text-caption">
-                      {tr(locale, "account.currentPassword")}
+                      {safeTr(locale, "account.currentPassword")}
                       <input
                         type="password"
                         name="currentPassword"
@@ -275,7 +276,7 @@ export const account = new Elysia()
                     </label>
                   ) : null}
                   <label class="flex flex-col gap-1 text-caption">
-                    {tr(locale, "account.newPassword")}
+                    {safeTr(locale, "account.newPassword")}
                     <input
                       type="password"
                       name="newPassword"
@@ -286,7 +287,7 @@ export const account = new Elysia()
                     />
                   </label>
                   <label class="flex flex-col gap-1 text-caption">
-                    {tr(locale, "account.repeatPassword")}
+                    {safeTr(locale, "account.repeatPassword")}
                     <input
                       type="password"
                       name="confirmPassword"
@@ -299,26 +300,30 @@ export const account = new Elysia()
                   <div>
                     <button type="submit" class="btn-primary px-5 py-2.5 text-sm">
                       {knowsPassword
-                        ? tr(locale, "account.changePassword")
-                        : tr(locale, "account.setPassword")}
+                        ? safeTr(locale, "account.changePassword")
+                        : safeTr(locale, "account.setPassword")}
                     </button>
                   </div>
                 </form>
               </section>
 
               <section id="plan" class={`${card} mb-6`}>
-                <h2 class={heading}>{tr(locale, "account.plan")}</h2>
-                <p safe class="mb-4 text-caption text-ink-body">
-                  {tier?.name ?? userData.tier}
-                  {userData.subscription_status ? ` · ${userData.subscription_status}` : ""}
+                <h2 class={heading}>{safeTr(locale, "account.plan")}</h2>
+                {/* One expression per element: both are escaped, and the scanner only
+                    reads a `safe` attribute correctly when it wraps a single child. */}
+                <p class="mb-4 text-caption text-ink-body">
+                  <span safe>{tier?.name ?? userData.tier}</span>
+                  {userData.subscription_status ? (
+                    <span safe>{` · ${userData.subscription_status}`}</span>
+                  ) : null}
                 </p>
                 {PADDLE_PORTAL_ENABLED && userData.paddle_customer_id ? (
                   <a href={`${WEBROOT}/billing/portal`} class="btn-secondary px-5 py-2.5 text-sm">
-                    {tr(locale, "account.manageBilling")}
+                    {safeTr(locale, "account.manageBilling")}
                   </a>
                 ) : PADDLE_ENABLED && userData.tier === "free" ? (
                   <a href={`${WEBROOT}/#pricing`} class="btn-primary px-5 py-2.5 text-sm">
-                    {tr(locale, "account.upgrade")}
+                    {safeTr(locale, "account.upgrade")}
                   </a>
                 ) : null}
               </section>
@@ -327,17 +332,19 @@ export const account = new Elysia()
                 <section class={`${card} mb-6`}>
                   <div class="mb-4 flex items-center justify-between">
                     <h2 class="text-subheading font-bold text-ink">
-                      {tr(locale, "account.recentConversions")}
+                      {safeTr(locale, "account.recentConversions")}
                     </h2>
                     <a
                       href={`${WEBROOT}/history`}
                       class="text-caption font-medium text-link hover:underline"
                     >
-                      {tr(locale, "account.viewAll")}
+                      {safeTr(locale, "account.viewAll")}
                     </a>
                   </div>
                   {recentJobs.length === 0 ? (
-                    <p class="text-caption text-ink-muted">{tr(locale, "account.emptyHistory")}</p>
+                    <p class="text-caption text-ink-muted">
+                      {safeTr(locale, "account.emptyHistory")}
+                    </p>
                   ) : (
                     <ul class="divide-y divide-rule text-caption">
                       {recentJobs.map((job) => (
@@ -345,8 +352,8 @@ export const account = new Elysia()
                           <div>
                             <p class="font-medium text-ink">
                               {job.num_files === 1
-                                ? tr(locale, "account.oneFile")
-                                : tr(locale, "account.files", { count: job.num_files })}{" "}
+                                ? safeTr(locale, "account.oneFile")
+                                : safeTr(locale, "account.files", { count: job.num_files })}{" "}
                               ·{" "}
                               <span safe class="text-ink-muted">
                                 {job.status}
@@ -360,7 +367,7 @@ export const account = new Elysia()
                             href={`${WEBROOT}/results/${job.id}`}
                             class="shrink-0 text-caption font-medium text-link hover:underline"
                           >
-                            {tr(locale, "account.open")}
+                            {safeTr(locale, "account.open")}
                           </a>
                         </li>
                       ))}
@@ -370,14 +377,16 @@ export const account = new Elysia()
               ) : null}
 
               <section class={card}>
-                <h2 class={heading}>{tr(locale, "account.signOutTitle")}</h2>
-                <p class="mb-4 text-caption text-ink-muted">{tr(locale, "account.signOutNote")}</p>
+                <h2 class={heading}>{safeTr(locale, "account.signOutTitle")}</h2>
+                <p class="mb-4 text-caption text-ink-muted">
+                  {safeTr(locale, "account.signOutNote")}
+                </p>
                 <form method="post" action={`${WEBROOT}/logoff`}>
                   <button
                     type="submit"
                     class="rounded-button border border-terracotta/40 bg-terracotta/10 px-5 py-2.5 text-caption font-bold text-terracotta transition-colors hover:bg-terracotta/20"
                   >
-                    {tr(locale, "menu.signOut")}
+                    {safeTr(locale, "menu.signOut")}
                   </button>
                 </form>
               </section>

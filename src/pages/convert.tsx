@@ -8,6 +8,7 @@ import db from "../db/db";
 import { Jobs } from "../db/types";
 import { WEBROOT } from "../helpers/env";
 import { normalizeFiletype } from "../helpers/normalizeFiletype";
+import { resolveConverter } from "../services/features";
 import { consumeConversions, getQuotaContext } from "../services/quota";
 import { userService } from "./user";
 
@@ -47,15 +48,8 @@ export const convert = new Elysia().use(userService).post(
     }
 
     const convertTo = normalizeFiletype(body.convert_to.split(",")[0] ?? "");
-    const converterName = body.convert_to.split(",")[1];
 
-    if (
-      !converterName ||
-      !isConverterAvailable(converterName) ||
-      convertTo.includes("/") ||
-      convertTo.includes("\\") ||
-      convertTo.includes("..")
-    ) {
+    if (convertTo.includes("/") || convertTo.includes("\\") || convertTo.includes("..")) {
       return redirect(`${WEBROOT}/?limit=converter`, 302);
     }
 
@@ -67,6 +61,19 @@ export const convert = new Elysia().use(userService).post(
 
     if (!Array.isArray(fileNames) || fileNames.length === 0) {
       return redirect(`${WEBROOT}/?limit=nofiles`, 302);
+    }
+
+    // Customers choose a format, never a tool. The converter is worked out here from the
+    // admin's preference and what the upload actually is, so a stale form cannot pin a
+    // converter that has since been retired, nor one that cannot read this file type.
+    const firstFile = fileNames[0] ?? "";
+    const sourceType = normalizeFiletype(
+      firstFile.includes(".") ? firstFile.split(".").pop()! : "",
+    );
+    const converterName = resolveConverter(sourceType, convertTo);
+
+    if (!converterName || !isConverterAvailable(converterName)) {
+      return redirect(`${WEBROOT}/?limit=converter`, 302);
     }
 
     // A resumable upload only appears in the job folder once it is complete, so this
@@ -91,10 +98,9 @@ export const convert = new Elysia().use(userService).post(
         : redirect(`${WEBROOT}/?limit=daily#pricing`, 302);
     }
 
-    db.query("UPDATE jobs SET num_files = ?1, status = 'pending' WHERE id = ?2").run(
-      fileNames.length,
-      jobId.value,
-    );
+    db.query(
+      "UPDATE jobs SET num_files = ?1, status = 'pending', convert_to = ?2, converter = ?3 WHERE id = ?4",
+    ).run(fileNames.length, convertTo, converterName, jobId.value);
 
     const jobKey = jobId.value;
 

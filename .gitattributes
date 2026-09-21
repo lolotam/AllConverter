@@ -1,0 +1,21 @@
+# Text files are stored and checked out with LF on every platform. Without this, a Windows
+# checkout with core.autocrlf=true gets CRLF working copies, and `bun run lint:prettier`
+# then rejects essentially every file in the repo for line endings alone.
+* text=auto eol=lf
+
+# Leave binaries alone
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.avif binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.sqlite binary

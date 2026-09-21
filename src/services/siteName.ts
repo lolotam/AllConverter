@@ -6,7 +6,7 @@ import { getSetting, setSetting } from "./settings";
 const NAME_KEY = "site.name";
 const TAGLINE_KEY = "site.tagline";
 
-export const DEFAULT_TAGLINE = "Cloud Pro";
+const DEFAULT_TAGLINE = "Cloud Pro";
 
 export function siteName(): string {
   return getSetting(NAME_KEY)?.trim() || BRANDING;

@@ -1,4 +1,4 @@
-import { isRtl, t, type Locale } from "../i18n";
+import { isRtl, safeT, type Locale } from "../i18n";
 import { brandingUrl } from "../services/branding";
 import { siteName, siteTagline } from "../services/siteName";
 
@@ -39,7 +39,7 @@ const GuestMenu = ({
   hideHistory?: boolean | undefined;
 }) => (
   <details class="group relative" data-account-menu>
-    <summary class={summaryButton} aria-haspopup="menu" title={t(locale, "menu.guestMenu")}>
+    <summary class={summaryButton} aria-haspopup="menu" title={safeT(locale, "menu.guestMenu")}>
       <span class="flex size-8 items-center justify-center rounded-button bg-surface-2 text-ink-muted">
         <svg
           class="size-5"
@@ -59,21 +59,21 @@ const GuestMenu = ({
 
     <div role="menu" class={menuPanel}>
       <div class="border-b border-rule px-3 pb-3 pt-2">
-        <p class="text-[14px] font-semibold text-ink">{t(locale, "menu.guestTitle")}</p>
-        <p class="mt-0.5 text-xs text-ink-muted">{t(locale, "menu.guestHint")}</p>
+        <p class="text-[14px] font-semibold text-ink">{safeT(locale, "menu.guestTitle")}</p>
+        <p class="mt-0.5 text-xs text-ink-muted">{safeT(locale, "menu.guestHint")}</p>
       </div>
 
       <div class="py-1">
         {!hideHistory ? (
           <a href={`${webroot}/history`} class={menuItem} role="menuitem">
-            <span>🕒</span> {t(locale, "menu.history")}
+            <span>🕒</span> {safeT(locale, "menu.history")}
           </a>
         ) : null}
         <a href={`${webroot}/converters`} class={menuItem} role="menuitem">
-          <span>🔁</span> {t(locale, "menu.converters")}
+          <span>🔁</span> {safeT(locale, "menu.converters")}
         </a>
         <a href={`${webroot}/#pricing`} class={menuItem} role="menuitem">
-          <span>💳</span> {t(locale, "menu.pricing")}
+          <span>💳</span> {safeT(locale, "menu.pricing")}
         </a>
       </div>
 
@@ -83,11 +83,11 @@ const GuestMenu = ({
           role="menuitem"
           class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-link hover:bg-surface-2 transition-colors"
         >
-          <span>🔑</span> {t(locale, "menu.signIn")}
+          <span>🔑</span> {safeT(locale, "menu.signIn")}
         </a>
         {accountRegistration ? (
           <a href={`${webroot}/register`} class={menuItem} role="menuitem">
-            <span>✨</span> {t(locale, "menu.createAccount")}
+            <span>✨</span> {safeT(locale, "menu.createAccount")}
           </a>
         ) : null}
       </div>
@@ -132,11 +132,18 @@ const AccountMenu = ({
   const spent = showMeter ? Math.min(100, Math.round(((used ?? 0) / (limit ?? 1)) * 100)) : 0;
   return (
     <details class="group relative" data-account-menu>
-      <summary class={summaryButton} aria-haspopup="menu" title={t(locale, "header.accountMenu")}>
+      <summary
+        class={summaryButton}
+        aria-haspopup="menu"
+        title={safeT(locale, "header.accountMenu")}
+      >
         {avatar ? (
           <img src={avatar} alt="" width="32" height="32" class="size-8 rounded-lg object-cover" />
         ) : (
-          <span class="flex size-8 items-center justify-center rounded-button bg-cta text-xs font-semibold text-cta-ink">
+          <span
+            class="flex size-8 items-center justify-center rounded-button bg-cta text-xs font-semibold text-cta-ink"
+            safe
+          >
             {initials ?? "??"}
           </span>
         )}
@@ -164,8 +171,8 @@ const AccountMenu = ({
           <div class="mt-2.5">
             <p class="text-xs font-medium text-ink-body">
               {unlimited
-                ? t(locale, "menu.usageUnlimited")
-                : t(locale, "menu.usageLeft", { left, limit: limit ?? 0 })}
+                ? safeT(locale, "menu.usageUnlimited")
+                : safeT(locale, "menu.usageLeft", { left, limit: limit ?? 0 })}
             </p>
             {showMeter ? (
               <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
@@ -180,21 +187,21 @@ const AccountMenu = ({
 
         <div class="py-1">
           <a href={`${webroot}/account`} class={item} role="menuitem">
-            <span>👤</span> {t(locale, "menu.profile")}
+            <span>👤</span> {safeT(locale, "menu.profile")}
           </a>
           {!hideHistory ? (
             <a href={`${webroot}/history`} class={item} role="menuitem">
-              <span>🕒</span> {t(locale, "menu.history")}
+              <span>🕒</span> {safeT(locale, "menu.history")}
             </a>
           ) : null}
           <a href={`${webroot}/account#plan`} class={item} role="menuitem">
-            <span>💳</span> {t(locale, paid ? "menu.billing" : "menu.plan")}
+            <span>💳</span> {safeT(locale, paid ? "menu.billing" : "menu.plan")}
           </a>
           <a href={`${webroot}/converters`} class={item} role="menuitem">
-            <span>🔁</span> {t(locale, "menu.converters")}
+            <span>🔁</span> {safeT(locale, "menu.converters")}
           </a>
           <a href={`${webroot}/account#password`} class={item} role="menuitem">
-            <span>🔒</span> {t(locale, "menu.changePassword")}
+            <span>🔒</span> {safeT(locale, "menu.changePassword")}
           </a>
           {!paid ? (
             <a
@@ -202,7 +209,7 @@ const AccountMenu = ({
               role="menuitem"
               class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-link hover:bg-surface-2 transition-colors"
             >
-              <span>🚀</span> {t(locale, "menu.upgrade")}
+              <span>🚀</span> {safeT(locale, "menu.upgrade")}
             </a>
           ) : null}
         </div>
@@ -214,7 +221,7 @@ const AccountMenu = ({
               role="menuitem"
               class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-ink hover:bg-surface-2 transition-colors"
             >
-              <span>⚡</span> {t(locale, "menu.admin")}
+              <span>⚡</span> {safeT(locale, "menu.admin")}
             </a>
           </div>
         ) : null}
@@ -225,7 +232,7 @@ const AccountMenu = ({
             role="menuitem"
             class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-medium text-terracotta hover:bg-surface-2 transition-colors"
           >
-            <span>↩</span> {t(locale, "menu.signOut")}
+            <span>↩</span> {safeT(locale, "menu.signOut")}
           </a>
         </div>
       </div>
@@ -296,20 +303,13 @@ export const Header = ({
                 class="size-9 rounded-xl object-contain"
               />
             ) : (
-              <div class="flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-accent-500 via-lime-400 to-emerald-400 shadow-lg shadow-accent-500/20">
-                <svg
-                  class="size-5 text-neutral-950"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M7 16V4m0 0L3 8m4-4l4 4" />
-                  <path d="M17 8v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-              </div>
+              <img
+                src={`${webroot}/favicon.svg`}
+                alt=""
+                width="36"
+                height="36"
+                class="size-9 rounded-xl object-contain shadow-lg shadow-accent-500/20"
+              />
             )}
             <div class="flex flex-col">
               <span
@@ -332,16 +332,16 @@ export const Header = ({
           {/* Center Navigation Links (Hidden on small screens) */}
           <nav class="hidden md:flex items-center gap-6 text-body-sm text-ink-body">
             <a href={`${webroot}/#tools`} class="transition-colors hover:text-ink">
-              {t(locale, "header.tools")}
+              {safeT(locale, "header.tools")}
             </a>
             <a href={`${webroot}/#how-it-works`} class="transition-colors hover:text-ink">
-              {t(locale, "header.howItWorks")}
+              {safeT(locale, "header.howItWorks")}
             </a>
             <a href={`${webroot}/#pricing`} class="transition-colors hover:text-ink">
-              {t(locale, "header.pricing")}
+              {safeT(locale, "header.pricing")}
             </a>
             <a href={`${webroot}/#features`} class="transition-colors hover:text-ink">
-              {t(locale, "header.features")}
+              {safeT(locale, "header.features")}
             </a>
           </nav>
         </div>
@@ -364,8 +364,8 @@ export const Header = ({
           <button
             id="theme-toggle"
             type="button"
-            aria-label={t(locale, "header.toggleTheme")}
-            title={t(locale, "header.toggleThemeTitle")}
+            aria-label={safeT(locale, "header.toggleTheme")}
+            title={safeT(locale, "header.toggleThemeTitle")}
             class="flex size-9 cursor-pointer items-center justify-center rounded-button border border-rule bg-surface text-ink-body transition-all hover:bg-surface-2"
             onclick="
               const isDark = document.documentElement.classList.contains('dark');
@@ -390,7 +390,7 @@ export const Header = ({
                   href={`${webroot}/history`}
                   class="hidden rounded-button px-3 py-1.5 text-body-sm text-ink-body transition-colors hover:text-ink sm:inline-block"
                 >
-                  {t(locale, "header.history")}
+                  {safeT(locale, "header.history")}
                 </a>
               )}
               <AccountMenu
@@ -416,7 +416,7 @@ export const Header = ({
                   href={`${webroot}/register`}
                   class="hidden rounded-button bg-cta px-4 py-2 text-[14px] font-semibold text-cta-ink transition-opacity hover:opacity-90 sm:inline-block"
                 >
-                  {t(locale, "header.getStarted")}
+                  {safeT(locale, "header.getStarted")}
                 </a>
               ) : null}
               <GuestMenu
@@ -432,14 +432,14 @@ export const Header = ({
                 href={`${webroot}/login`}
                 class="rounded-button border border-cta bg-[var(--ghost-surface)] px-4 py-2 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
               >
-                {t(locale, "header.signIn")}
+                {safeT(locale, "header.signIn")}
               </a>
               {accountRegistration && (
                 <a
                   href={`${webroot}/register`}
                   class="rounded-button bg-cta px-4 py-2 text-[14px] font-semibold text-cta-ink transition-opacity hover:opacity-90 active:scale-[0.99]"
                 >
-                  {t(locale, "header.getStarted")}
+                  {safeT(locale, "header.getStarted")}
                 </a>
               )}
             </div>

@@ -1,3 +1,4 @@
+import { Html } from "@kitajs/html";
 import { ar } from "./ar";
 import { en, type MessageKey } from "./en";
 
@@ -20,8 +21,14 @@ export function isRtl(locale: Locale): boolean {
 /**
  * The message for a key, falling back to English and then to the key itself.
  * {name} placeholders are replaced from params and left alone when absent.
+ *
+ * The result is safe to interpolate into a page without a `safe` attribute, which is what
+ * the name says and what the XSS scanner keys off. The messages themselves are written by
+ * us, and the parameters — which are not, some being filenames or values an admin typed
+ * into the dashboard — are escaped on the way in. @kitajs/html does not escape anything by
+ * default, so without this a message carrying a parameter would render raw markup.
  */
-export function t(
+export function safeT(
   locale: Locale,
   key: MessageKey,
   params?: Record<string, string | number>,
@@ -31,7 +38,7 @@ export function t(
     return message;
   }
   return message.replace(/\{(\w+)\}/g, (match, name: string) =>
-    Object.hasOwn(params, name) ? String(params[name]) : match,
+    Object.hasOwn(params, name) ? Html.escapeHtml(String(params[name])) : match,
   );
 }
 

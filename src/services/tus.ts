@@ -18,7 +18,7 @@ export type UploadContext = { userId: string; jobId: string; tier: Tier; existin
 // are carried from the route through async context instead of client-supplied metadata.
 export const uploadContext = new AsyncLocalStorage<UploadContext>();
 
-export function fileNameOf(upload: Upload): string {
+function fileNameOf(upload: Upload): string {
   const name = upload.metadata?.filename;
   return typeof name === "string" ? sanitize(name) : "";
 }

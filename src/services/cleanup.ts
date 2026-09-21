@@ -14,6 +14,25 @@ const OVERRIDE_KEY = "cleanup.overrideHours";
 export const CLEANUP_INTERVAL_CHOICES = [2, 4, 6, 12, 24];
 
 /**
+ * Removes jobs and everything on disk that belongs to them. The single place that knows
+ * what deleting a job means — the retention sweep, the admin dashboard and a user deleting
+ * their own history all come through here.
+ *
+ * Callers are responsible for deciding *which* jobs may go: this does no ownership check.
+ */
+export function deleteJobs(jobs: { id: number; user_id: number }[]): number {
+  for (const job of jobs) {
+    rmSync(path.resolve(`${outputDir}${job.user_id}/${job.id}`), { recursive: true, force: true });
+    rmSync(path.resolve(`${uploadsDir}${job.user_id}/${job.id}`), { recursive: true, force: true });
+
+    db.query("DELETE FROM file_names WHERE job_id = ?").run(job.id);
+    db.query("DELETE FROM jobs WHERE id = ?").run(job.id);
+  }
+
+  return jobs.length;
+}
+
+/**
  * Whether files are deleted automatically at all. The dashboard setting wins; with no
  * setting saved, AUTO_DELETE_EVERY_N_HOURS decides, as it always did.
  */
@@ -122,15 +141,7 @@ export function deleteExpiredJobs(olderThanHours?: number): number {
     });
   }
 
-  for (const job of expired) {
-    rmSync(path.resolve(`${outputDir}${job.user_id}/${job.id}`), { recursive: true, force: true });
-    rmSync(path.resolve(`${uploadsDir}${job.user_id}/${job.id}`), { recursive: true, force: true });
-
-    db.query("DELETE FROM file_names WHERE job_id = ?").run(job.id);
-    db.query("DELETE FROM jobs WHERE id = ?").run(job.id);
-  }
-
-  return expired.length;
+  return deleteJobs(expired);
 }
 
 /**

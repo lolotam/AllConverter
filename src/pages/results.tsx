@@ -16,7 +16,7 @@ import { DownloadIcon } from "../icons/download";
 import { DeleteIcon } from "../icons/delete";
 import { EyeIcon } from "../icons/eye";
 import sanitize from "sanitize-filename";
-import { localeFromRequest, t as tr, type Locale } from "../i18n";
+import { localeFromRequest, safeT as safeTr, type Locale } from "../i18n";
 import { userService } from "./user";
 
 const STATE_LABELS: Record<
@@ -117,8 +117,8 @@ function ProgressList({
       <div class="mb-3 flex items-center justify-between text-caption font-semibold text-ink-body">
         <span>
           {job.num_files === 1
-            ? tr(locale, "results.convertingOne")
-            : tr(locale, "results.convertingMany", { count: job.num_files })}
+            ? safeTr(locale, "results.convertingOne")
+            : safeTr(locale, "results.convertingMany", { count: job.num_files })}
         </span>
         <span data-progress-overall class="tabular-nums font-bold text-ink">
           0%
@@ -148,7 +148,7 @@ function ProgressList({
               aria-valuemin="0"
               aria-valuemax="100"
               aria-valuenow="0"
-              aria-label={tr(locale, "results.convertingFile", { file: file.file })}
+              aria-label={safeTr(locale, "results.convertingFile", { file: file.file })}
               class="h-2.5 overflow-hidden rounded-full bg-surface-2"
             >
               <div
@@ -158,7 +158,7 @@ function ProgressList({
               />
             </div>
             <p data-progress-state class="mt-1 text-xs text-ink-muted">
-              {tr(locale, STATE_LABELS[file.state].key)}
+              {safeTr(locale, STATE_LABELS[file.state].key)}
             </p>
           </li>
         ))}
@@ -188,16 +188,16 @@ function ResultsArticle({
     <article class="article" data-job-complete={String(finished)}>
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 class="text-heading-sm font-black text-ink">{tr(locale, "results.title")}</h1>
+          <h1 class="text-heading-sm font-black text-ink">{safeTr(locale, "results.title")}</h1>
           <p class="text-xs text-ink-muted mt-1">
-            {tr(locale, "results.job", { id: job.id })}{" "}
+            {safeTr(locale, "results.job", { id: job.id })}{" "}
             {finished
               ? files.length === 1
-                ? tr(locale, "results.readyOne")
-                : tr(locale, "results.readyMany", { count: files.length })
+                ? safeTr(locale, "results.readyOne")
+                : safeTr(locale, "results.readyMany", { count: files.length })
               : job.num_files === 1
-                ? tr(locale, "results.convertingCountOne")
-                : tr(locale, "results.convertingCountMany", { count: job.num_files })}
+                ? safeTr(locale, "results.convertingCountOne")
+                : safeTr(locale, "results.convertingCountMany", { count: job.num_files })}
           </p>
         </div>
         <div class="flex flex-wrap items-center gap-2.5">
@@ -205,7 +205,7 @@ function ResultsArticle({
             href={`${WEBROOT}/`}
             class="btn-secondary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5"
           >
-            <span>+</span> {tr(locale, "results.convertMore")}
+            <span>+</span> {safeTr(locale, "results.convertMore")}
           </a>
           <form action={`${WEBROOT}/delete/${job.id}`} method="POST">
             <button
@@ -214,7 +214,7 @@ function ResultsArticle({
               class="btn-secondary text-xs sm:text-sm py-2 px-3 text-terracotta hover:bg-terracotta/10 inline-flex items-center gap-1.5"
               {...(finished ? "" : { disabled: true, "aria-busy": "true" })}
             >
-              <DeleteIcon /> <span>{tr(locale, "results.delete")}</span>
+              <DeleteIcon /> <span>{safeTr(locale, "results.delete")}</span>
             </button>
           </form>
           <a
@@ -224,22 +224,24 @@ function ResultsArticle({
             class="btn-primary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5"
             {...(finished ? "" : { disabled: true, "aria-busy": "true" })}
           >
-            <DownloadIcon /> <span>{tr(locale, "results.tarArchive")}</span>
+            <DownloadIcon /> <span>{safeTr(locale, "results.tarArchive")}</span>
           </a>
           <button
             class="btn-primary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5"
             onclick="downloadAll()"
           >
-            <DownloadIcon /> <span>{tr(locale, "results.downloadAll")}</span>
+            <DownloadIcon /> <span>{safeTr(locale, "results.downloadAll")}</span>
           </button>
         </div>
       </div>
 
-      {!finished && tracked && tracked.length > 0 && (
+      {!finished && tracked !== undefined && tracked.length > 0 && (
         <ProgressList locale={locale} job={job} tracked={tracked} />
       )}
       {!finished && !tracked && (
-        <p class="mb-6 text-caption text-ink-muted">{tr(locale, "results.convertingYourFiles")}</p>
+        <p class="mb-6 text-caption text-ink-muted">
+          {safeTr(locale, "results.convertingYourFiles")}
+        </p>
       )}
 
       {finished && entries.length > 0 && (
@@ -251,29 +253,29 @@ function ResultsArticle({
                 inherited text so the toggle stays readable */}
             <div class="inline-flex overflow-hidden rounded-button border border-rule text-ink-muted">
               <button type="button" data-view-button="rows" class="px-3 py-1.5 text-xs font-bold">
-                {tr(locale, "results.rows")}
+                {safeTr(locale, "results.rows")}
               </button>
               <button
                 type="button"
                 data-view-button="cards"
                 class="border-s border-rule px-3 py-1.5 text-xs font-bold"
               >
-                {tr(locale, "results.cards")}
+                {safeTr(locale, "results.cards")}
               </button>
             </div>
             <div data-selection-bar hidden class="flex flex-wrap items-center gap-2">
               <span data-selection-count class="text-xs font-semibold text-ink-muted">
-                {tr(locale, "results.selected", { count: 0 })}
+                {safeTr(locale, "results.selected", { count: 0 })}
               </span>
               <button
                 type="button"
                 data-download-selected
                 class="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
               >
-                <DownloadIcon /> <span>{tr(locale, "results.downloadSelected")}</span>
+                <DownloadIcon /> <span>{safeTr(locale, "results.downloadSelected")}</span>
               </button>
               <button type="button" data-clear-selection class="btn-secondary px-3 py-1.5 text-xs">
-                {tr(locale, "results.clear")}
+                {safeTr(locale, "results.clear")}
               </button>
             </div>
           </div>
@@ -290,13 +292,13 @@ function ResultsArticle({
                     <input
                       type="checkbox"
                       data-select-all
-                      aria-label={tr(locale, "results.selectAll")}
+                      aria-label={safeTr(locale, "results.selectAll")}
                     />
                   </th>
-                  <th class="p-4">{tr(locale, "results.fileName")}</th>
-                  <th class="p-4">{tr(locale, "results.size")}</th>
-                  <th class="p-4">{tr(locale, "results.status")}</th>
-                  <th class="p-4 text-end">{tr(locale, "results.actions")}</th>
+                  <th class="p-4">{safeTr(locale, "results.fileName")}</th>
+                  <th class="p-4">{safeTr(locale, "results.size")}</th>
+                  <th class="p-4">{safeTr(locale, "results.status")}</th>
+                  <th class="p-4 text-end">{safeTr(locale, "results.actions")}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-rule">
@@ -314,7 +316,7 @@ function ResultsArticle({
                         <input
                           type="checkbox"
                           data-select
-                          aria-label={tr(locale, "results.selectFile", { name: entry.name })}
+                          aria-label={safeTr(locale, "results.selectFile", { name: entry.name })}
                         />
                       )}
                     </td>
@@ -334,18 +336,18 @@ function ResultsArticle({
                           class="inline-flex items-center gap-1 rounded-tag border border-terracotta/40 bg-terracotta/10 px-2.5 py-0.5 text-xs font-bold text-terracotta"
                           title={entry.status}
                         >
-                          {tr(locale, "results.failedBadge")}
+                          {safeTr(locale, "results.failedBadge")}
                         </span>
                       ) : (
                         <span class="inline-flex items-center gap-1 rounded-tag border border-rule bg-surface px-2.5 py-0.5 text-xs font-bold text-ink-body">
-                          {tr(locale, "results.readyBadge")}
+                          {safeTr(locale, "results.readyBadge")}
                         </span>
                       )}
                     </td>
                     <td class="p-4 text-end">
                       {entry.failed ? (
                         <span class="text-xs text-ink-faint">
-                          {tr(locale, "results.unavailable")}
+                          {safeTr(locale, "results.unavailable")}
                         </span>
                       ) : (
                         <div class="inline-flex items-center justify-end gap-2">
@@ -353,7 +355,7 @@ function ResultsArticle({
                             type="button"
                             data-preview={entry.previewUrl}
                             data-is-image={String(entry.isImage)}
-                            title={tr(locale, "results.previewFile", { name: entry.name })}
+                            title={safeTr(locale, "results.previewFile", { name: entry.name })}
                             class="inline-flex size-8 items-center justify-center rounded-button bg-surface-2 text-ink-body transition-colors hover:bg-rule"
                           >
                             <EyeIcon />
@@ -362,14 +364,14 @@ function ResultsArticle({
                             class="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs shadow"
                             href={entry.downloadUrl}
                             download={entry.name}
-                            title={tr(locale, "results.downloadFile", { name: entry.name })}
+                            title={safeTr(locale, "results.downloadFile", { name: entry.name })}
                           >
-                            <DownloadIcon /> <span>{tr(locale, "results.download")}</span>
+                            <DownloadIcon /> <span>{safeTr(locale, "results.download")}</span>
                           </a>
                           <button
                             type="button"
                             data-delete
-                            title={tr(locale, "results.deleteFile", { name: entry.name })}
+                            title={safeTr(locale, "results.deleteFile", { name: entry.name })}
                             class="inline-flex size-8 items-center justify-center rounded-button bg-surface-2 text-terracotta transition-colors hover:bg-terracotta/10"
                           >
                             <DeleteIcon />
@@ -414,7 +416,7 @@ function ResultsArticle({
                       type="button"
                       data-preview={entry.previewUrl}
                       data-is-image={String(entry.isImage)}
-                      title={tr(locale, "results.previewFile", { name: entry.name })}
+                      title={safeTr(locale, "results.previewFile", { name: entry.name })}
                       class="absolute inset-0 flex items-center justify-center bg-frame/0 text-frame-ink opacity-0 transition-all hover:bg-frame/40 group-hover:opacity-100"
                     >
                       <span class="rounded-full bg-frame/70 p-3">
@@ -428,7 +430,7 @@ function ResultsArticle({
                     <input
                       type="checkbox"
                       data-select
-                      aria-label={tr(locale, "results.selectFile", { name: entry.name })}
+                      aria-label={safeTr(locale, "results.selectFile", { name: entry.name })}
                       class="absolute start-2 top-2 size-4 accent-cta"
                     />
                   )}
@@ -439,7 +441,7 @@ function ResultsArticle({
                   </p>
                   <div class="mt-2 flex items-center justify-between">
                     <span class="text-xs text-ink-muted" safe>
-                      {entry.failed ? tr(locale, "results.failed") : entry.size}
+                      {entry.failed ? safeTr(locale, "results.failed") : entry.size}
                     </span>
                     {entry.failed ? (
                       ""
@@ -448,7 +450,7 @@ function ResultsArticle({
                         <a
                           href={entry.downloadUrl}
                           download={entry.name}
-                          title={tr(locale, "results.downloadFile", { name: entry.name })}
+                          title={safeTr(locale, "results.downloadFile", { name: entry.name })}
                           class="inline-flex size-7 items-center justify-center rounded-button bg-cta text-cta-ink transition-opacity hover:opacity-90"
                         >
                           <DownloadIcon />
@@ -456,7 +458,7 @@ function ResultsArticle({
                         <button
                           type="button"
                           data-delete
-                          title={tr(locale, "results.deleteFile", { name: entry.name })}
+                          title={safeTr(locale, "results.deleteFile", { name: entry.name })}
                           class="inline-flex size-7 items-center justify-center rounded-button bg-surface-2 text-terracotta"
                         >
                           <DeleteIcon />
@@ -479,7 +481,7 @@ function ResultsArticle({
               <div class="mb-3 flex items-center justify-between gap-4">
                 <p data-preview-name class="truncate text-caption font-bold text-ink" />
                 <button type="button" data-preview-close class="btn-secondary px-3 py-1.5 text-xs">
-                  {tr(locale, "results.close")}
+                  {safeTr(locale, "results.close")}
                 </button>
               </div>
               <img data-preview-image alt="" class="mx-auto max-h-[70vh] w-auto rounded-card" />

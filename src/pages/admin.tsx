@@ -8,7 +8,7 @@ import {
 } from "../components/adminPanels";
 import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
-import {
+import db, {
   deleteUserById,
   getAllUsers,
   getStats,
@@ -25,21 +25,22 @@ import {
   HIDE_HISTORY,
   WEBROOT,
 } from "../helpers/env";
+import { activeJobs } from "../converters/progress";
 import { headerAccount } from "../helpers/headerUser";
-import { onlyAvailable } from "../converters/availability";
-import { getAllTargets } from "../converters/main";
-import { analytics, queueSnapshot, storageUsage, systemHealth } from "../services/adminStats";
+import {
+  analytics,
+  formatUsage,
+  queueSnapshot,
+  storageUsage,
+  systemHealth,
+} from "../services/adminStats";
 import { brandingUrl, removeBrandingAsset, saveBrandingAsset } from "../services/branding";
 import { initialsOf } from "../services/avatar";
 import { siteName, siteTagline, setSiteName, setSiteTagline } from "../services/siteName";
-import {
-  hiddenConverters,
-  hiddenFormats,
-  setHiddenConverters,
-  setHiddenFormatsFor,
-} from "../services/features";
+import { formatCatalogue, setOfferedFormats, setPreferredConverters } from "../services/features";
 import {
   CLEANUP_INTERVAL_CHOICES,
+  deleteJobs,
   cleanupEnabled,
   cleanupOverrideHours,
   deleteExpiredJobs,
@@ -51,30 +52,6 @@ import {
 import { GOOGLE_ENABLED } from "../services/google";
 import { PADDLE_ENABLED } from "../services/paddle";
 import { userService } from "../services/user";
-
-/** Every installed converter with its formats, and what the site currently offers. */
-function converterVisibility(): {
-  name: string;
-  visible: boolean;
-  formats: { format: string; visible: boolean }[];
-}[] {
-  const hidden = new Set(hiddenConverters());
-  const hiddenByConverter = hiddenFormats();
-
-  return Object.entries(onlyAvailable(getAllTargets()))
-    .map(([name, targets]) => {
-      const off = new Set(hiddenByConverter[name] ?? []);
-      return {
-        name,
-        visible: !hidden.has(name),
-        formats: (Array.isArray(targets) ? targets : [])
-          .map((format) => String(format))
-          .sort((a, b) => a.localeCompare(b))
-          .map((format) => ({ format, visible: !off.has(format.toLowerCase()) })),
-      };
-    })
-    .sort((a, b) => a.name.localeCompare(b.name));
-}
 
 export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
   .use(userService)
@@ -145,10 +122,10 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
               </div>
 
               {/* Notification Banner */}
-              {message && (
+              {message !== "" && (
                 <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-8">
                   <div class="rounded-xl border border-forest/30 bg-forest/10 px-4 py-3 text-sm text-forest font-medium flex items-center justify-between">
-                    <span>✓ {message}</span>
+                    <span safe>✓ {message}</span>
                     <a
                       href={`${WEBROOT}/admin?tab=${currentTab}`}
                       class="text-xs text-ink-muted hover:text-ink"
@@ -183,7 +160,9 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                               : "font-medium text-ink-body hover:bg-surface-2 hover:text-ink"
                           }`}
                         >
-                          <span aria-hidden="true">{item.icon}</span>
+                          <span aria-hidden="true" safe>
+                            {item.icon}
+                          </span>
                           <span safe>{item.label}</span>
                         </a>
                       </li>
@@ -293,7 +272,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                             </div>
                             <div class="flex items-center justify-between py-2">
                               <span class="text-ink-muted">Admin Account</span>
-                              <span class="font-mono text-xs text-ink-muted font-semibold">
+                              <span class="font-mono text-xs text-ink-muted font-semibold" safe>
                                 {currentUser.email}
                               </span>
                             </div>
@@ -348,7 +327,10 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                         class="size-7 rounded-lg object-cover"
                                       />
                                     ) : (
-                                      <span class="flex size-7 items-center justify-center rounded-lg bg-surface-2 text-[10px] font-bold text-ink-body">
+                                      <span
+                                        class="flex size-7 items-center justify-center rounded-lg bg-surface-2 text-[10px] font-bold text-ink-body"
+                                        safe
+                                      >
                                         {initialsOf(u.display_name, u.email)}
                                       </span>
                                     )}
@@ -502,7 +484,10 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                 class="space-y-4"
                               >
                                 <div class="flex items-center justify-between">
-                                  <span class="rounded-lg bg-surface-2 px-2.5 py-1 text-xs font-mono font-bold text-ink-muted uppercase">
+                                  <span
+                                    class="rounded-lg bg-surface-2 px-2.5 py-1 text-xs font-mono font-bold text-ink-muted uppercase"
+                                    safe
+                                  >
                                     ID: {t.id}
                                   </span>
                                   {t.is_popular ? (
@@ -685,6 +670,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                     name="features"
                                     rows="5"
                                     class="w-full rounded-xl bg-surface-2 border border-rule p-3 text-xs font-mono text-ink-body focus:outline-none focus:border-cta"
+                                    safe
                                   >
                                     {featuresList.join("\n")}
                                   </textarea>
@@ -742,7 +728,17 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                     />
                   )}
 
-                  {currentTab === "conversions" && <ConversionsPanel snapshot={queueSnapshot()} />}
+                  {currentTab === "conversions" && (
+                    <ConversionsPanel
+                      webroot={WEBROOT}
+                      snapshot={queueSnapshot({
+                        status: query.status,
+                        format: query.format,
+                        owner: query.owner,
+                        limit: query.limit ? Number(query.limit) : undefined,
+                      })}
+                    />
+                  )}
 
                   {currentTab === "health" && (
                     <HealthPanel
@@ -776,7 +772,8 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                       faviconUrl={brandingUrl(WEBROOT, "favicon")}
                       siteName={siteName()}
                       siteTagline={siteTagline()}
-                      converters={converterVisibility()}
+                      formats={formatCatalogue()}
+                      usage={formatUsage()}
                     />
                   )}
                 </div>
@@ -790,6 +787,11 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
       query: t.Object({
         tab: t.Optional(t.String()),
         msg: t.Optional(t.String()),
+        // Recent-jobs filters, kept in the URL so a filtered view survives a reload
+        status: t.Optional(t.String()),
+        format: t.Optional(t.String()),
+        owner: t.Optional(t.String()),
+        limit: t.Optional(t.String()),
       }),
       cookie: t.Cookie({
         auth: t.Optional(t.String()),
@@ -1015,58 +1017,100 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
       cookie: t.Cookie({ auth: t.Optional(t.String()) }),
     },
   )
-  // Which converters, and which of their formats, the site offers
+  // Which output formats the site offers, and the tool chosen for each
   .post(
-    "/features/:converter",
-    async ({ params, body, jwt, redirect, cookie: { auth } }) => {
+    "/site/formats",
+    async ({ body, jwt, redirect, cookie: { auth } }) => {
       if (!auth?.value) return redirect(`${WEBROOT}/login`, 302);
       const verified = (await jwt.verify(auth.value)) as { id: string } | false;
       if (!verified || !verified.id) return redirect(`${WEBROOT}/login`, 302);
       const adminUser = getUserById(verified.id);
       if (!adminUser || adminUser.role !== "admin") return redirect(`${WEBROOT}/`, 302);
 
-      const available = onlyAvailable(getAllTargets());
-      const targets = available[params.converter];
-      if (!targets) {
-        return redirect(`${WEBROOT}/admin?tab=site`, 302);
-      }
+      const catalogue = formatCatalogue();
 
-      const everyFormat = (Array.isArray(targets) ? targets : []).map((format) => String(format));
-      // "Offer every format" clears the choices instead of reading the boxes
+      // "Offer every format" ignores the boxes and turns the lot back on
       const ticked = body.all
-        ? new Set(everyFormat.map((format) => format.toLowerCase()))
-        : new Set(
-            (Array.isArray(body.format) ? body.format : body.format ? [body.format] : []).map(
-              (format) => format.toLowerCase(),
-            ),
+        ? catalogue.map((row) => row.format)
+        : (Array.isArray(body.format) ? body.format : body.format ? [body.format] : []).map(
+            (format) => format.toLowerCase(),
           );
 
-      const hiddenForThis = everyFormat.filter((format) => !ticked.has(format.toLowerCase()));
-      setHiddenFormatsFor(params.converter, hiddenForThis);
+      setOfferedFormats(ticked);
 
-      // A converter with nothing left to offer is switched off, and vice versa
-      const wantsConverter =
-        Boolean(body.all) || (Boolean(body.converterVisible) && ticked.size > 0);
-      const hidden = new Set(hiddenConverters());
-      if (wantsConverter) {
-        hidden.delete(params.converter);
-      } else {
-        hidden.add(params.converter);
+      // The selects arrive as converter.<format>; setPreferredConverters checks each name
+      // against the converters that really produce that format before storing it
+      const choices: Record<string, string> = {};
+      for (const [key, value] of Object.entries(body)) {
+        if (key.startsWith("converter.") && typeof value === "string") {
+          choices[key.slice("converter.".length)] = value;
+        }
       }
-      setHiddenConverters([...hidden]);
+      setPreferredConverters(choices);
 
-      const message = wantsConverter
-        ? `${params.converter}: ${ticked.size} of ${everyFormat.length} formats offered`
-        : `${params.converter} is switched off`;
+      const message = `${ticked.length} of ${catalogue.length} formats offered`;
       return redirect(`${WEBROOT}/admin?tab=site&msg=${encodeURIComponent(message)}`, 302);
     },
     {
-      params: t.Object({ converter: t.String() }),
-      body: t.Object({
-        converterVisible: t.Optional(t.String()),
-        format: t.Optional(t.Union([t.String(), t.Array(t.String())])),
-        all: t.Optional(t.String()),
-      }),
+      // The per-row converter selects are named dynamically, so extra keys are expected
+      body: t.Object(
+        {
+          format: t.Optional(t.Union([t.String(), t.Array(t.String())])),
+          all: t.Optional(t.String()),
+        },
+        { additionalProperties: true },
+      ),
+      cookie: t.Cookie({ auth: t.Optional(t.String()) }),
+    },
+  )
+  // Bulk delete from the recent-jobs table. Unlike a user deleting their own history, this
+  // is not scoped to an owner: an admin may remove anybody's job.
+  .post(
+    "/conversions/delete",
+    async ({ body, jwt, set, cookie: { auth } }) => {
+      if (!auth?.value) {
+        set.status = 401;
+        return { success: false, message: "Not signed in" };
+      }
+      const verified = (await jwt.verify(auth.value)) as { id: string } | false;
+      const adminUser = verified && verified.id ? getUserById(verified.id) : null;
+      if (!adminUser || adminUser.role !== "admin") {
+        set.status = 403;
+        return { success: false, message: "Not an admin" };
+      }
+
+      if (body.jobIds.length === 0) {
+        set.status = 400;
+        return { success: false, message: "No jobs selected" };
+      }
+
+      const placeholders = body.jobIds.map(() => "?").join(", ");
+      const jobs = db
+        .query(`SELECT id, user_id FROM jobs WHERE id IN (${placeholders})`)
+        .all(...body.jobIds) as { id: number; user_id: number }[];
+
+      // A job with a task running against its folders must not be deleted: that would pull
+      // them out from under the task mid-way, break somebody's conversion and leave
+      // file_names rows pointing at a job that no longer exists. What matters is whether the
+      // work is really in flight, not the stored status — only the background task's own
+      // `finally` ever moves a job off "pending", so one interrupted by a restart keeps that
+      // status for good, and going by it alone would leave the row undeletable.
+      const inFlight = new Set(activeJobs().map((job) => String(job.jobId)));
+      const running = jobs.filter((job) => inFlight.has(String(job.id)));
+      const deletable = jobs.filter((job) => !inFlight.has(String(job.id)));
+
+      return {
+        success: true,
+        deleted: deleteJobs(deletable),
+        skipped: running.length,
+        message:
+          running.length > 0
+            ? `${running.length} job(s) are still converting and were left alone.`
+            : undefined,
+      };
+    },
+    {
+      body: t.Object({ jobIds: t.Array(t.String()) }),
       cookie: t.Cookie({ auth: t.Optional(t.String()) }),
     },
   )

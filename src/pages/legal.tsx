@@ -24,13 +24,7 @@ const SOURCE_CODE_URL = "https://github.com/C4illin/ConvertX";
 
 // Missing operator details stay visibly marked instead of being invented
 const Placeholder = ({ children }: { children: string }) => (
-  <mark
-    class="
-    rounded-sm bg-amber-400/25 px-1 text-amber-700
-    dark:text-amber-300
-  "
-    safe
-  >
+  <mark class="rounded-sm bg-terracotta/10 px-1 text-terracotta" safe>
     [{children}]
   </mark>
 );
@@ -44,14 +38,7 @@ const Entity = () =>
 
 const ContactEmail = () =>
   LEGAL_CONTACT_EMAIL ? (
-    <a
-      href={`mailto:${LEGAL_CONTACT_EMAIL}`}
-      class="
-        text-accent-600 underline
-        dark:text-accent-400
-      "
-      safe
-    >
+    <a href={`mailto:${LEGAL_CONTACT_EMAIL}`} class="text-link underline" safe>
       {LEGAL_CONTACT_EMAIL}
     </a>
   ) : (
@@ -59,41 +46,22 @@ const ContactEmail = () =>
   );
 
 const LegalLink = ({ path, children }: { path: string; children: string }) => (
-  <a
-    href={`${WEBROOT}${path}`}
-    class="
-    text-accent-600 underline
-    dark:text-accent-400
-  "
-  >
+  <a href={`${WEBROOT}${path}`} class="text-link underline">
     {children}
   </a>
 );
 
 const Section = ({ title, children }: { title: string; children: JSX.Element | JSX.Element[] }) => (
   <section class="mb-8">
-    <h2
-      class="
-      mb-3 text-xl font-bold text-slate-900
-      dark:text-white
-    "
-      safe
-    >
+    <h2 class="mb-3 text-subheading font-bold text-ink" safe>
       {title}
     </h2>
-    <div
-      class="
-      space-y-3 leading-relaxed text-slate-700
-      dark:text-neutral-300
-    "
-    >
-      {children}
-    </div>
+    <div class="space-y-3 leading-relaxed text-ink-body">{children}</div>
   </section>
 );
 
 const List = ({ children }: { children: JSX.Element[] }) => (
-  <ul class="list-disc space-y-1.5 pl-6">{children}</ul>
+  <ul class="list-disc space-y-1.5 ps-6">{children}</ul>
 );
 
 const fileRetention = () =>
@@ -129,22 +97,10 @@ const LegalPage = ({
         sm:px-6
       "
       >
-        <h1
-          class="
-            mb-2 text-3xl font-extrabold tracking-tight text-slate-900
-            sm:text-4xl
-            dark:text-white
-          "
-          safe
-        >
+        <h1 class="display-lg mb-2 text-ink" safe>
           {title}
         </h1>
-        <p
-          class="
-          mb-10 text-sm text-slate-500
-          dark:text-neutral-400
-        "
-        >
+        <p class="mb-10 text-caption text-ink-muted">
           Effective date:{" "}
           {LEGAL_EFFECTIVE_DATE ? (
             <span safe>{LEGAL_EFFECTIVE_DATE}</span>
@@ -153,12 +109,7 @@ const LegalPage = ({
           )}
         </p>
         {children}
-        <nav
-          class="
-          mt-12 flex flex-wrap gap-4 border-t border-slate-200 pt-6 text-sm
-          dark:border-neutral-800
-        "
-        >
+        <nav class="mt-12 flex flex-wrap gap-4 border-t border-rule pt-6 text-caption">
           <LegalLink path="/terms">Terms of Service</LegalLink>
           <LegalLink path="/privacy">Privacy Policy</LegalLink>
           <LegalLink path="/refunds">Refund Policy</LegalLink>
@@ -265,13 +216,7 @@ export const legal = new Elysia()
         <p>
           The Service is based on ConvertX, free software licensed under the GNU Affero General
           Public License v3. The source code of the software running the Service is available at{" "}
-          <a
-            href={SOURCE_CODE_URL}
-            class="
-            text-accent-600 underline
-            dark:text-accent-400
-          "
-          >
+          <a href={SOURCE_CODE_URL} class="text-link underline">
             {SOURCE_CODE_URL}
           </a>
           .
@@ -441,13 +386,7 @@ export const legal = new Elysia()
         <p>
           Our orders are processed by Paddle.com, our Merchant of Record, which handles refunds.
           Request a refund through the link in your Paddle receipt email, at{" "}
-          <a
-            href="https://paddle.net"
-            class="
-            text-accent-600 underline
-            dark:text-accent-400
-          "
-          >
+          <a href="https://paddle.net" class="text-link underline">
             paddle.net
           </a>
           , or by emailing us at <ContactEmail /> with the email address you used to pay. Refunds go

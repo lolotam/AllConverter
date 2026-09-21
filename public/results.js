@@ -106,8 +106,8 @@ const setView = (view) => {
   }
   for (const button of root.querySelectorAll("[data-view-button]")) {
     const active = button.dataset.viewButton === view;
-    button.classList.toggle("bg-accent-500", active);
-    button.classList.toggle("text-neutral-950", active);
+    button.classList.toggle("bg-cta", active);
+    button.classList.toggle("text-cta-ink", active);
   }
   try {
     localStorage.setItem(VIEW_KEY, view);

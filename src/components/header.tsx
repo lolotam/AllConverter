@@ -238,7 +238,6 @@ export const Header = ({
   loggedIn,
   isAdmin,
   accountRegistration,
-  allowUnauthenticated,
   hideHistory,
   webroot = "",
   branding = "ConvertX",
@@ -256,6 +255,7 @@ export const Header = ({
   loggedIn?: boolean | undefined;
   isAdmin?: boolean | undefined;
   accountRegistration?: boolean | undefined;
+  /** Accepted for call-site compatibility; the guest menu covers both cases now. */
   allowUnauthenticated?: boolean | undefined;
   hideHistory?: boolean | undefined;
   webroot?: string | undefined;

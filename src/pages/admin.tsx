@@ -95,10 +95,10 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
       if (!currentUser || currentUser.role !== "admin") {
         return (
           <BaseHtml title="Access Denied | Admin" webroot={WEBROOT}>
-            <div class="mx-auto my-20 max-w-md rounded-2xl border border-red-500/30 bg-white dark:bg-neutral-900 p-8 text-center shadow-2xl">
+            <div class="mx-auto my-20 max-w-md rounded-2xl border border-terracotta/30 bg-surface p-8 text-center shadow-2xl">
               <div class="mb-4 text-5xl">🚫</div>
-              <h1 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Access Denied</h1>
-              <p class="text-slate-500 dark:text-neutral-400 text-sm mb-6">
+              <h1 class="text-2xl font-bold text-ink mb-2">Access Denied</h1>
+              <p class="text-ink-muted text-sm mb-6">
                 You do not have administrative privileges to access this area.
               </p>
               <a href={`${WEBROOT}/`} class="btn-primary inline-block text-sm px-6 py-2.5">
@@ -128,18 +128,16 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
               {...headerAccount(currentUser.id)}
             />
 
-            <div class="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0b0c10] dark:text-neutral-100 transition-colors">
+            <div class="min-h-screen bg-canvas text-ink transition-colors">
               {/* Dashboard header */}
-              <div class="border-b border-slate-200 bg-white/90 px-4 py-4 backdrop-blur dark:border-neutral-800 dark:bg-neutral-950/60 sm:px-8">
+              <div class="border-b border-rule bg-surface px-4 py-4 backdrop-blur sm:px-8">
                 <div class="mx-auto flex max-w-7xl items-center gap-3">
-                  <div class="flex size-10 items-center justify-center rounded-xl border border-amber-500/30 bg-amber-500/10 text-xl font-bold text-amber-500">
+                  <div class="flex size-10 items-center justify-center rounded-xl border border-marigold/50 bg-marigold/20 text-xl font-bold text-ink-muted">
                     ⚡
                   </div>
                   <div>
-                    <h1 class="text-xl font-black text-slate-900 dark:text-white">
-                      Admin Command Center
-                    </h1>
-                    <p class="text-xs text-slate-500 dark:text-neutral-400">
+                    <h1 class="text-xl font-black text-ink">Admin Command Center</h1>
+                    <p class="text-xs text-ink-muted">
                       Manage users, plans, storage and how the site looks
                     </p>
                   </div>
@@ -149,11 +147,11 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
               {/* Notification Banner */}
               {message && (
                 <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-8">
-                  <div class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-600 dark:text-emerald-400 font-medium flex items-center justify-between">
+                  <div class="rounded-xl border border-forest/30 bg-forest/10 px-4 py-3 text-sm text-forest font-medium flex items-center justify-between">
                     <span>✓ {message}</span>
                     <a
                       href={`${WEBROOT}/admin?tab=${currentTab}`}
-                      class="text-xs text-slate-500 hover:text-slate-800 dark:text-neutral-400 dark:hover:text-white"
+                      class="text-xs text-ink-muted hover:text-ink"
                     >
                       ✕
                     </a>
@@ -181,8 +179,8 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                           aria-current={currentTab === item.id ? "page" : undefined}
                           class={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm transition-colors ${
                             currentTab === item.id
-                              ? "bg-accent-500 font-bold text-neutral-950 shadow"
-                              : "font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white"
+                              ? "bg-cta font-bold text-cta-ink shadow"
+                              : "font-medium text-ink-body hover:bg-surface-2 hover:text-ink"
                           }`}
                         >
                           <span aria-hidden="true">{item.icon}</span>
@@ -199,79 +197,57 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                     <div class="space-y-8">
                       {/* Stat Cards */}
                       <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/70 backdrop-blur">
+                        <div class="rounded-2xl border border-rule bg-surface p-6 shadow-sm backdrop-blur">
                           <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-neutral-400">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                               Total Users
                             </span>
-                            <span class="rounded-lg bg-blue-500/10 p-2 text-blue-500">👥</span>
+                            <span class="rounded-lg bg-sky/40 p-2 text-ink">👥</span>
                           </div>
-                          <div class="text-3xl font-extrabold text-slate-900 dark:text-white">
-                            {stats.totalUsers}
-                          </div>
-                          <p class="mt-1 text-xs text-slate-500 dark:text-neutral-400">
-                            Registered accounts in database
-                          </p>
+                          <div class="text-3xl font-extrabold text-ink">{stats.totalUsers}</div>
+                          <p class="mt-1 text-xs text-ink-muted">Registered accounts in database</p>
                         </div>
 
-                        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/70 backdrop-blur">
+                        <div class="rounded-2xl border border-rule bg-surface p-6 shadow-sm backdrop-blur">
                           <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-neutral-400">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                               Pro & Business
                             </span>
-                            <span class="rounded-lg bg-accent-500/10 p-2 text-lime-600 dark:text-accent-400">
-                              💎
-                            </span>
+                            <span class="rounded-lg bg-cta/10 p-2 text-ink">💎</span>
                           </div>
-                          <div class="text-3xl font-extrabold text-lime-600 dark:text-accent-400">
-                            {stats.proUsers}
-                          </div>
-                          <p class="mt-1 text-xs text-slate-500 dark:text-neutral-400">
-                            Active paying / promoted tiers
-                          </p>
+                          <div class="text-3xl font-extrabold text-ink">{stats.proUsers}</div>
+                          <p class="mt-1 text-xs text-ink-muted">Active paying / promoted tiers</p>
                         </div>
 
-                        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/70 backdrop-blur">
+                        <div class="rounded-2xl border border-rule bg-surface p-6 shadow-sm backdrop-blur">
                           <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-neutral-400">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                               Total Jobs
                             </span>
-                            <span class="rounded-lg bg-purple-500/10 p-2 text-purple-500">⚡</span>
+                            <span class="rounded-lg bg-sapphire/15 p-2 text-ink">⚡</span>
                           </div>
-                          <div class="text-3xl font-extrabold text-slate-900 dark:text-white">
-                            {stats.totalJobs}
-                          </div>
-                          <p class="mt-1 text-xs text-slate-500 dark:text-neutral-400">
-                            Conversion sessions executed
-                          </p>
+                          <div class="text-3xl font-extrabold text-ink">{stats.totalJobs}</div>
+                          <p class="mt-1 text-xs text-ink-muted">Conversion sessions executed</p>
                         </div>
 
-                        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/70 backdrop-blur">
+                        <div class="rounded-2xl border border-rule bg-surface p-6 shadow-sm backdrop-blur">
                           <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-neutral-400">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-ink-muted">
                               Files Converted
                             </span>
-                            <span class="rounded-lg bg-emerald-500/10 p-2 text-emerald-500">
-                              📄
-                            </span>
+                            <span class="rounded-lg bg-forest/10 p-2 text-forest">📄</span>
                           </div>
-                          <div class="text-3xl font-extrabold text-slate-900 dark:text-white">
-                            {stats.totalFiles}
-                          </div>
-                          <p class="mt-1 text-xs text-slate-500 dark:text-neutral-400">
-                            Individual outputs produced
-                          </p>
+                          <div class="text-3xl font-extrabold text-ink">{stats.totalFiles}</div>
+                          <p class="mt-1 text-xs text-ink-muted">Individual outputs produced</p>
                         </div>
                       </div>
 
                       {/* Quick Management Shortcuts */}
                       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Left: Quick Actions */}
-                        <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900/60">
-                          <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">
-                            Quick Tier Control
-                          </h3>
-                          <p class="text-sm text-slate-600 dark:text-neutral-400 mb-6">
+                        <div class="rounded-2xl border border-rule bg-surface p-6 shadow-sm">
+                          <h3 class="text-lg font-bold text-ink mb-4">Quick Tier Control</h3>
+                          <p class="text-sm text-ink-muted mb-6">
                             Instantly manage user tiers, grant Pro access, or adjust global
                             conversion quotas.
                           </p>
@@ -292,40 +268,32 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                         </div>
 
                         {/* Right: Engine Status */}
-                        <div class="rounded-2xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/60 p-6">
-                          <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-4">
-                            System & Engine Status
-                          </h3>
+                        <div class="rounded-2xl border border-rule bg-surface/60 p-6">
+                          <h3 class="text-lg font-bold text-ink mb-4">System & Engine Status</h3>
                           <div class="space-y-3 text-sm">
-                            <div class="flex items-center justify-between py-2 border-b border-slate-200 dark:border-neutral-800">
-                              <span class="text-slate-500 dark:text-neutral-400">
-                                Runtime Engine
-                              </span>
-                              <span class="font-mono text-xs text-accent-400 font-semibold">
+                            <div class="flex items-center justify-between py-2 border-b border-rule">
+                              <span class="text-ink-muted">Runtime Engine</span>
+                              <span class="font-mono text-xs text-ink font-semibold">
                                 Bun v1.4.2 (Native)
                               </span>
                             </div>
-                            <div class="flex items-center justify-between py-2 border-b border-slate-200 dark:border-neutral-800">
-                              <span class="text-slate-500 dark:text-neutral-400">Database</span>
-                              <span class="font-mono text-xs text-emerald-400 font-semibold">
+                            <div class="flex items-center justify-between py-2 border-b border-rule">
+                              <span class="text-ink-muted">Database</span>
+                              <span class="font-mono text-xs text-forest font-semibold">
                                 SQLite (WAL Mode Enabled)
                               </span>
                             </div>
-                            <div class="flex items-center justify-between py-2 border-b border-slate-200 dark:border-neutral-800">
-                              <span class="text-slate-500 dark:text-neutral-400">
-                                Public Access
-                              </span>
-                              <span class="font-mono text-xs text-blue-400 font-semibold">
+                            <div class="flex items-center justify-between py-2 border-b border-rule">
+                              <span class="text-ink-muted">Public Access</span>
+                              <span class="font-mono text-xs text-link font-semibold">
                                 {ALLOW_UNAUTHENTICATED
                                   ? "Unauthenticated Allowed"
                                   : "Auth Required"}
                               </span>
                             </div>
                             <div class="flex items-center justify-between py-2">
-                              <span class="text-slate-500 dark:text-neutral-400">
-                                Admin Account
-                              </span>
-                              <span class="font-mono text-xs text-amber-400 font-semibold">
+                              <span class="text-ink-muted">Admin Account</span>
+                              <span class="font-mono text-xs text-ink-muted font-semibold">
                                 {currentUser.email}
                               </span>
                             </div>
@@ -340,23 +308,21 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                     <div class="space-y-6">
                       <div class="flex flex-wrap items-center justify-between gap-4">
                         <div>
-                          <h2 class="text-2xl font-bold text-slate-900 dark:text-white">
-                            Database Users
-                          </h2>
-                          <p class="text-sm text-slate-500 dark:text-neutral-400">
+                          <h2 class="text-2xl font-bold text-ink">Database Users</h2>
+                          <p class="text-sm text-ink-muted">
                             Inspect all users, modify their subscription tiers, and toggle
                             administrative rights.
                           </p>
                         </div>
-                        <span class="rounded-lg bg-slate-100 dark:bg-neutral-800 px-3 py-1 text-xs text-slate-600 dark:text-neutral-300 font-medium">
+                        <span class="rounded-lg bg-surface-2 px-3 py-1 text-xs text-ink-body font-medium">
                           Total Users: {users.length}
                         </span>
                       </div>
 
                       {/* Users Table */}
-                      <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-neutral-800 bg-white dark:bg-neutral-900/70 backdrop-blur shadow-xl">
-                        <table class="w-full text-left text-sm text-slate-600 dark:text-neutral-300">
-                          <thead class="border-b border-slate-200 dark:border-neutral-800 bg-slate-100 dark:bg-neutral-950/80 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-neutral-400">
+                      <div class="overflow-x-auto rounded-2xl border border-rule bg-surface/70 backdrop-blur shadow-xl">
+                        <table class="w-full text-left text-sm text-ink-body">
+                          <thead class="border-b border-rule bg-surface-2 text-xs font-semibold uppercase tracking-wider text-ink-muted">
                             <tr>
                               <th class="p-4">ID</th>
                               <th class="p-4">Email</th>
@@ -367,13 +333,11 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                               <th class="p-4 text-right">Actions</th>
                             </tr>
                           </thead>
-                          <tbody class="divide-y divide-slate-200 dark:divide-neutral-800/60">
+                          <tbody class="divide-y divide-rule">
                             {users.map((u) => (
-                              <tr class="hover:bg-slate-50 dark:bg-neutral-850/50 transition-colors">
-                                <td class="p-4 font-mono text-xs text-slate-500 dark:text-neutral-400">
-                                  {u.id}
-                                </td>
-                                <td class="p-4 font-medium text-slate-900 dark:text-white">
+                              <tr class="hover:bg-surface-2 transition-colors">
+                                <td class="p-4 font-mono text-xs text-ink-muted">{u.id}</td>
+                                <td class="p-4 font-medium text-ink">
                                   <div class="flex items-center gap-2.5">
                                     {u.avatar_path ? (
                                       <img
@@ -384,28 +348,25 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                         class="size-7 rounded-lg object-cover"
                                       />
                                     ) : (
-                                      <span class="flex size-7 items-center justify-center rounded-lg bg-slate-100 dark:bg-neutral-800 text-[10px] font-bold text-slate-600 dark:text-neutral-300">
+                                      <span class="flex size-7 items-center justify-center rounded-lg bg-surface-2 text-[10px] font-bold text-ink-body">
                                         {initialsOf(u.display_name, u.email)}
                                       </span>
                                     )}
                                     <span class="flex flex-col">
                                       <span safe>{u.display_name || u.email}</span>
                                       {u.display_name ? (
-                                        <span
-                                          class="text-[11px] font-normal text-slate-500 dark:text-neutral-400"
-                                          safe
-                                        >
+                                        <span class="text-[11px] font-normal text-ink-muted" safe>
                                           {u.email}
                                         </span>
                                       ) : null}
                                     </span>
                                     {u.google_id ? (
-                                      <span class="rounded bg-slate-100 dark:bg-neutral-800 px-1.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-neutral-300">
+                                      <span class="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-ink-body">
                                         Google
                                       </span>
                                     ) : null}
                                     {u.id === currentUser.id && (
-                                      <span class="rounded bg-accent-500/20 px-1.5 py-0.5 text-[10px] font-bold text-accent-400">
+                                      <span class="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-ink">
                                         YOU
                                       </span>
                                     )}
@@ -425,8 +386,8 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                       type="submit"
                                       class={`rounded-md px-2.5 py-1 text-xs font-bold transition-all cursor-pointer ${
                                         u.role === "admin"
-                                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
-                                          : "bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400 border border-slate-300 dark:border-neutral-700 hover:bg-slate-200 dark:hover:bg-neutral-700"
+                                          ? "bg-marigold/25 text-ink-muted border border-marigold/50 hover:bg-marigold/30"
+                                          : "bg-surface-2 text-ink-muted border border-rule hover:bg-surface-2"
                                       }`}
                                     >
                                       {u.role === "admin" ? "⚡ Admin" : "User"}
@@ -437,18 +398,16 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                   <span
                                     class={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-bold uppercase tracking-wider ${
                                       u.tier === "pro"
-                                        ? "bg-accent-500/20 text-accent-400 border border-accent-500/40"
+                                        ? "bg-surface-2 text-ink border border-cta/40"
                                         : u.tier === "business"
-                                          ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
-                                          : "bg-slate-100 dark:bg-neutral-800 text-slate-500 dark:text-neutral-400 border border-slate-300 dark:border-neutral-700"
+                                          ? "bg-sky/40 text-ink border border-rule"
+                                          : "bg-surface-2 text-ink-muted border border-rule"
                                     }`}
                                   >
                                     {u.tier}
                                   </span>
                                 </td>
-                                <td class="p-4 font-mono text-xs text-slate-600 dark:text-neutral-300">
-                                  {u.jobs_count}
-                                </td>
+                                <td class="p-4 font-mono text-xs text-ink-body">{u.jobs_count}</td>
 
                                 {/* Change Tier Form */}
                                 <td class="p-4 text-right">
@@ -459,7 +418,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                   >
                                     <select
                                       name="tier"
-                                      class="rounded-lg bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-2.5 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-accent-500 cursor-pointer"
+                                      class="rounded-lg bg-surface-2 border border-rule px-2.5 py-1 text-xs text-ink focus:outline-none focus:border-cta cursor-pointer"
                                     >
                                       <option value="free" selected={u.tier === "free"}>
                                         Free
@@ -473,7 +432,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                     </select>
                                     <button
                                       type="submit"
-                                      class="rounded-lg bg-accent-500 px-3 py-1 text-xs font-bold text-neutral-950 hover:bg-accent-400 transition-colors cursor-pointer"
+                                      class="rounded-lg bg-cta px-3 py-1 text-xs font-bold text-cta-ink hover:bg-cta transition-colors cursor-pointer"
                                     >
                                       Apply
                                     </button>
@@ -490,13 +449,13 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                     >
                                       <button
                                         type="submit"
-                                        class="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-400 hover:bg-red-500/20 transition-colors cursor-pointer"
+                                        class="rounded-lg border border-terracotta/30 bg-terracotta/10 px-2.5 py-1 text-xs font-semibold text-terracotta hover:bg-terracotta/20 transition-colors cursor-pointer"
                                       >
                                         Delete
                                       </button>
                                     </form>
                                   ) : (
-                                    <span class="text-xs text-neutral-500">Protected</span>
+                                    <span class="text-xs text-ink-muted">Protected</span>
                                   )}
                                 </td>
                               </tr>
@@ -511,10 +470,10 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                   {currentTab === "tiers" && (
                     <div class="space-y-8">
                       <div>
-                        <h2 class="text-2xl font-bold text-slate-900 dark:text-white">
+                        <h2 class="text-2xl font-bold text-ink">
                           Tier Management & UI Design Studio
                         </h2>
-                        <p class="text-sm text-slate-500 dark:text-neutral-400">
+                        <p class="text-sm text-ink-muted">
                           Customize pricing, quotas, features, and visual badges. Changes reflect
                           live on the homepage pricing section immediately.
                         </p>
@@ -531,10 +490,10 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
 
                           return (
                             <div
-                              class={`rounded-3xl border bg-white dark:bg-neutral-900/80 p-6 flex flex-col justify-between shadow-2xl transition-all ${
+                              class={`rounded-3xl border bg-surface/80 p-6 flex flex-col justify-between shadow-2xl transition-all ${
                                 t.is_popular
-                                  ? "border-2 border-accent-500 shadow-accent-500/10"
-                                  : "border-slate-200 dark:border-neutral-800"
+                                  ? "border-2 border-cta shadow-accent-500/10"
+                                  : "border-rule"
                               }`}
                             >
                               <form
@@ -543,11 +502,11 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                 class="space-y-4"
                               >
                                 <div class="flex items-center justify-between">
-                                  <span class="rounded-lg bg-slate-100 dark:bg-neutral-800 px-2.5 py-1 text-xs font-mono font-bold text-slate-500 dark:text-neutral-400 uppercase">
+                                  <span class="rounded-lg bg-surface-2 px-2.5 py-1 text-xs font-mono font-bold text-ink-muted uppercase">
                                     ID: {t.id}
                                   </span>
                                   {t.is_popular ? (
-                                    <span class="rounded-full bg-accent-500 px-3 py-0.5 text-[10px] font-extrabold text-neutral-950 uppercase">
+                                    <span class="rounded-full bg-cta px-3 py-0.5 text-[10px] font-extrabold text-cta-ink uppercase">
                                       Popular Card
                                     </span>
                                   ) : null}
@@ -555,7 +514,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
 
                                 {/* Tier Name */}
                                 <div>
-                                  <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                  <label class="block text-xs font-semibold text-ink-muted mb-1">
                                     Tier Name
                                   </label>
                                   <input
@@ -563,14 +522,14 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                     name="name"
                                     value={t.name}
                                     required
-                                    class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-3 py-2 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
+                                    class="w-full rounded-xl bg-surface-2 border border-rule px-3 py-2 text-sm font-bold text-ink focus:outline-none focus:border-cta"
                                   />
                                 </div>
 
                                 {/* Price & Billing Period */}
                                 <div class="grid grid-cols-2 gap-2">
                                   <div>
-                                    <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                    <label class="block text-xs font-semibold text-ink-muted mb-1">
                                       Price
                                     </label>
                                     <input
@@ -578,11 +537,11 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                       name="price"
                                       value={t.price}
                                       required
-                                      class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-3 py-2 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
+                                      class="w-full rounded-xl bg-surface-2 border border-rule px-3 py-2 text-sm font-bold text-ink focus:outline-none focus:border-cta"
                                     />
                                   </div>
                                   <div>
-                                    <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                    <label class="block text-xs font-semibold text-ink-muted mb-1">
                                       Period
                                     </label>
                                     <input
@@ -590,14 +549,14 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                       name="billing_period"
                                       value={t.billing_period}
                                       required
-                                      class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
+                                      class="w-full rounded-xl bg-surface-2 border border-rule px-3 py-2 text-sm text-ink focus:outline-none focus:border-cta"
                                     />
                                   </div>
                                 </div>
 
                                 {/* Badge text */}
                                 <div>
-                                  <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                  <label class="block text-xs font-semibold text-ink-muted mb-1">
                                     Badge Text
                                   </label>
                                   <input
@@ -605,13 +564,13 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                     name="badge"
                                     value={t.badge}
                                     placeholder="e.g. Most Popular"
-                                    class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
+                                    class="w-full rounded-xl bg-surface-2 border border-rule px-3 py-2 text-sm text-ink focus:outline-none focus:border-cta"
                                   />
                                 </div>
 
                                 {/* Description */}
                                 <div>
-                                  <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                  <label class="block text-xs font-semibold text-ink-muted mb-1">
                                     Short Description
                                   </label>
                                   <input
@@ -619,14 +578,14 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                     name="description"
                                     value={t.description}
                                     required
-                                    class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-3 py-2 text-xs text-slate-600 dark:text-neutral-300 focus:outline-none focus:border-accent-500"
+                                    class="w-full rounded-xl bg-surface-2 border border-rule px-3 py-2 text-xs text-ink-body focus:outline-none focus:border-cta"
                                   />
                                 </div>
 
                                 {/* Max File Size MB & Daily Limit */}
                                 <div class="grid grid-cols-2 gap-2">
                                   <div>
-                                    <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                    <label class="block text-xs font-semibold text-ink-muted mb-1">
                                       Max File (MB)
                                     </label>
                                     <input
@@ -634,11 +593,11 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                       name="max_file_size_mb"
                                       value={String(t.max_file_size_mb)}
                                       required
-                                      class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-3 py-2 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
+                                      class="w-full rounded-xl bg-surface-2 border border-rule px-3 py-2 text-sm font-mono text-ink focus:outline-none focus:border-cta"
                                     />
                                   </div>
                                   <div>
-                                    <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                    <label class="block text-xs font-semibold text-ink-muted mb-1">
                                       Daily Limit
                                     </label>
                                     <input
@@ -646,7 +605,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                       name="daily_conversions"
                                       value={String(t.daily_conversions)}
                                       required
-                                      class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-3 py-2 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
+                                      class="w-full rounded-xl bg-surface-2 border border-rule px-3 py-2 text-sm font-mono text-ink focus:outline-none focus:border-cta"
                                     />
                                   </div>
                                 </div>
@@ -654,7 +613,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                 {/* Batch Limit, Priority & Retention */}
                                 <div class="grid grid-cols-3 gap-2">
                                   <div>
-                                    <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                    <label class="block text-xs font-semibold text-ink-muted mb-1">
                                       Batch Files
                                     </label>
                                     <input
@@ -662,16 +621,16 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                       name="batch_limit"
                                       value={String(t.batch_limit)}
                                       required
-                                      class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-3 py-2 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
+                                      class="w-full rounded-xl bg-surface-2 border border-rule px-3 py-2 text-sm font-mono text-ink focus:outline-none focus:border-cta"
                                     />
                                   </div>
                                   <div>
-                                    <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                    <label class="block text-xs font-semibold text-ink-muted mb-1">
                                       Priority Queue
                                     </label>
                                     <select
                                       name="priority_queue"
-                                      class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-2 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
+                                      class="w-full rounded-xl bg-surface-2 border border-rule px-2 py-2 text-sm text-ink focus:outline-none focus:border-cta"
                                     >
                                       <option value="0" selected={t.priority_queue === 0}>
                                         Standard
@@ -685,7 +644,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                     </select>
                                   </div>
                                   <div>
-                                    <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                    <label class="block text-xs font-semibold text-ink-muted mb-1">
                                       Retention (h)
                                     </label>
                                     <input
@@ -694,7 +653,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                       value={String(t.retention_hours ?? 2)}
                                       required
                                       min="1"
-                                      class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-3 py-2 text-sm font-mono text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
+                                      class="w-full rounded-xl bg-surface-2 border border-rule px-3 py-2 text-sm font-mono text-ink focus:outline-none focus:border-cta"
                                     />
                                   </div>
                                 </div>
@@ -711,7 +670,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                   />
                                   <label
                                     for={`popular_${t.id}`}
-                                    class="text-xs font-semibold text-slate-600 dark:text-neutral-300 cursor-pointer"
+                                    class="text-xs font-semibold text-ink-body cursor-pointer"
                                   >
                                     Highlight as "Most Popular" card
                                   </label>
@@ -719,13 +678,13 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
 
                                 {/* Feature lines */}
                                 <div>
-                                  <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                  <label class="block text-xs font-semibold text-ink-muted mb-1">
                                     Features List (1 per line)
                                   </label>
                                   <textarea
                                     name="features"
                                     rows="5"
-                                    class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 p-3 text-xs font-mono text-slate-700 dark:text-neutral-200 focus:outline-none focus:border-accent-500"
+                                    class="w-full rounded-xl bg-surface-2 border border-rule p-3 text-xs font-mono text-ink-body focus:outline-none focus:border-cta"
                                   >
                                     {featuresList.join("\n")}
                                   </textarea>
@@ -734,25 +693,25 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                 {/* Button Text & Link */}
                                 <div class="grid grid-cols-2 gap-2">
                                   <div>
-                                    <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                    <label class="block text-xs font-semibold text-ink-muted mb-1">
                                       Button Text
                                     </label>
                                     <input
                                       type="text"
                                       name="button_text"
                                       value={t.button_text}
-                                      class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
+                                      class="w-full rounded-xl bg-surface-2 border border-rule px-3 py-2 text-xs text-ink focus:outline-none focus:border-cta"
                                     />
                                   </div>
                                   <div>
-                                    <label class="block text-xs font-semibold text-slate-500 dark:text-neutral-400 mb-1">
+                                    <label class="block text-xs font-semibold text-ink-muted mb-1">
                                       Button Link
                                     </label>
                                     <input
                                       type="text"
                                       name="button_link"
                                       value={t.button_link}
-                                      class="w-full rounded-xl bg-slate-100 dark:bg-neutral-800 border border-slate-300 dark:border-neutral-700 px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-none focus:border-accent-500"
+                                      class="w-full rounded-xl bg-surface-2 border border-rule px-3 py-2 text-xs text-ink focus:outline-none focus:border-cta"
                                     />
                                   </div>
                                 </div>

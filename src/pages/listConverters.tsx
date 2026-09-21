@@ -31,12 +31,14 @@ export const listConverters = new Elysia().use(userService).get(
             `}
           >
             <article class="article">
-              <h1 class="mb-4 text-xl">{t(locale, "converters.title")}</h1>
+              <h1 class="mb-4 text-subheading font-bold text-ink">
+                {t(locale, "converters.title")}
+              </h1>
               <table
                 class={`
-                  w-full table-auto rounded-sm bg-neutral-900 text-start
+                  w-full table-auto rounded-card bg-surface-2 text-start
                   [&_td]:p-4
-                  [&_tr]:rounded-sm [&_tr]:border-b [&_tr]:border-neutral-800
+                  [&_tr]:rounded-sm [&_tr]:border-b [&_tr]:border-rule
                   [&_ul]:list-inside [&_ul]:list-disc
                 `}
               >

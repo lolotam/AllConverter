@@ -33,17 +33,16 @@ export const chooseConverter = new Elysia().use(userService).post(
         <article
           class={`
             convert_to_popup absolute z-20 mt-2 m-0 hidden h-[32vh] max-h-[50vh] w-full flex-col
-            overflow-x-hidden overflow-y-auto rounded-xl border border-slate-200 bg-white text-slate-800 shadow-2xl p-2
-            dark:border-neutral-700/80 dark:bg-neutral-850 dark:text-neutral-100
+            overflow-x-hidden overflow-y-auto rounded-card border border-rule bg-surface p-2 text-ink-body shadow-lg
           `}
         >
           {/* Recently Used Formats Group (Populated via JS) */}
           <article
             id="recent-formats-group"
-            class="convert_to_group hidden w-full flex-col border-b border-slate-200 dark:border-neutral-700/60 p-3 bg-blue-500/5 dark:bg-blue-500/10 rounded-lg mb-1"
+            class="convert_to_group mb-1 hidden w-full flex-col rounded-card border-b border-rule bg-sky/25 p-3"
             data-converter="🕒 Recent Formats"
           >
-            <header class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+            <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
               <span>🕒</span> Recently Used (المستخدمة مؤخراً)
             </header>
             <ul
@@ -55,10 +54,10 @@ export const chooseConverter = new Elysia().use(userService).post(
           {/* Popular Formats Group */}
           {popularTargets.length > 0 && (
             <article
-              class="convert_to_group flex w-full flex-col border-b border-slate-200 dark:border-neutral-700/60 p-3 bg-amber-500/5 dark:bg-amber-500/10 rounded-lg mb-1"
+              class="convert_to_group mb-1 flex w-full flex-col rounded-card border-b border-rule bg-marigold/20 p-3"
               data-converter="🔥 Popular Formats"
             >
-              <header class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+              <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
                 <span>🔥</span> Popular Formats (الأكثر شهرة)
               </header>
               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">
@@ -70,7 +69,7 @@ export const chooseConverter = new Elysia().use(userService).post(
                   return (
                     <button
                       tabindex={0}
-                      class="target rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-accent-500 hover:text-neutral-950 transition-colors"
+                      class="target rounded-tag border border-rule bg-surface px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-cta hover:text-cta-ink"
                       data-value={`${target},${converterName}`}
                       data-target={target}
                       data-converter={converterName}
@@ -87,11 +86,11 @@ export const chooseConverter = new Elysia().use(userService).post(
           {/* All Converter Groups */}
           {Object.entries(possibleTargets).map(([converter, targets]) => (
             <article
-              class="convert_to_group flex w-full flex-col border-b border-slate-100 dark:border-neutral-700/60 p-3 last:border-none"
+              class="convert_to_group flex w-full flex-col border-b border-rule p-3 last:border-none"
               data-converter={converter}
             >
               <header
-                class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-lime-600 dark:text-accent-400"
+                class="mb-2 w-full text-xs font-semibold uppercase tracking-wider text-ink-muted"
                 safe
               >
                 {converter}
@@ -100,7 +99,7 @@ export const chooseConverter = new Elysia().use(userService).post(
                 {targets.map((target) => (
                   <button
                     tabindex={0}
-                    class="target rounded-lg border border-slate-200 bg-slate-100 text-slate-700 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-200 px-2.5 py-1 text-xs font-medium hover:bg-accent-500 hover:text-neutral-950 transition-colors"
+                    class="target rounded-tag border border-rule bg-surface-2 px-3 py-1 text-xs font-medium text-ink-body transition-colors hover:bg-cta hover:text-cta-ink"
                     data-value={`${target},${converter}`}
                     data-target={target}
                     data-converter={converter}

@@ -75,7 +75,9 @@ export const user = new Elysia()
         >
           <h1 class="my-8 text-3xl">{tr(locale, "setup.welcome")}</h1>
           <article class="article p-0">
-            <header class="w-full bg-neutral-800 p-4">{tr(locale, "setup.createAccount")}</header>
+            <header class="w-full border-b border-rule bg-surface-2 p-4 font-semibold text-ink">
+              {tr(locale, "setup.createAccount")}
+            </header>
             <form method="post" action={`${WEBROOT}/register`} class="p-4">
               <fieldset class="mb-4 flex flex-col gap-4">
                 <label class="flex flex-col gap-1">
@@ -108,13 +110,7 @@ export const user = new Elysia()
             </form>
             <footer class="p-4">
               {tr(locale, "setup.reportIssues")}{" "}
-              <a
-                class={`
-                  text-accent-500 underline
-                  hover:text-accent-400
-                `}
-                href="https://github.com/C4illin/ConvertX"
-              >
+              <a class="text-link underline" href="https://github.com/C4illin/ConvertX">
                 GitHub
               </a>
               .
@@ -152,10 +148,10 @@ export const user = new Elysia()
               {query.reason === "free-used" && (
                 <p
                   role="status"
-                  class="mb-4 rounded-lg border border-accent-500/40 bg-accent-500/10 p-3 text-sm"
+                  class="mb-4 rounded-button border border-rule bg-surface-2 p-3 text-caption text-ink-body"
                 >
                   {tr(locale, "auth.freeUsedRegister1")}{" "}
-                  <a href={`${WEBROOT}/login?reason=free-used`} class="text-accent-500 underline">
+                  <a href={`${WEBROOT}/login?reason=free-used`} class="text-link underline">
                     {tr(locale, "auth.signInLink")}
                   </a>{" "}
                   {tr(locale, "auth.freeUsedRegister2")}
@@ -200,13 +196,13 @@ export const user = new Elysia()
                     />
                   </label>
                 </fieldset>
-                <p class="text-sm text-neutral-400">
+                <p class="text-caption text-ink-muted">
                   {tr(locale, "auth.agreeTo")}{" "}
-                  <a href={`${WEBROOT}/terms`} class="text-accent-500 underline">
+                  <a href={`${WEBROOT}/terms`} class="text-link underline">
                     {tr(locale, "auth.termsLink")}
                   </a>{" "}
                   {tr(locale, "auth.and")}{" "}
-                  <a href={`${WEBROOT}/privacy`} class="text-accent-500 underline">
+                  <a href={`${WEBROOT}/privacy`} class="text-link underline">
                     {tr(locale, "auth.privacyLink")}
                   </a>
                   .
@@ -336,7 +332,7 @@ export const user = new Elysia()
                 {query.reason === "free-used" && (
                   <p
                     role="status"
-                    class="mb-4 rounded-lg border border-accent-500/40 bg-accent-500/10 p-3 text-sm"
+                    class="mb-4 rounded-button border border-rule bg-surface-2 p-3 text-caption text-ink-body"
                   >
                     {tr(locale, "auth.freeUsedLogin1")}
                     {ACCOUNT_REGISTRATION ? (
@@ -344,7 +340,7 @@ export const user = new Elysia()
                         {tr(locale, "auth.freeUsedLoginOr")}{" "}
                         <a
                           href={`${WEBROOT}/register?reason=free-used`}
-                          class="text-accent-500 underline"
+                          class="text-link underline"
                         >
                           {tr(locale, "auth.freeUsedLoginLink")}
                         </a>
@@ -365,7 +361,7 @@ export const user = new Elysia()
                 {query.error ? (
                   <p
                     role="alert"
-                    class="mb-4 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-sm"
+                    class="mb-4 rounded-button border border-terracotta/40 bg-terracotta/10 p-3 text-caption text-terracotta"
                   >
                     {query.error === "closed"
                       ? tr(locale, "auth.errorClosed")

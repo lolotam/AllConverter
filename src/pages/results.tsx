@@ -114,13 +114,13 @@ function ProgressList({
 }) {
   return (
     <section class="mb-6">
-      <div class="mb-3 flex items-center justify-between text-sm font-semibold text-slate-700 dark:text-neutral-200">
+      <div class="mb-3 flex items-center justify-between text-caption font-semibold text-ink-body">
         <span>
           {job.num_files === 1
             ? tr(locale, "results.convertingOne")
             : tr(locale, "results.convertingMany", { count: job.num_files })}
         </span>
-        <span data-progress-overall class="tabular-nums text-lime-600 dark:text-accent-400">
+        <span data-progress-overall class="tabular-nums font-bold text-ink">
           0%
         </span>
       </div>
@@ -129,15 +129,15 @@ function ProgressList({
           <li
             data-progress-index={String(index)}
             data-state={file.state}
-            class="group rounded-xl border border-slate-200 bg-white p-3 dark:border-neutral-800 dark:bg-neutral-900"
+            class="group rounded-card border border-rule bg-surface p-3"
           >
             <div class="mb-1.5 flex items-center justify-between gap-3 text-sm">
-              <span safe class="truncate font-medium text-slate-900 dark:text-white">
+              <span safe class="truncate font-medium text-ink">
                 {file.file}
               </span>
               <span
                 data-progress-label
-                class="shrink-0 text-xs font-bold tabular-nums text-slate-600 group-data-[state=failed]:text-rose-600 dark:text-neutral-300"
+                class="shrink-0 text-xs font-bold tabular-nums text-ink-muted group-data-[state=failed]:text-terracotta"
               >
                 0%
               </span>
@@ -149,15 +149,15 @@ function ProgressList({
               aria-valuemax="100"
               aria-valuenow="0"
               aria-label={tr(locale, "results.convertingFile", { file: file.file })}
-              class="h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-neutral-700"
+              class="h-2.5 overflow-hidden rounded-full bg-surface-2"
             >
               <div
                 data-progress-fill
                 style="width: 0%"
-                class="h-full rounded-full bg-gradient-to-r from-accent-500 to-lime-400 group-data-[state=converting]:animate-pulse group-data-[state=failed]:from-rose-500 group-data-[state=failed]:to-rose-400"
+                class="h-full rounded-full bg-cta group-data-[state=converting]:animate-pulse group-data-[state=failed]:bg-terracotta"
               />
             </div>
-            <p data-progress-state class="mt-1 text-xs text-slate-500 dark:text-neutral-400">
+            <p data-progress-state class="mt-1 text-xs text-ink-muted">
               {tr(locale, STATE_LABELS[file.state].key)}
             </p>
           </li>
@@ -188,10 +188,8 @@ function ResultsArticle({
     <article class="article" data-job-complete={String(finished)}>
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-black text-slate-900 dark:text-white">
-            {tr(locale, "results.title")}
-          </h1>
-          <p class="text-xs text-slate-500 dark:text-neutral-400 mt-1">
+          <h1 class="text-heading-sm font-black text-ink">{tr(locale, "results.title")}</h1>
+          <p class="text-xs text-ink-muted mt-1">
             {tr(locale, "results.job", { id: job.id })}{" "}
             {finished
               ? files.length === 1
@@ -213,7 +211,7 @@ function ResultsArticle({
             <button
               type="submit"
               style={finished ? "" : "pointer-events: none;"}
-              class="btn-secondary text-xs sm:text-sm py-2 px-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 inline-flex items-center gap-1.5"
+              class="btn-secondary text-xs sm:text-sm py-2 px-3 text-terracotta hover:bg-terracotta/10 inline-flex items-center gap-1.5"
               {...(finished ? "" : { disabled: true, "aria-busy": "true" })}
             >
               <DeleteIcon /> <span>{tr(locale, "results.delete")}</span>
@@ -241,36 +239,30 @@ function ResultsArticle({
         <ProgressList locale={locale} job={job} tracked={tracked} />
       )}
       {!finished && !tracked && (
-        <p class="mb-6 text-sm text-slate-500 dark:text-neutral-400">
-          {tr(locale, "results.convertingYourFiles")}
-        </p>
+        <p class="mb-6 text-caption text-ink-muted">{tr(locale, "results.convertingYourFiles")}</p>
       )}
 
       {finished && entries.length > 0 && (
         <div data-results>
           {/* Toolbar: switch between the two views, and act on the selection */}
           <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div class="inline-flex overflow-hidden rounded-xl border border-slate-200 dark:border-neutral-800">
-              <button
-                type="button"
-                data-view-button="rows"
-                class="px-3 py-1.5 text-xs font-bold text-slate-600 dark:text-neutral-300"
-              >
+            {/* The muted label colour lives on the container: results.js marks the active
+                view button with bg-cta text-cta-ink, and a direct class must out-rank
+                inherited text so the toggle stays readable */}
+            <div class="inline-flex overflow-hidden rounded-button border border-rule text-ink-muted">
+              <button type="button" data-view-button="rows" class="px-3 py-1.5 text-xs font-bold">
                 {tr(locale, "results.rows")}
               </button>
               <button
                 type="button"
                 data-view-button="cards"
-                class="border-s border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 dark:border-neutral-800 dark:text-neutral-300"
+                class="border-s border-rule px-3 py-1.5 text-xs font-bold"
               >
                 {tr(locale, "results.cards")}
               </button>
             </div>
             <div data-selection-bar hidden class="flex flex-wrap items-center gap-2">
-              <span
-                data-selection-count
-                class="text-xs font-semibold text-slate-600 dark:text-neutral-300"
-              >
+              <span data-selection-count class="text-xs font-semibold text-ink-muted">
                 {tr(locale, "results.selected", { count: 0 })}
               </span>
               <button
@@ -289,10 +281,10 @@ function ResultsArticle({
           {/* Rows view */}
           <div
             data-view="rows"
-            class="overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+            class="overflow-x-auto rounded-card border border-rule bg-surface-2 shadow-sm"
           >
             <table class="w-full table-auto text-start text-sm">
-              <thead class="border-b border-slate-200 bg-slate-100/80 text-xs font-bold uppercase tracking-wider text-slate-500 dark:border-neutral-800 dark:bg-neutral-850/80 dark:text-neutral-400">
+              <thead class="border-b border-rule text-xs font-bold uppercase tracking-wider text-ink-muted">
                 <tr>
                   <th class="p-4">
                     <input
@@ -307,13 +299,13 @@ function ResultsArticle({
                   <th class="p-4 text-end">{tr(locale, "results.actions")}</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-slate-200 dark:divide-neutral-800/80">
+              <tbody class="divide-y divide-rule">
                 {entries.map((entry) => (
                   <tr
                     data-result-item
                     data-name={entry.name}
                     data-download={entry.downloadUrl}
-                    class="transition-colors hover:bg-slate-100/50 dark:hover:bg-neutral-800/40"
+                    class="transition-colors hover:bg-surface"
                   >
                     <td class="p-4">
                       {entry.failed ? (
@@ -328,31 +320,31 @@ function ResultsArticle({
                     </td>
                     <td
                       safe
-                      class="max-w-[28vw] truncate p-4 font-medium text-slate-900 dark:text-white"
+                      class="max-w-[28vw] truncate p-4 font-medium text-ink"
                       title={entry.name}
                     >
                       {entry.name}
                     </td>
-                    <td class="p-4 text-slate-500 dark:text-neutral-400" safe>
+                    <td class="p-4 text-ink-muted" safe>
                       {entry.failed ? "—" : entry.size}
                     </td>
                     <td class="p-4">
                       {entry.failed ? (
                         <span
-                          class="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-0.5 text-xs font-bold text-rose-600 dark:text-rose-400"
+                          class="inline-flex items-center gap-1 rounded-tag border border-terracotta/40 bg-terracotta/10 px-2.5 py-0.5 text-xs font-bold text-terracotta"
                           title={entry.status}
                         >
                           {tr(locale, "results.failedBadge")}
                         </span>
                       ) : (
-                        <span class="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <span class="inline-flex items-center gap-1 rounded-tag border border-rule bg-surface px-2.5 py-0.5 text-xs font-bold text-ink-body">
                           {tr(locale, "results.readyBadge")}
                         </span>
                       )}
                     </td>
                     <td class="p-4 text-end">
                       {entry.failed ? (
-                        <span class="text-xs text-slate-400 dark:text-neutral-500">
+                        <span class="text-xs text-ink-faint">
                           {tr(locale, "results.unavailable")}
                         </span>
                       ) : (
@@ -362,12 +354,12 @@ function ResultsArticle({
                             data-preview={entry.previewUrl}
                             data-is-image={String(entry.isImage)}
                             title={tr(locale, "results.previewFile", { name: entry.name })}
-                            class="inline-flex size-8 items-center justify-center rounded-lg bg-slate-200 text-slate-700 transition-colors hover:bg-slate-300 dark:bg-neutral-800 dark:text-neutral-200 dark:hover:bg-neutral-700"
+                            class="inline-flex size-8 items-center justify-center rounded-button bg-surface-2 text-ink-body transition-colors hover:bg-rule"
                           >
                             <EyeIcon />
                           </button>
                           <a
-                            class="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-accent-500 to-lime-400 px-3 py-1.5 text-xs font-bold text-neutral-950 shadow transition-all hover:from-accent-400 hover:to-lime-300"
+                            class="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs shadow"
                             href={entry.downloadUrl}
                             download={entry.name}
                             title={tr(locale, "results.downloadFile", { name: entry.name })}
@@ -378,7 +370,7 @@ function ResultsArticle({
                             type="button"
                             data-delete
                             title={tr(locale, "results.deleteFile", { name: entry.name })}
-                            class="inline-flex size-8 items-center justify-center rounded-lg bg-slate-200 text-rose-600 transition-colors hover:bg-rose-100 dark:bg-neutral-800 dark:text-rose-400 dark:hover:bg-rose-950/40"
+                            class="inline-flex size-8 items-center justify-center rounded-button bg-surface-2 text-terracotta transition-colors hover:bg-terracotta/10"
                           >
                             <DeleteIcon />
                           </button>
@@ -402,9 +394,9 @@ function ResultsArticle({
                 data-result-item
                 data-name={entry.name}
                 data-download={entry.downloadUrl}
-                class="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900"
+                class="group relative overflow-hidden rounded-card border border-rule bg-surface shadow-sm"
               >
-                <div class="relative flex h-36 items-center justify-center overflow-hidden bg-slate-100 dark:bg-neutral-950">
+                <div class="relative flex h-36 items-center justify-center overflow-hidden bg-surface-2">
                   {entry.isImage && !entry.failed ? (
                     <img
                       src={entry.previewUrl}
@@ -423,9 +415,9 @@ function ResultsArticle({
                       data-preview={entry.previewUrl}
                       data-is-image={String(entry.isImage)}
                       title={tr(locale, "results.previewFile", { name: entry.name })}
-                      class="absolute inset-0 flex items-center justify-center bg-neutral-950/0 text-white opacity-0 transition-all hover:bg-neutral-950/40 group-hover:opacity-100"
+                      class="absolute inset-0 flex items-center justify-center bg-frame/0 text-frame-ink opacity-0 transition-all hover:bg-frame/40 group-hover:opacity-100"
                     >
-                      <span class="rounded-full bg-neutral-950/70 p-3">
+                      <span class="rounded-full bg-frame/70 p-3">
                         <EyeIcon />
                       </span>
                     </button>
@@ -437,20 +429,16 @@ function ResultsArticle({
                       type="checkbox"
                       data-select
                       aria-label={tr(locale, "results.selectFile", { name: entry.name })}
-                      class="absolute start-2 top-2 size-4 accent-lime-500"
+                      class="absolute start-2 top-2 size-4 accent-cta"
                     />
                   )}
                 </div>
                 <div class="p-3">
-                  <p
-                    safe
-                    class="truncate text-xs font-semibold text-slate-900 dark:text-white"
-                    title={entry.name}
-                  >
+                  <p safe class="truncate text-xs font-semibold text-ink" title={entry.name}>
                     {entry.name}
                   </p>
                   <div class="mt-2 flex items-center justify-between">
-                    <span class="text-xs text-slate-500 dark:text-neutral-400" safe>
+                    <span class="text-xs text-ink-muted" safe>
                       {entry.failed ? tr(locale, "results.failed") : entry.size}
                     </span>
                     {entry.failed ? (
@@ -461,7 +449,7 @@ function ResultsArticle({
                           href={entry.downloadUrl}
                           download={entry.name}
                           title={tr(locale, "results.downloadFile", { name: entry.name })}
-                          class="inline-flex size-7 items-center justify-center rounded-lg bg-gradient-to-r from-accent-500 to-lime-400 text-neutral-950"
+                          class="inline-flex size-7 items-center justify-center rounded-button bg-cta text-cta-ink transition-opacity hover:opacity-90"
                         >
                           <DownloadIcon />
                         </a>
@@ -469,7 +457,7 @@ function ResultsArticle({
                           type="button"
                           data-delete
                           title={tr(locale, "results.deleteFile", { name: entry.name })}
-                          class="inline-flex size-7 items-center justify-center rounded-lg bg-slate-200 text-rose-600 dark:bg-neutral-800 dark:text-rose-400"
+                          class="inline-flex size-7 items-center justify-center rounded-button bg-surface-2 text-terracotta"
                         >
                           <DeleteIcon />
                         </button>
@@ -485,19 +473,16 @@ function ResultsArticle({
           <div
             data-preview-modal
             hidden
-            class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/80 p-4"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-frame/80 p-4"
           >
-            <div class="max-h-full w-full max-w-4xl overflow-auto rounded-2xl bg-white p-4 dark:bg-neutral-900">
+            <div class="max-h-full w-full max-w-4xl overflow-auto rounded-card bg-surface p-4">
               <div class="mb-3 flex items-center justify-between gap-4">
-                <p
-                  data-preview-name
-                  class="truncate text-sm font-bold text-slate-900 dark:text-white"
-                />
+                <p data-preview-name class="truncate text-caption font-bold text-ink" />
                 <button type="button" data-preview-close class="btn-secondary px-3 py-1.5 text-xs">
                   {tr(locale, "results.close")}
                 </button>
               </div>
-              <img data-preview-image alt="" class="mx-auto max-h-[70vh] w-auto rounded-xl" />
+              <img data-preview-image alt="" class="mx-auto max-h-[70vh] w-auto rounded-card" />
             </div>
           </div>
         </div>

@@ -61,7 +61,7 @@ export const history = new Elysia().use(userService).get(
           >
             <article class="article">
               <div class="mb-4 flex items-center justify-between">
-                <h1 class="text-xl">{tr(locale, "history.title")}</h1>
+                <h1 class="text-subheading font-bold text-ink">{tr(locale, "history.title")}</h1>
                 <div id="delete-selected-container">
                   <button
                     id="delete-selected-btn"
@@ -81,9 +81,9 @@ export const history = new Elysia().use(userService).get(
               </div>
               <table
                 class={`
-                  w-full table-auto overflow-y-auto rounded-sm bg-neutral-900 text-start
+                  w-full table-auto overflow-y-auto rounded-card bg-surface-2 text-start
                   [&_td]:p-4
-                  [&_tr]:rounded-sm [&_tr]:border-b [&_tr]:border-neutral-800
+                  [&_tr]:rounded-sm [&_tr]:border-b [&_tr]:border-rule
                 `}
               >
                 <thead>
@@ -191,22 +191,13 @@ export const history = new Elysia().use(userService).get(
                         <td safe>{job.status}</td>
                         <td class="flex flex-row gap-4">
                           <a
-                            class={`
-                              text-accent-500 underline
-                              hover:text-accent-400
-                            `}
+                            class="text-link hover:underline"
                             href={`${WEBROOT}/results/${job.id}`}
                           >
                             <EyeIcon />
                           </a>
                           <form action={`${WEBROOT}/delete/${job.id}`} method="POST" class="inline">
-                            <button
-                              type="submit"
-                              class={`
-                                text-accent-500 underline
-                                hover:text-accent-400
-                              `}
-                            >
+                            <button type="submit" class="text-terracotta hover:underline">
                               <DeleteIcon />
                             </button>
                           </form>
@@ -214,7 +205,7 @@ export const history = new Elysia().use(userService).get(
                       </tr>
                       <tr id={`details-${job.id}`} class="hidden">
                         <td colspan="7">
-                          <div class="p-2 text-sm text-neutral-500">
+                          <div class="p-2 text-caption text-ink-muted">
                             <div class="mb-1 font-semibold">
                               {tr(locale, "history.detailedInfo")}
                             </div>
@@ -227,7 +218,7 @@ export const history = new Elysia().use(userService).get(
                                   xmlns="http://www.w3.org/2000/svg"
                                   viewBox="0 0 20 20"
                                   fill="currentColor"
-                                  class={`mx-2 inline-block size-4 text-neutral-500`}
+                                  class={`mx-2 inline-block size-4 text-ink-muted`}
                                 >
                                   <path
                                     fill-rule="evenodd"

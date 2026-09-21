@@ -296,20 +296,13 @@ export const Header = ({
                 class="size-9 rounded-xl object-contain"
               />
             ) : (
-              <div class="flex size-9 items-center justify-center rounded-xl bg-gradient-to-tr from-accent-500 via-lime-400 to-emerald-400 shadow-lg shadow-accent-500/20">
-                <svg
-                  class="size-5 text-neutral-950"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                >
-                  <path d="M7 16V4m0 0L3 8m4-4l4 4" />
-                  <path d="M17 8v12m0 0l4-4m-4 4l-4-4" />
-                </svg>
-              </div>
+              <img
+                src={`${webroot}/favicon.svg`}
+                alt=""
+                width="36"
+                height="36"
+                class="size-9 rounded-xl object-contain shadow-lg shadow-accent-500/20"
+              />
             )}
             <div class="flex flex-col">
               <span

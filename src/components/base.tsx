@@ -5,7 +5,7 @@ import { brandingUrl } from "../services/branding";
 
 export const BaseHtml = ({
   children,
-  title = "ConvertX - Fast, Secure & Free Online File Converter",
+  title = "AllConverter Tech - Fast, Secure & Free Online File Converter",
   webroot = "",
   customFooter = false,
   locale = "en",

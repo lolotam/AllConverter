@@ -15,6 +15,7 @@ import {
   BRANDING,
 } from "../helpers/env";
 import { GOOGLE_ENABLED, authorizationUrl, exchangeCode, redirectUri } from "../services/google";
+import { isRegisteredSession } from "../helpers/session";
 import { localeFromRequest, t as tr } from "../i18n";
 import { userService } from "../services/user";
 
@@ -82,7 +83,7 @@ export const user = new Elysia()
                   <input
                     type="email"
                     name="email"
-                    class="rounded-sm bg-neutral-800 p-3"
+                    class="field"
                     placeholder={tr(locale, "auth.email")}
                     autocomplete="email"
                     required
@@ -93,7 +94,7 @@ export const user = new Elysia()
                   <input
                     type="password"
                     name="password"
-                    class="rounded-sm bg-neutral-800 p-3"
+                    class="field"
                     placeholder={tr(locale, "auth.password")}
                     autocomplete="current-password"
                     required
@@ -181,7 +182,7 @@ export const user = new Elysia()
                     <input
                       type="email"
                       name="email"
-                      class="rounded-sm bg-neutral-800 p-3"
+                      class="field"
                       placeholder={tr(locale, "auth.email")}
                       autocomplete="email"
                       required
@@ -192,7 +193,7 @@ export const user = new Elysia()
                     <input
                       type="password"
                       name="password"
-                      class="rounded-sm bg-neutral-800 p-3"
+                      class="field"
                       placeholder={tr(locale, "auth.password")}
                       autocomplete="current-password"
                       required
@@ -296,15 +297,20 @@ export const user = new Elysia()
         return redirect(`${WEBROOT}/setup`, 302);
       }
 
-      // if already logged in, redirect to home
+      // Only bounce a real account away from the sign-in page. With
+      // ALLOW_UNAUTHENTICATED every visitor already holds a valid guest token, so
+      // testing the cookie alone sent everyone straight back to the home page and
+      // made signing in impossible.
       if (auth?.value) {
-        const user = await jwt.verify(auth.value);
+        const session = await jwt.verify(auth.value);
 
-        if (user) {
+        if (session && isRegisteredSession(session.id)) {
           return redirect(`${WEBROOT}/`, 302);
         }
 
-        auth.remove();
+        if (!session) {
+          auth.remove();
+        }
       }
 
       const locale = localeFromRequest(request, lang?.value);
@@ -382,7 +388,7 @@ export const user = new Elysia()
                       <input
                         type="email"
                         name="email"
-                        class="rounded-sm bg-neutral-800 p-3"
+                        class="field"
                         placeholder={tr(locale, "auth.email")}
                         autocomplete="email"
                         autofocus
@@ -394,7 +400,7 @@ export const user = new Elysia()
                       <input
                         type="password"
                         name="password"
-                        class="rounded-sm bg-neutral-800 p-3"
+                        class="field"
                         placeholder={tr(locale, "auth.password")}
                         autocomplete="current-password"
                         required

@@ -2,15 +2,15 @@ import { isRtl, t, type Locale } from "../i18n";
 import { brandingUrl } from "../services/branding";
 import { siteName, siteTagline } from "../services/siteName";
 
-const menuItem = `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-neutral-200 dark:hover:bg-neutral-800 transition-colors`;
+const menuItem = `flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] text-ink-body hover:bg-surface-2 transition-colors`;
 
-const menuPanel = `absolute end-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-neutral-800 dark:bg-neutral-900`;
+const menuPanel = `absolute end-0 z-50 mt-2 w-64 overflow-hidden rounded-card border border-rule bg-surface p-1.5 shadow-lg`;
 
-const summaryButton = `flex cursor-pointer list-none items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 pe-2 shadow-sm transition-all hover:border-accent-500/60 hover:shadow dark:border-neutral-700 dark:bg-neutral-900`;
+const summaryButton = `flex cursor-pointer list-none items-center gap-2 rounded-button border border-rule bg-surface p-1 pe-2 transition-all hover:border-cta`;
 
 const Chevron = () => (
   <svg
-    class="size-4 text-slate-500 transition-transform group-open:rotate-180 dark:text-neutral-400"
+    class="size-4 text-ink-faint transition-transform group-open:rotate-180"
     viewBox="0 0 24 24"
     fill="none"
     stroke="currentColor"
@@ -40,7 +40,7 @@ const GuestMenu = ({
 }) => (
   <details class="group relative" data-account-menu>
     <summary class={summaryButton} aria-haspopup="menu" title={t(locale, "menu.guestMenu")}>
-      <span class="flex size-8 items-center justify-center rounded-lg bg-slate-200 text-slate-500 dark:bg-neutral-800 dark:text-neutral-400">
+      <span class="flex size-8 items-center justify-center rounded-button bg-surface-2 text-ink-muted">
         <svg
           class="size-5"
           viewBox="0 0 24 24"
@@ -58,13 +58,9 @@ const GuestMenu = ({
     </summary>
 
     <div role="menu" class={menuPanel}>
-      <div class="border-b border-slate-200 px-3 pb-3 pt-2 dark:border-neutral-800">
-        <p class="text-sm font-bold text-slate-900 dark:text-white">
-          {t(locale, "menu.guestTitle")}
-        </p>
-        <p class="mt-0.5 text-xs text-slate-500 dark:text-neutral-400">
-          {t(locale, "menu.guestHint")}
-        </p>
+      <div class="border-b border-rule px-3 pb-3 pt-2">
+        <p class="text-[14px] font-semibold text-ink">{t(locale, "menu.guestTitle")}</p>
+        <p class="mt-0.5 text-xs text-ink-muted">{t(locale, "menu.guestHint")}</p>
       </div>
 
       <div class="py-1">
@@ -81,11 +77,11 @@ const GuestMenu = ({
         </a>
       </div>
 
-      <div class="border-t border-slate-200 pt-1 dark:border-neutral-800">
+      <div class="border-t border-rule pt-1">
         <a
           href={`${webroot}/login`}
           role="menuitem"
-          class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-lime-700 hover:bg-accent-500/10 dark:text-accent-400 dark:hover:bg-accent-500/10 transition-colors"
+          class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-link hover:bg-surface-2 transition-colors"
         >
           <span>🔑</span> {t(locale, "menu.signIn")}
         </a>
@@ -140,7 +136,7 @@ const AccountMenu = ({
         {avatar ? (
           <img src={avatar} alt="" width="32" height="32" class="size-8 rounded-lg object-cover" />
         ) : (
-          <span class="flex size-8 items-center justify-center rounded-lg bg-gradient-to-tr from-accent-500 to-lime-400 text-xs font-black text-neutral-950">
+          <span class="flex size-8 items-center justify-center rounded-button bg-cta text-xs font-semibold text-cta-ink">
             {initials ?? "??"}
           </span>
         )}
@@ -148,17 +144,17 @@ const AccountMenu = ({
       </summary>
 
       <div role="menu" class={menuPanel}>
-        <div class="border-b border-slate-200 px-3 pb-3 pt-2 dark:border-neutral-800">
-          <p safe class="truncate text-sm font-bold text-slate-900 dark:text-white">
+        <div class="border-b border-rule px-3 pb-3 pt-2">
+          <p safe class="truncate text-[14px] font-semibold text-ink">
             {name || email}
           </p>
-          <p safe class="truncate text-xs text-slate-500 dark:text-neutral-400">
+          <p safe class="truncate text-xs text-ink-muted">
             {email}
           </p>
           {tier ? (
             <span
               safe
-              class="mt-2 inline-block rounded-md bg-accent-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-lime-700 dark:text-accent-400"
+              class="mt-2 inline-block rounded-tag bg-marigold px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#181d26]"
             >
               {tier}
             </span>
@@ -166,15 +162,15 @@ const AccountMenu = ({
 
           {/* What most people open this menu to find out: can I still convert today? */}
           <div class="mt-2.5">
-            <p class="text-xs font-medium text-slate-600 dark:text-neutral-300">
+            <p class="text-xs font-medium text-ink-body">
               {unlimited
                 ? t(locale, "menu.usageUnlimited")
                 : t(locale, "menu.usageLeft", { left, limit: limit ?? 0 })}
             </p>
             {showMeter ? (
-              <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-neutral-800">
+              <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
                 <div
-                  class={`h-full rounded-full ${left === 0 ? "bg-red-500" : "bg-accent-500"}`}
+                  class={`h-full rounded-full ${left === 0 ? "bg-terracotta" : "bg-cta"}`}
                   style={`width:${spent}%`}
                 />
               </div>
@@ -204,7 +200,7 @@ const AccountMenu = ({
             <a
               href={`${webroot}/#pricing`}
               role="menuitem"
-              class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-lime-700 hover:bg-accent-500/10 dark:text-accent-400 dark:hover:bg-accent-500/10 transition-colors"
+              class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-link hover:bg-surface-2 transition-colors"
             >
               <span>🚀</span> {t(locale, "menu.upgrade")}
             </a>
@@ -212,22 +208,22 @@ const AccountMenu = ({
         </div>
 
         {isAdmin ? (
-          <div class="border-t border-slate-200 py-1 dark:border-neutral-800">
+          <div class="border-t border-rule py-1">
             <a
               href={`${webroot}/admin`}
               role="menuitem"
-              class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/10 transition-colors"
+              class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-ink hover:bg-surface-2 transition-colors"
             >
               <span>⚡</span> {t(locale, "menu.admin")}
             </a>
           </div>
         ) : null}
 
-        <div class="border-t border-slate-200 pt-1 dark:border-neutral-800">
+        <div class="border-t border-rule pt-1">
           <a
             href={`${webroot}/logoff`}
             role="menuitem"
-            class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/30 transition-colors"
+            class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-medium text-terracotta hover:bg-surface-2 transition-colors"
           >
             <span>↩</span> {t(locale, "menu.signOut")}
           </a>
@@ -280,12 +276,10 @@ export const Header = ({
   const tagline = siteTagline();
   const langLink = (target: Locale) =>
     `rounded-md px-1.5 py-1 transition-colors ${
-      locale === target
-        ? "font-bold text-slate-900 dark:text-white"
-        : "text-slate-500 hover:text-slate-900 dark:text-neutral-400 dark:hover:text-white"
+      locale === target ? "font-semibold text-ink" : "text-ink-faint hover:text-ink"
     }`;
   return (
-    <header class="sticky top-0 z-50 w-full border-b border-slate-200/80 bg-white/85 text-slate-800 dark:border-neutral-800/80 dark:bg-neutral-950/85 dark:text-neutral-100 backdrop-blur-xl transition-colors duration-200">
+    <header class="sticky top-0 z-50 w-full bg-surface text-ink-body shadow-[var(--shadow-nav)] transition-colors duration-200">
       <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Brand Logo */}
         <div class="flex items-center gap-8">
@@ -319,7 +313,7 @@ export const Header = ({
             )}
             <div class="flex flex-col">
               <span
-                class="text-lg font-extrabold tracking-tight text-slate-900 dark:text-white group-hover:text-accent-500 transition-colors"
+                class="font-display text-[20px] font-black tracking-normal text-ink transition-colors"
                 safe
               >
                 {name.length < 24 ? name : name.slice(0, 24)}
@@ -327,7 +321,7 @@ export const Header = ({
               {tagline ? (
                 <span
                   safe
-                  class="text-[10px] font-semibold uppercase tracking-wider text-lime-600 dark:text-accent-400/90 -mt-1"
+                  class="-mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted"
                 >
                   {tagline}
                 </span>
@@ -336,29 +330,17 @@ export const Header = ({
           </a>
 
           {/* Center Navigation Links (Hidden on small screens) */}
-          <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-neutral-300">
-            <a
-              href={`${webroot}/#tools`}
-              class="hover:text-lime-600 dark:hover:text-accent-400 transition-colors"
-            >
+          <nav class="hidden md:flex items-center gap-6 text-body-sm text-ink-body">
+            <a href={`${webroot}/#tools`} class="transition-colors hover:text-ink">
               {t(locale, "header.tools")}
             </a>
-            <a
-              href={`${webroot}/#how-it-works`}
-              class="hover:text-lime-600 dark:hover:text-accent-400 transition-colors"
-            >
+            <a href={`${webroot}/#how-it-works`} class="transition-colors hover:text-ink">
               {t(locale, "header.howItWorks")}
             </a>
-            <a
-              href={`${webroot}/#pricing`}
-              class="hover:text-lime-600 dark:hover:text-accent-400 transition-colors"
-            >
+            <a href={`${webroot}/#pricing`} class="transition-colors hover:text-ink">
               {t(locale, "header.pricing")}
             </a>
-            <a
-              href={`${webroot}/#features`}
-              class="hover:text-lime-600 dark:hover:text-accent-400 transition-colors"
-            >
+            <a href={`${webroot}/#features`} class="transition-colors hover:text-ink">
               {t(locale, "header.features")}
             </a>
           </nav>
@@ -373,7 +355,7 @@ export const Header = ({
             <a href={`${webroot}/lang/en`} class={langLink("en")} title="English">
               EN
             </a>
-            <span class="text-slate-300 dark:text-neutral-600">|</span>
+            <span class="text-rule">|</span>
             <a href={`${webroot}/lang/ar`} class={langLink("ar")} title="العربية">
               ع
             </a>
@@ -384,7 +366,7 @@ export const Header = ({
             type="button"
             aria-label={t(locale, "header.toggleTheme")}
             title={t(locale, "header.toggleThemeTitle")}
-            class="flex size-9 items-center justify-center rounded-xl border border-slate-300 bg-slate-100 text-slate-700 hover:bg-slate-200 dark:border-neutral-700 dark:bg-neutral-850 dark:text-neutral-200 dark:hover:bg-neutral-700 transition-all cursor-pointer shadow-sm"
+            class="flex size-9 cursor-pointer items-center justify-center rounded-button border border-rule bg-surface text-ink-body transition-all hover:bg-surface-2"
             onclick="
               const isDark = document.documentElement.classList.contains('dark');
               if (isDark) {
@@ -406,7 +388,7 @@ export const Header = ({
               {!hideHistory && (
                 <a
                   href={`${webroot}/history`}
-                  class="hidden rounded-lg px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white transition-all sm:inline-block"
+                  class="hidden rounded-button px-3 py-1.5 text-body-sm text-ink-body transition-colors hover:text-ink sm:inline-block"
                 >
                   {t(locale, "header.history")}
                 </a>
@@ -432,7 +414,7 @@ export const Header = ({
               {accountRegistration ? (
                 <a
                   href={`${webroot}/register`}
-                  class="hidden rounded-xl bg-gradient-to-r from-accent-500 to-lime-400 px-4 py-1.5 text-xs font-bold text-neutral-950 shadow-md hover:from-accent-400 hover:to-lime-300 transition-all sm:inline-block"
+                  class="hidden rounded-button bg-cta px-4 py-2 text-[14px] font-semibold text-cta-ink transition-opacity hover:opacity-90 sm:inline-block"
                 >
                   {t(locale, "header.getStarted")}
                 </a>
@@ -448,14 +430,14 @@ export const Header = ({
             <div class="flex items-center gap-2.5 text-sm">
               <a
                 href={`${webroot}/login`}
-                class="rounded-lg px-3.5 py-1.5 font-semibold text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-neutral-300 dark:hover:bg-neutral-800/80 dark:hover:text-white transition-all"
+                class="rounded-button border border-cta bg-[var(--ghost-surface)] px-4 py-2 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
               >
                 {t(locale, "header.signIn")}
               </a>
               {accountRegistration && (
                 <a
                   href={`${webroot}/register`}
-                  class="rounded-xl bg-gradient-to-r from-accent-500 to-lime-400 px-4 py-2 font-bold text-neutral-950 shadow-lg shadow-accent-500/20 hover:from-accent-400 hover:to-lime-300 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  class="rounded-button bg-cta px-4 py-2 text-[14px] font-semibold text-cta-ink transition-opacity hover:opacity-90 active:scale-[0.99]"
                 >
                   {t(locale, "header.getStarted")}
                 </a>

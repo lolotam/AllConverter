@@ -52,3 +52,4 @@ package-lock.json
 /tsconfig.tsbuildinfo
 /public/generated.css
 public/tus.min.js
+.playwright-mcp/

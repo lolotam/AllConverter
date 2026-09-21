@@ -29,7 +29,7 @@ export const BaseHtml = ({
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
       <link
-        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Cairo:wght@400;500;600;700;800&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Slab:wght@400;700;900&family=Cairo:wght@400;500;600;700;900&display=swap"
         rel="stylesheet"
       />
       <link rel="stylesheet" href={assetUrl(webroot, "generated.css")} />
@@ -45,10 +45,14 @@ export const BaseHtml = ({
       <link rel="manifest" href={`${webroot}/site.webmanifest`} />
       <style>{`
         body {
-          font-family: 'Plus Jakarta Sans', 'Tajawal', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
-        html[dir="rtl"] body {
-          font-family: 'Cairo', 'Plus Jakarta Sans', sans-serif;
+        /* Roboto Slab carries no Arabic, so the display face falls back to Cairo at the
+           same weight rather than letting the browser pick an unrelated substitute. */
+        html[dir="rtl"] body,
+        html[dir="rtl"] .display-lg,
+        html[dir="rtl"] .display-xl {
+          font-family: 'Cairo', 'Inter', sans-serif;
         }
       `}</style>
       <script>{`
@@ -71,33 +75,27 @@ export const BaseHtml = ({
       `}</script>
     </head>
     <body
-      class={`flex min-h-screen w-full flex-col bg-slate-100 text-slate-900 dark:bg-[#0b0c10] dark:text-neutral-100 transition-colors duration-200 selection:bg-accent-500 selection:text-neutral-950`}
+      class={`flex min-h-screen w-full flex-col bg-canvas text-ink-body transition-colors duration-200 selection:bg-marigold selection:text-[#181d26]`}
     >
       {children}
       {!customFooter && (
-        <footer class="w-full border-t border-neutral-800/80 bg-neutral-950/60 py-6">
-          <div class="p-4 text-center text-sm text-neutral-500">
+        <footer class="w-full border-t border-rule py-6">
+          <div class="p-4 text-center text-caption text-ink-muted">
             <span>{t(locale, "base.poweredBy")} </span>
-            <a
-              href="https://github.com/C4illin/ConvertX"
-              class={`
-                text-neutral-400
-                hover:text-accent-500
-              `}
-            >
+            <a href="https://github.com/C4illin/ConvertX" class="text-ink-muted hover:text-link">
               ConvertX{" "}
             </a>
             <span safe>v{version || ""}</span>
             <span class="mx-2">·</span>
-            <a href={`${webroot}/terms`} class="text-neutral-400 hover:text-accent-500">
+            <a href={`${webroot}/terms`} class="text-ink-muted hover:text-link">
               {t(locale, "base.terms")}
             </a>
             <span class="mx-2">·</span>
-            <a href={`${webroot}/privacy`} class="text-neutral-400 hover:text-accent-500">
+            <a href={`${webroot}/privacy`} class="text-ink-muted hover:text-link">
               {t(locale, "base.privacy")}
             </a>
             <span class="mx-2">·</span>
-            <a href={`${webroot}/refunds`} class="text-neutral-400 hover:text-accent-500">
+            <a href={`${webroot}/refunds`} class="text-ink-muted hover:text-link">
               {t(locale, "base.refunds")}
             </a>
           </div>

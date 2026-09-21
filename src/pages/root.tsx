@@ -8,6 +8,7 @@ import { Elysia, t } from "elysia";
 import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
 import { headerAccount } from "../helpers/headerUser";
+import { isRegisteredSession } from "../helpers/session";
 import { onlyAvailable } from "../converters/availability";
 import { visibleTargets } from "../services/features";
 import { deletionIsAutomatic, retentionSentence } from "../services/retention";
@@ -90,10 +91,7 @@ export const root = new Elysia().use(userService).get(
     // Guests share the home page with registered accounts: a signed-in user keeps
     // their session (and paid plan) instead of being swapped for a new guest id.
     const signedIn = auth?.value ? await jwt.verify(auth.value) : false;
-    const isRegistered =
-      signedIn !== false &&
-      Number.parseInt(signedIn.id) < 2 ** 24 &&
-      getUserById(signedIn.id) !== null;
+    const isRegistered = signedIn !== false && isRegisteredSession(signedIn.id);
 
     if (ALLOW_UNAUTHENTICATED && isRegistered) {
       user = signedIn;
@@ -224,54 +222,52 @@ export const root = new Elysia().use(userService).get(
             {limitMessageKey && (
               <div
                 role="alert"
-                class="border-b border-amber-500/40 bg-amber-500/10 px-4 py-3 text-center text-sm font-medium text-amber-300"
+                class="border-b border-rule bg-marigold/25 px-4 py-3 text-center text-caption font-medium text-ink"
               >
                 <span safe>{tr(locale, limitMessageKey)}</span>{" "}
-                <a href="#pricing" class="font-bold underline hover:text-amber-200">
+                <a href="#pricing" class="font-semibold text-link underline">
                   {tr(locale, "home.seePlans")}
                 </a>
               </div>
             )}
             {/* Top Announcement Banner */}
-            <div class="border-b border-slate-200 dark:border-neutral-800/60 bg-gradient-to-r from-accent-500/10 via-lime-500/5 to-emerald-500/10 py-2.5 px-4 text-center text-xs sm:text-sm text-slate-700 dark:text-neutral-300">
-              <span class="inline-flex items-center gap-1.5 font-medium">
-                <span class="flex size-2 rounded-full bg-accent-500 animate-pulse" />
-                <strong class="text-lime-700 dark:text-accent-400">
+            <div class="w-full border-b border-rule bg-surface-2 px-4 py-3 text-center text-caption text-ink-body">
+              <span class="inline-flex items-center gap-2">
+                <strong class="font-semibold text-link">
                   {tr(locale, "home.announcementNew")}
-                </strong>{" "}
+                </strong>
                 {tr(locale, "home.announcement")}
               </span>
             </div>
 
             {/* HERO SECTION */}
-            <section class="relative overflow-hidden pt-12 pb-20 px-4 sm:px-6 lg:px-8">
-              {/* Subtle background glow circles */}
-              <div class="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 size-[650px] rounded-full bg-gradient-to-tr from-accent-500/15 to-emerald-500/10 blur-[130px]" />
-              <div class="pointer-events-none absolute top-1/2 -start-40 size-[450px] rounded-full bg-blue-500/10 blur-[120px]" />
-
-              <div class="relative mx-auto max-w-5xl text-center">
-                {/* Badge */}
-                <div class="inline-flex items-center gap-2 rounded-full border border-lime-500/30 bg-lime-500/10 px-3.5 py-1.5 text-xs font-semibold text-lime-700 dark:text-accent-400 backdrop-blur-md mb-6 shadow-sm">
+            <section class="px-4 pb-16 pt-12 sm:px-6 lg:px-8">
+              <div class="relative mx-auto max-w-[1200px] text-center">
+                {/* Marigold is the reference's chip hue; it stays a chip and goes nowhere else */}
+                <div class="chip mb-6 bg-marigold text-[#181d26]">
                   <span>{tr(locale, "home.badge")}</span>
                 </div>
 
-                {/* Main Heading */}
-                <h1 class="text-4xl sm:text-6xl font-black tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
-                  {tr(locale, "home.heroTitle")}{" "}
-                  <span class="bg-gradient-to-r from-accent-500 via-lime-500 to-emerald-500 bg-clip-text text-transparent">
-                    {tr(locale, "home.heroTitleHighlight")}
-                  </span>
+                {/* Display 900, no tracking — the reference is explicit that the display
+                    face is drawn tight and must not be letter-spaced */}
+                <h1 class="display-xl mb-6 text-ink">
+                  {tr(locale, "home.heroTitle")} {tr(locale, "home.heroTitleHighlight")}
                 </h1>
 
-                {/* Subtitle */}
-                <p class="mx-auto max-w-2xl text-base sm:text-lg text-slate-600 dark:text-neutral-300 mb-10 leading-relaxed">
+                <p
+                  class="mx-auto mb-10 max-w-2xl text-body text-ink-body"
+                  style="text-wrap: pretty"
+                >
                   {tr(locale, "home.heroSubtitle")}
                 </p>
 
                 {/* CONVERTER CARD (CORE ENGINE) */}
                 <div class="relative mx-auto max-w-4xl text-start">
-                  {/* Glowing border card */}
-                  <div class="rounded-3xl border border-slate-200 bg-white/95 p-5 sm:p-8 backdrop-blur-2xl shadow-xl dark:border-neutral-700/60 dark:bg-neutral-900/90 dark:shadow-2xl transition-all">
+                  {/* The reference frames the product in an onyx container on the cream
+                      canvas. Here the converter itself is the product, so it takes that
+                      slot: dark in both themes, which is why everything inside reads from
+                      the frame-* tokens rather than the page ones. */}
+                  <div class="rounded-card border border-frame-rule bg-frame p-5 text-frame-ink shadow-lg sm:p-8">
                     {/* Interactive Dropzone */}
                     <div
                       id="dropzone"
@@ -296,15 +292,14 @@ export const root = new Elysia().use(userService).get(
                           : tr(locale, "home.quotaActionUpgrade")
                       }
                       class={`
-                        group relative flex min-h-[220px] w-full flex-col items-center justify-center rounded-2xl
-                        border-2 border-dashed border-slate-300 bg-slate-50/70 p-6 text-center transition-all duration-300
-                        dark:border-neutral-700 dark:bg-neutral-950/40
-                        hover:border-accent-500 hover:bg-slate-100 dark:hover:bg-neutral-950/70 hover:shadow-xl hover:shadow-accent-500/5
-                        [&.dragover]:border-accent-400 [&.dragover]:bg-accent-500/10 [&.dragover]:scale-[1.01]
+                        group relative flex min-h-[220px] w-full flex-col items-center justify-center rounded-card
+                        border border-dashed border-frame-rule bg-frame-surface p-6 text-center transition-all duration-300
+                        hover:border-frame-ink/40
+                        [&.dragover]:border-marigold [&.dragover]:bg-marigold/10
                       `}
                     >
                       {/* Upload Icon */}
-                      <div class="mb-4 flex size-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-accent-500/20 to-lime-500/20 text-lime-600 dark:text-accent-400 border border-lime-500/30 group-hover:scale-110 transition-transform">
+                      <div class="mb-4 flex size-16 items-center justify-center rounded-card border border-frame-rule bg-frame-surface text-frame-ink transition-transform group-hover:scale-105">
                         <svg
                           class="size-8"
                           fill="none"
@@ -321,13 +316,13 @@ export const root = new Elysia().use(userService).get(
                       </div>
 
                       <div class="space-y-1">
-                        <p class="text-lg font-bold text-slate-900 dark:text-white">
-                          <span class="text-lime-600 dark:text-accent-400 group-hover:underline">
+                        <p class="text-subheading font-semibold text-frame-ink">
+                          <span class="underline decoration-frame-ink-muted underline-offset-4">
                             {tr(locale, "home.chooseFiles")}
                           </span>{" "}
                           {tr(locale, "home.orDragDrop")}
                         </p>
-                        <p class="text-xs text-slate-500 dark:text-neutral-400">
+                        <p class="text-caption text-frame-ink-muted">
                           {tr(locale, "home.fileTypes")} ·{" "}
                           {tr(locale, "home.upTo", { size: tier.max_file_size_mb })} ·{" "}
                           {tr(locale, "home.filesAtOnce", { count: tier.batch_limit })}
@@ -338,10 +333,10 @@ export const root = new Elysia().use(userService).get(
 
                       {/* File source buttons mockup */}
                       <div class="mt-4 flex items-center gap-2">
-                        <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-neutral-800 px-3 py-1 text-xs text-slate-700 dark:text-neutral-300 border border-slate-200 dark:border-neutral-700">
+                        <span class="chip border border-frame-rule bg-frame-surface text-frame-ink-muted">
                           {tr(locale, "home.fromDevice")}
                         </span>
-                        <span class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 dark:bg-neutral-800 px-3 py-1 text-xs text-slate-700 dark:text-neutral-300 border border-slate-200 dark:border-neutral-700">
+                        <span class="chip border border-frame-rule bg-frame-surface text-frame-ink-muted">
                           {tr(locale, "home.cloudStorage")}
                         </span>
                       </div>
@@ -360,10 +355,10 @@ export const root = new Elysia().use(userService).get(
                       <table
                         id="file-list"
                         class={`
-                          w-full table-auto rounded-xl bg-slate-100 text-slate-800 dark:bg-neutral-800/60 dark:text-neutral-200 text-sm
+                          w-full table-auto rounded-card bg-frame-surface text-caption text-frame-ink
                           [&_td]:p-3.5
                           [&_td]:first:max-w-[28vw] [&_td]:first:truncate [&_td]:first:font-medium
-                          [&_tr]:rounded-lg [&_tr]:border-b [&_tr]:border-slate-200 dark:[&_tr]:border-neutral-700/60
+                          [&_tr]:border-b [&_tr]:border-frame-rule
                         `}
                       />
                     </div>
@@ -371,10 +366,10 @@ export const root = new Elysia().use(userService).get(
                     {/* Quick Recent Formats Bar (Dynamic) */}
                     <div
                       id="quick-recent-pills"
-                      class="hidden mt-4 pt-3 border-t border-slate-200 dark:border-neutral-800/80"
+                      class="mt-4 hidden border-t border-frame-rule pt-3"
                     >
                       <div class="flex items-center gap-2 flex-wrap text-xs">
-                        <span class="font-bold text-slate-600 dark:text-neutral-400 flex items-center gap-1">
+                        <span class="flex items-center gap-1 font-semibold text-frame-ink-muted">
                           {tr(locale, "home.recent")}
                         </span>
                         <div class="recent-pills-list flex flex-wrap gap-1.5" />
@@ -382,22 +377,22 @@ export const root = new Elysia().use(userService).get(
                     </div>
 
                     {/* Popular formats quick tags */}
-                    <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-600 dark:text-neutral-400">
+                    <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-caption text-frame-ink-muted">
                       <div class="flex flex-wrap items-center gap-1.5">
-                        <span class="font-semibold text-slate-600 dark:text-neutral-400">
+                        <span class="font-semibold text-frame-ink-muted">
                           {tr(locale, "home.popular")}
                         </span>
                         {popularFormats.map((fmt) => (
                           <button
                             type="button"
                             onclick={`selectTarget('${fmt.toLowerCase()}', 'popular', '${fmt.toLowerCase()},popular')`}
-                            class="rounded-md bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-neutral-800/80 dark:hover:bg-neutral-700 dark:text-neutral-300 dark:border-neutral-700/50 px-2 py-0.5 transition-colors cursor-pointer"
+                            class="cursor-pointer rounded-tag border border-frame-rule bg-frame-surface px-3 py-1 text-frame-ink transition-colors hover:bg-frame-ink/15"
                           >
                             {fmt}
                           </button>
                         ))}
                       </div>
-                      <span class="text-lime-600 dark:text-accent-400 font-medium">
+                      <span class="font-medium text-frame-ink-muted">
                         {tr(locale, "home.totalFormats")}
                       </span>
                     </div>
@@ -411,9 +406,9 @@ export const root = new Elysia().use(userService).get(
                       <input type="hidden" name="file_names" id="file_names" />
 
                       <div class="relative">
-                        <div class="flex items-center rounded-xl bg-slate-100 dark:bg-neutral-800/90 border border-slate-300 dark:border-neutral-700 px-4 py-3 focus-within:border-accent-500 transition-colors">
+                        <div class="flex items-center rounded-button border border-frame-rule bg-frame-surface px-4 py-3 transition-colors focus-within:border-frame-ink/50">
                           <svg
-                            class="size-5 text-slate-400 dark:text-neutral-400 me-2"
+                            class="me-2 size-5 text-frame-ink-muted"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -430,25 +425,24 @@ export const root = new Elysia().use(userService).get(
                             name="convert_to_search"
                             placeholder={tr(locale, "home.searchPlaceholder")}
                             autocomplete="off"
-                            class="w-full bg-transparent text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-neutral-400 focus:outline-none"
+                            class="w-full bg-transparent text-body-sm text-frame-ink placeholder-frame-ink-muted focus:outline-none"
                           />
                         </div>
 
                         <div class="select_container relative">
                           <article
                             class={`
-                              convert_to_popup absolute z-20 mt-2 m-0 hidden h-[32vh] max-h-[50vh] w-full flex-col
-                              overflow-x-hidden overflow-y-auto rounded-xl border border-slate-200 bg-white text-slate-800 shadow-2xl p-2
-                              dark:border-neutral-700/80 dark:bg-neutral-850 dark:text-neutral-100
+                              convert_to_popup absolute z-20 m-0 mt-2 hidden h-[32vh] max-h-[50vh] w-full flex-col
+                              overflow-x-hidden overflow-y-auto rounded-card border border-rule bg-surface p-2 text-ink-body shadow-lg
                             `}
                           >
                             {/* Recently Used Formats Group inside popup */}
                             <article
                               id="recent-formats-group"
-                              class="convert_to_group hidden w-full flex-col border-b border-slate-200 dark:border-neutral-700/60 p-3 bg-blue-500/5 dark:bg-blue-500/10 rounded-lg mb-1"
+                              class="convert_to_group mb-1 hidden w-full flex-col rounded-card border-b border-rule bg-sky/25 p-3"
                               data-converter={tr(locale, "home.recentFormatsGroup")}
                             >
-                              <header class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                              <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
                                 {tr(locale, "home.recentlyUsed")}
                               </header>
                               <ul
@@ -459,10 +453,10 @@ export const root = new Elysia().use(userService).get(
 
                             {/* Popular Formats Group inside popup */}
                             <article
-                              class="convert_to_group flex w-full flex-col border-b border-slate-200 dark:border-neutral-700/60 p-3 bg-amber-500/5 dark:bg-amber-500/10 rounded-lg mb-1"
+                              class="convert_to_group mb-1 flex w-full flex-col rounded-card border-b border-rule bg-marigold/20 p-3"
                               data-converter={tr(locale, "home.popularFormatsGroup")}
                             >
-                              <header class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
+                              <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
                                 {tr(locale, "home.popularFormatsGroup")}
                               </header>
                               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">
@@ -480,7 +474,7 @@ export const root = new Elysia().use(userService).get(
                                 ].map((pop) => (
                                   <button
                                     tabindex={0}
-                                    class="target rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-700 dark:text-amber-300 hover:bg-accent-500 hover:text-neutral-950 transition-colors"
+                                    class="target rounded-tag border border-rule bg-surface px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-cta hover:text-cta-ink"
                                     data-value={`${pop},popular`}
                                     data-target={pop}
                                     data-converter="Popular"
@@ -495,12 +489,12 @@ export const root = new Elysia().use(userService).get(
                             {Object.entries(allTargets).map(([converter, targets]) => (
                               <article
                                 class={`
-                                  convert_to_group flex w-full flex-col border-b border-slate-100 dark:border-neutral-700/60 p-3 last:border-none
+                                  convert_to_group flex w-full flex-col border-b border-rule p-3 last:border-none
                                 `}
                                 data-converter={converter}
                               >
                                 <header
-                                  class="mb-2 w-full text-xs font-bold uppercase tracking-wider text-lime-600 dark:text-accent-400"
+                                  class="mb-2 w-full text-xs font-semibold uppercase tracking-wider text-ink-muted"
                                   safe
                                 >
                                   {converter}
@@ -510,8 +504,8 @@ export const root = new Elysia().use(userService).get(
                                     <button
                                       tabindex={0}
                                       class={`
-                                        target rounded-lg bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-200 dark:border-neutral-700 px-2.5 py-1 text-xs font-medium
-                                        hover:bg-accent-500 hover:text-neutral-950 hover:border-accent-400 transition-colors
+                                        target rounded-tag border border-rule bg-surface-2 px-3 py-1 text-xs font-medium text-ink-body
+                                        transition-colors hover:bg-cta hover:text-cta-ink
                                       `}
                                       data-value={`${target},${converter}`}
                                       data-target={target}
@@ -556,14 +550,11 @@ export const root = new Elysia().use(userService).get(
                       {/* Resolution for documents rendered to images (PDF to JPG and similar).
                           script.js only shows this when it applies to the chosen formats. */}
                       <div id="quality-option" hidden class="mt-4">
-                        <label class="flex flex-col gap-1 text-sm text-slate-600 dark:text-neutral-300">
+                        <label class="flex flex-col gap-1 text-caption text-frame-ink-muted">
                           {tr(locale, "home.imageQuality")}
                           <select
                             name="quality"
-                            class={`
-                              rounded-xl border border-slate-200 bg-white p-3 text-slate-900
-                              dark:border-neutral-700 dark:bg-neutral-800 dark:text-white
-                            `}
+                            class="rounded-button border border-frame-rule bg-frame-surface p-3 text-frame-ink"
                           >
                             <option value="150">{tr(locale, "home.qualityStandard")}</option>
                             <option value="300">{tr(locale, "home.qualityHigh")}</option>
@@ -574,8 +565,8 @@ export const root = new Elysia().use(userService).get(
                       {/* Big Call to Action Button */}
                       <input
                         class={`
-                          btn-primary w-full py-4 text-center text-base font-bold uppercase tracking-wider
-                          disabled:opacity-40 disabled:cursor-not-allowed
+                          btn-on-frame w-full text-center
+                          disabled:cursor-not-allowed disabled:opacity-40
                         `}
                         type="submit"
                         value={tr(locale, "home.convertNow")}
@@ -584,7 +575,7 @@ export const root = new Elysia().use(userService).get(
                     </form>
 
                     {/* Trust Badges */}
-                    <div class="mt-6 pt-5 border-t border-slate-200 dark:border-neutral-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-slate-500 dark:text-neutral-400 text-center">
+                    <div class="mt-6 grid grid-cols-2 gap-4 border-t border-frame-rule pt-5 text-center text-caption text-frame-ink-muted sm:grid-cols-4">
                       <div class="flex items-center justify-center gap-1.5">
                         {tr(locale, "home.ssl")}
                       </div>
@@ -604,24 +595,17 @@ export const root = new Elysia().use(userService).get(
             </section>
 
             {/* CATEGORY TOOLS GRID (Inspired by iLovePDF & Online-Convert) */}
-            <section
-              id="tools"
-              class="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-neutral-800/60 bg-slate-50/70 dark:bg-neutral-950/40"
-            >
+            <section id="tools" class="border-t border-rule px-4 py-16 sm:px-6 lg:px-8">
               <div class="mx-auto max-w-7xl">
                 <div class="text-center max-w-3xl mx-auto mb-14">
-                  <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">
-                    {tr(locale, "home.toolsTitle")}
-                  </h2>
-                  <p class="text-slate-600 dark:text-neutral-400 text-base">
-                    {tr(locale, "home.toolsSubtitle")}
-                  </p>
+                  <h2 class="display-lg mb-4 text-ink">{tr(locale, "home.toolsTitle")}</h2>
+                  <p class="text-body text-ink-body">{tr(locale, "home.toolsSubtitle")}</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Tool 1: Document */}
-                  <div class="tool-card group">
-                    <div class="flex size-12 items-center justify-center rounded-xl bg-blue-500/10 text-blue-500 border border-blue-500/20 mb-5 group-hover:scale-110 transition-transform">
+                  {/* Chapter 1: Document */}
+                  <div class="chapter-card group bg-terracotta">
+                    <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-white/15 text-[#faf5e8]">
                       <svg
                         class="size-6"
                         fill="none"
@@ -636,28 +620,30 @@ export const root = new Elysia().use(userService).get(
                         />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                    <h3 class="mb-5 text-heading-sm font-semibold text-[#faf5e8]">
                       {tr(locale, "home.docConverter")}
                     </h3>
-                    <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      {tr(locale, "home.docConverterDesc")}
-                    </p>
-                    <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "PDF", to: "Word" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "Word", to: "PDF" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "Excel", to: "PDF" })}
-                      </span>
+                    <div class="chapter-panel">
+                      <p class="text-body-sm text-ink-body">
+                        {tr(locale, "home.docConverterDesc")}
+                      </p>
+                      <div class="mt-4 flex flex-wrap gap-1.5">
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "PDF", to: "Word" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "Word", to: "PDF" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "Excel", to: "PDF" })}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Tool 2: Video */}
-                  <div class="tool-card group">
-                    <div class="flex size-12 items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 border border-rose-500/20 mb-5 group-hover:scale-110 transition-transform">
+                  {/* Chapter 2: Video */}
+                  <div class="chapter-card group bg-sapphire">
+                    <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-white/15 text-[#faf5e8]">
                       <svg
                         class="size-6"
                         fill="none"
@@ -672,28 +658,30 @@ export const root = new Elysia().use(userService).get(
                         />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                    <h3 class="mb-5 text-heading-sm font-semibold text-[#faf5e8]">
                       {tr(locale, "home.videoConverter")}
                     </h3>
-                    <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      {tr(locale, "home.videoConverterDesc")}
-                    </p>
-                    <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "MP4", to: "MP3" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "MOV", to: "MP4" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "MKV", to: "MP4" })}
-                      </span>
+                    <div class="chapter-panel">
+                      <p class="text-body-sm text-ink-body">
+                        {tr(locale, "home.videoConverterDesc")}
+                      </p>
+                      <div class="mt-4 flex flex-wrap gap-1.5">
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "MP4", to: "MP3" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "MOV", to: "MP4" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "MKV", to: "MP4" })}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Tool 3: Audio */}
-                  <div class="tool-card group">
-                    <div class="flex size-12 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/20 mb-5 group-hover:scale-110 transition-transform">
+                  {/* Chapter 3: Audio */}
+                  <div class="chapter-card group bg-forest">
+                    <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-white/15 text-[#faf5e8]">
                       <svg
                         class="size-6"
                         fill="none"
@@ -708,28 +696,30 @@ export const root = new Elysia().use(userService).get(
                         />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                    <h3 class="mb-5 text-heading-sm font-semibold text-[#faf5e8]">
                       {tr(locale, "home.audioConverter")}
                     </h3>
-                    <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      {tr(locale, "home.audioConverterDesc")}
-                    </p>
-                    <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "WAV", to: "MP3" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "FLAC", to: "MP3" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "M4A", to: "MP3" })}
-                      </span>
+                    <div class="chapter-panel">
+                      <p class="text-body-sm text-ink-body">
+                        {tr(locale, "home.audioConverterDesc")}
+                      </p>
+                      <div class="mt-4 flex flex-wrap gap-1.5">
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "WAV", to: "MP3" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "FLAC", to: "MP3" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "M4A", to: "MP3" })}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Tool 4: Image */}
-                  <div class="tool-card group">
-                    <div class="flex size-12 items-center justify-center rounded-xl bg-purple-500/10 text-purple-500 border border-purple-500/20 mb-5 group-hover:scale-110 transition-transform">
+                  {/* Chapter 4: Image */}
+                  <div class="chapter-card group bg-peach">
+                    <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-black/10 text-[#181d26]">
                       <svg
                         class="size-6"
                         fill="none"
@@ -744,28 +734,30 @@ export const root = new Elysia().use(userService).get(
                         />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                    <h3 class="mb-5 text-heading-sm font-semibold text-[#181d26]">
                       {tr(locale, "home.imageConverter")}
                     </h3>
-                    <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      {tr(locale, "home.imageConverterDesc")}
-                    </p>
-                    <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "HEIC", to: "JPG" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "PNG", to: "JPG" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "WEBP", to: "PNG" })}
-                      </span>
+                    <div class="chapter-panel">
+                      <p class="text-body-sm text-ink-body">
+                        {tr(locale, "home.imageConverterDesc")}
+                      </p>
+                      <div class="mt-4 flex flex-wrap gap-1.5">
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "HEIC", to: "JPG" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "PNG", to: "JPG" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "WEBP", to: "PNG" })}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Tool 5: E-Book */}
-                  <div class="tool-card group">
-                    <div class="flex size-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 mb-5 group-hover:scale-110 transition-transform">
+                  {/* Chapter 5: E-Book */}
+                  <div class="chapter-card group bg-sky">
+                    <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-black/10 text-[#181d26]">
                       <svg
                         class="size-6"
                         fill="none"
@@ -780,28 +772,30 @@ export const root = new Elysia().use(userService).get(
                         />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                    <h3 class="mb-5 text-heading-sm font-semibold text-[#181d26]">
                       {tr(locale, "home.ebookConverter")}
                     </h3>
-                    <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      {tr(locale, "home.ebookConverterDesc")}
-                    </p>
-                    <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "EPUB", to: "PDF" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "PDF", to: "EPUB" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "MOBI", to: "EPUB" })}
-                      </span>
+                    <div class="chapter-panel">
+                      <p class="text-body-sm text-ink-body">
+                        {tr(locale, "home.ebookConverterDesc")}
+                      </p>
+                      <div class="mt-4 flex flex-wrap gap-1.5">
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "EPUB", to: "PDF" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "PDF", to: "EPUB" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "MOBI", to: "EPUB" })}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Tool 6: Data & Archives */}
-                  <div class="tool-card group">
-                    <div class="flex size-12 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 mb-5 group-hover:scale-110 transition-transform">
+                  {/* Chapter 6: Data & Archives */}
+                  <div class="chapter-card group bg-pink">
+                    <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-black/10 text-[#181d26]">
                       <svg
                         class="size-6"
                         fill="none"
@@ -816,22 +810,24 @@ export const root = new Elysia().use(userService).get(
                         />
                       </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                    <h3 class="mb-5 text-heading-sm font-semibold text-[#181d26]">
                       {tr(locale, "home.dataArchives")}
                     </h3>
-                    <p class="text-sm text-slate-600 dark:text-neutral-400 mb-4">
-                      {tr(locale, "home.dataArchivesDesc")}
-                    </p>
-                    <div class="flex flex-wrap gap-1.5">
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "JSON", to: "CSV" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "CSV", to: "JSON" })}
-                      </span>
-                      <span class="rounded bg-slate-100 text-slate-700 border border-slate-200 dark:bg-neutral-800 dark:text-neutral-300 dark:border-transparent px-2 py-0.5 text-xs">
-                        {tr(locale, "home.tag", { from: "XML", to: "JSON" })}
-                      </span>
+                    <div class="chapter-panel">
+                      <p class="text-body-sm text-ink-body">
+                        {tr(locale, "home.dataArchivesDesc")}
+                      </p>
+                      <div class="mt-4 flex flex-wrap gap-1.5">
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "JSON", to: "CSV" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "CSV", to: "JSON" })}
+                        </span>
+                        <span class="chip border border-rule bg-surface-2 text-ink-body">
+                          {tr(locale, "home.tag", { from: "XML", to: "JSON" })}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -839,76 +835,53 @@ export const root = new Elysia().use(userService).get(
             </section>
 
             {/* HOW IT WORKS SECTION */}
-            <section id="how-it-works" class="py-20 px-4 sm:px-6 lg:px-8">
+            <section id="how-it-works" class="border-t border-rule px-4 py-16 sm:px-6 lg:px-8">
               <div class="mx-auto max-w-7xl">
                 <div class="text-center max-w-3xl mx-auto mb-16">
-                  <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">
-                    {tr(locale, "home.howTitle")}
-                  </h2>
-                  <p class="text-slate-600 dark:text-neutral-400 text-base">
-                    {tr(locale, "home.howSubtitle")}
-                  </p>
+                  <h2 class="display-lg mb-4 text-ink">{tr(locale, "home.howTitle")}</h2>
+                  <p class="text-body text-ink-body">{tr(locale, "home.howSubtitle")}</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center relative">
                   {/* Step 1 */}
                   <div class="flex flex-col items-center">
-                    <div class="flex size-14 items-center justify-center rounded-2xl bg-slate-100 border border-slate-300 text-slate-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-accent-400 text-xl font-bold mb-4 shadow-md">
+                    <div class="mb-4 flex size-14 items-center justify-center rounded-card border border-rule bg-surface text-subheading font-semibold text-ink-muted">
                       1
                     </div>
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                      {tr(locale, "home.step1Title")}
-                    </h3>
-                    <p class="text-sm text-slate-600 dark:text-neutral-400 max-w-xs">
-                      {tr(locale, "home.step1Desc")}
-                    </p>
+                    <h3 class="text-lg font-bold text-ink mb-2">{tr(locale, "home.step1Title")}</h3>
+                    <p class="text-sm text-ink-muted max-w-xs">{tr(locale, "home.step1Desc")}</p>
                   </div>
 
                   {/* Step 2 */}
                   <div class="flex flex-col items-center">
-                    <div class="flex size-14 items-center justify-center rounded-2xl bg-slate-100 border border-slate-300 text-slate-800 dark:bg-neutral-800 dark:border-neutral-700 dark:text-accent-400 text-xl font-bold mb-4 shadow-md">
+                    <div class="mb-4 flex size-14 items-center justify-center rounded-card border border-rule bg-surface text-subheading font-semibold text-ink-muted">
                       2
                     </div>
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                      {tr(locale, "home.step2Title")}
-                    </h3>
-                    <p class="text-sm text-slate-600 dark:text-neutral-400 max-w-xs">
-                      {tr(locale, "home.step2Desc")}
-                    </p>
+                    <h3 class="text-lg font-bold text-ink mb-2">{tr(locale, "home.step2Title")}</h3>
+                    <p class="text-sm text-ink-muted max-w-xs">{tr(locale, "home.step2Desc")}</p>
                   </div>
 
                   {/* Step 3 */}
                   <div class="flex flex-col items-center">
-                    <div class="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-tr from-accent-500 to-lime-400 text-neutral-950 text-xl font-bold mb-4 shadow-lg shadow-lime-500/20">
+                    <div class="mb-4 flex size-14 items-center justify-center rounded-card bg-cta text-subheading font-semibold text-cta-ink">
                       3
                     </div>
-                    <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                      {tr(locale, "home.step3Title")}
-                    </h3>
-                    <p class="text-sm text-slate-600 dark:text-neutral-400 max-w-xs">
-                      {tr(locale, "home.step3Desc")}
-                    </p>
+                    <h3 class="text-lg font-bold text-ink mb-2">{tr(locale, "home.step3Title")}</h3>
+                    <p class="text-sm text-ink-muted max-w-xs">{tr(locale, "home.step3Desc")}</p>
                   </div>
                 </div>
               </div>
             </section>
 
             {/* FREEMIUM PRICING SECTION (SaaS Monetization) */}
-            <section
-              id="pricing"
-              class="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-neutral-800/60 bg-slate-100/60 dark:bg-neutral-950/60"
-            >
+            <section id="pricing" class="border-t border-rule px-4 py-16 sm:px-6 lg:px-8">
               <div class="mx-auto max-w-7xl">
                 <div class="text-center max-w-3xl mx-auto mb-16">
-                  <div class="inline-flex items-center gap-2 rounded-full border border-lime-500/30 bg-lime-500/10 px-3.5 py-1.5 text-xs font-semibold text-lime-700 dark:text-accent-400 mb-4">
+                  <div class="chip mb-4 bg-marigold text-[#181d26]">
                     <span>{tr(locale, "home.pricingBadge")}</span>
                   </div>
-                  <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">
-                    {tr(locale, "home.pricingTitle")}
-                  </h2>
-                  <p class="text-slate-600 dark:text-neutral-400 text-base">
-                    {tr(locale, "home.pricingSubtitle")}
-                  </p>
+                  <h2 class="display-lg mb-4 text-ink">{tr(locale, "home.pricingTitle")}</h2>
+                  <p class="text-body text-ink-body">{tr(locale, "home.pricingSubtitle")}</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
@@ -924,36 +897,31 @@ export const root = new Elysia().use(userService).get(
                       <div
                         class={`rounded-3xl border p-8 flex flex-col justify-between transition-all ${
                           t.is_popular
-                            ? "relative border-2 border-accent-500 bg-white dark:bg-gradient-to-b dark:from-neutral-850 dark:to-neutral-900 shadow-2xl shadow-accent-500/10"
-                            : "border-slate-200 bg-white shadow-md dark:border-neutral-800 dark:bg-neutral-900/60"
+                            ? "relative border-2 border-cta bg-surface shadow-lg"
+                            : "border-rule bg-surface"
                         }`}
                       >
                         {t.is_popular ? (
-                          <div class="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-accent-500 to-lime-400 px-4 py-1 text-xs font-extrabold text-neutral-950 uppercase tracking-wider shadow-sm">
+                          <div class="absolute -top-4 left-1/2 -translate-x-1/2 rounded-tag bg-marigold px-4 py-1 text-xs font-semibold uppercase tracking-wider text-[#181d26]">
                             <span safe>{t.badge || tr(locale, "home.mostPopular")}</span>
                           </div>
                         ) : null}
 
                         <div>
-                          <h3 safe class="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                          <h3 safe class="text-xl font-bold text-ink mb-2">
                             {t.name}
                           </h3>
-                          <p safe class="text-sm text-slate-600 dark:text-neutral-400 mb-6">
+                          <p safe class="text-sm text-ink-muted mb-6">
                             {t.description}
                           </p>
                           <div class="flex items-baseline gap-1 mb-6">
-                            <span class="text-4xl font-extrabold text-slate-900 dark:text-white">
-                              {t.price}
-                            </span>
-                            <span class="text-slate-500 dark:text-neutral-400 text-sm">
-                              {t.billing_period}
-                            </span>
+                            <span class="text-4xl font-extrabold text-ink">{t.price}</span>
+                            <span class="text-ink-muted text-sm">{t.billing_period}</span>
                           </div>
-                          <ul class="space-y-3.5 text-sm text-slate-700 dark:text-neutral-300 mb-8">
+                          <ul class="space-y-3.5 text-sm text-ink-body mb-8">
                             {featuresList.map((feat) => (
                               <li class="flex items-center gap-2.5">
-                                <span class="text-lime-600 dark:text-accent-400 font-bold">✓</span>{" "}
-                                <span safe>{feat}</span>
+                                <span class="text-ink font-bold">✓</span> <span safe>{feat}</span>
                               </li>
                             ))}
                           </ul>
@@ -994,98 +962,81 @@ export const root = new Elysia().use(userService).get(
             </section>
 
             {/* WHY CHOOSE US & SECURITY */}
-            <section
-              id="features"
-              class="py-20 px-4 sm:px-6 lg:px-8 border-t border-slate-200 dark:border-neutral-800/60"
-            >
+            <section id="features" class="py-20 px-4 sm:px-6 lg:px-8 border-t border-rule">
               <div class="mx-auto max-w-7xl">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
                   <div>
-                    <h2 class="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-6">
+                    <h2 class="text-3xl sm:text-4xl font-black text-ink tracking-tight mb-6">
                       {tr(locale, "home.featuresTitle")}
                     </h2>
-                    <p class="text-slate-600 dark:text-neutral-300 text-base mb-8 leading-relaxed">
+                    <p class="text-ink-body text-base mb-8 leading-relaxed">
                       {tr(locale, "home.featuresIntro")} {fileDeletionPromise(locale)}
                     </p>
                     <div class="space-y-4">
                       <div class="flex items-start gap-4">
-                        <div class="flex size-10 items-center justify-center rounded-xl bg-lime-500/10 text-lime-600 dark:text-accent-400 shrink-0">
+                        <div class="flex size-10 shrink-0 items-center justify-center rounded-card bg-surface-2 text-ink">
                           🛡️
                         </div>
                         <div>
-                          <h4 class="font-bold text-slate-900 dark:text-white text-base">
+                          <h4 class="font-bold text-ink text-base">
                             {tr(locale, "home.autoDeleteTitle")}
                           </h4>
-                          <p class="text-sm text-slate-600 dark:text-neutral-400">
-                            {fileDeletionPromise(locale)}
-                          </p>
+                          <p class="text-sm text-ink-muted">{fileDeletionPromise(locale)}</p>
                         </div>
                       </div>
                       <div class="flex items-start gap-4">
-                        <div class="flex size-10 items-center justify-center rounded-xl bg-lime-500/10 text-lime-600 dark:text-accent-400 shrink-0">
+                        <div class="flex size-10 shrink-0 items-center justify-center rounded-card bg-surface-2 text-ink">
                           ⚡
                         </div>
                         <div>
-                          <h4 class="font-bold text-slate-900 dark:text-white text-base">
+                          <h4 class="font-bold text-ink text-base">
                             {tr(locale, "home.industryTitle")}
                           </h4>
-                          <p class="text-sm text-slate-600 dark:text-neutral-400">
-                            {tr(locale, "home.industryDesc")}
-                          </p>
+                          <p class="text-sm text-ink-muted">{tr(locale, "home.industryDesc")}</p>
                         </div>
                       </div>
                       <div class="flex items-start gap-4">
-                        <div class="flex size-10 items-center justify-center rounded-xl bg-lime-500/10 text-lime-600 dark:text-accent-400 shrink-0">
+                        <div class="flex size-10 shrink-0 items-center justify-center rounded-card bg-surface-2 text-ink">
                           📱
                         </div>
                         <div>
-                          <h4 class="font-bold text-slate-900 dark:text-white text-base">
+                          <h4 class="font-bold text-ink text-base">
                             {tr(locale, "home.zeroInstallTitle")}
                           </h4>
-                          <p class="text-sm text-slate-600 dark:text-neutral-400">
-                            {tr(locale, "home.zeroInstallDesc")}
-                          </p>
+                          <p class="text-sm text-ink-muted">{tr(locale, "home.zeroInstallDesc")}</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div class="rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-neutral-700/60 dark:bg-gradient-to-tr dark:from-neutral-900 dark:to-neutral-850 p-8">
-                    <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-4">
+                  <div class="rounded-feature border border-rule bg-surface p-8">
+                    <h3 class="text-xl font-bold text-ink mb-4">
                       {tr(locale, "home.librariesTitle")}
                     </h3>
-                    <div class="grid grid-cols-2 gap-3 text-sm text-slate-700 dark:text-neutral-300">
-                      <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
-                        {tr(locale, "home.lib.ffmpeg")}
+                    <div class="grid grid-cols-2 gap-3 text-sm text-ink-body">
+                      <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
+                        <span class="text-ink">●</span> {tr(locale, "home.lib.ffmpeg")}
                       </div>
-                      <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
-                        {tr(locale, "home.lib.libreoffice")}
+                      <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
+                        <span class="text-ink">●</span> {tr(locale, "home.lib.libreoffice")}
                       </div>
-                      <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
-                        {tr(locale, "home.lib.imagemagick")}
+                      <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
+                        <span class="text-ink">●</span> {tr(locale, "home.lib.imagemagick")}
                       </div>
-                      <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
-                        {tr(locale, "home.lib.pandoc")}
+                      <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
+                        <span class="text-ink">●</span> {tr(locale, "home.lib.pandoc")}
                       </div>
-                      <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
-                        {tr(locale, "home.lib.calibre")}
+                      <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
+                        <span class="text-ink">●</span> {tr(locale, "home.lib.calibre")}
                       </div>
-                      <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
-                        {tr(locale, "home.lib.inkscape")}
+                      <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
+                        <span class="text-ink">●</span> {tr(locale, "home.lib.inkscape")}
                       </div>
-                      <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
-                        {tr(locale, "home.lib.potrace")}
+                      <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
+                        <span class="text-ink">●</span> {tr(locale, "home.lib.potrace")}
                       </div>
-                      <div class="flex items-center gap-2 p-2.5 rounded-lg bg-slate-100 dark:bg-neutral-800/70 border border-slate-200 dark:border-transparent">
-                        <span class="text-lime-600 dark:text-accent-400">●</span>{" "}
-                        {tr(locale, "home.lib.assimp")}
+                      <div class="flex items-center gap-2 rounded-button border border-rule bg-surface-2 p-2.5">
+                        <span class="text-ink">●</span> {tr(locale, "home.lib.assimp")}
                       </div>
                     </div>
                   </div>
@@ -1095,24 +1046,21 @@ export const root = new Elysia().use(userService).get(
           </main>
 
           {/* SAAS FOOTER */}
-          <footer class="w-full border-t border-slate-200 dark:border-neutral-800/80 bg-white dark:bg-neutral-950 py-12 px-4 sm:px-6 lg:px-8">
+          <footer class="w-full border-t border-rule px-4 py-12 sm:px-6 lg:px-8">
             <div class="mx-auto max-w-7xl grid grid-cols-2 md:grid-cols-5 gap-8 mb-10 text-sm">
               <div class="col-span-2">
                 <div class="flex items-center gap-2.5 mb-3">
                   <div class="flex size-7 items-center justify-center rounded-lg bg-gradient-to-tr from-accent-500 to-lime-400 text-neutral-950 font-bold text-sm">
                     CX
                   </div>
-                  <span
-                    class="text-lg font-bold text-slate-900 dark:text-white tracking-tight"
-                    safe
-                  >
+                  <span class="text-lg font-bold text-ink tracking-tight" safe>
                     {BRANDING}
                   </span>
                 </div>
-                <p class="text-slate-500 dark:text-neutral-400 text-xs max-w-sm leading-relaxed mb-4">
+                <p class="text-ink-muted text-xs max-w-sm leading-relaxed mb-4">
                   {tr(locale, "home.footerTagline")}
                 </p>
-                <p safe class="text-slate-500 dark:text-neutral-400 text-xs">
+                <p safe class="text-ink-muted text-xs">
                   {tr(locale, "home.copyright", {
                     year: new Date().getFullYear(),
                     brand: BRANDING,
@@ -1121,47 +1069,32 @@ export const root = new Elysia().use(userService).get(
               </div>
 
               <div>
-                <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">
+                <h5 class="text-ink font-bold mb-3 text-xs uppercase tracking-wider">
                   {tr(locale, "home.footerConverters")}
                 </h5>
-                <ul class="space-y-2 text-xs text-slate-600 dark:text-neutral-400">
+                <ul class="space-y-2 text-xs text-ink-muted">
                   <li>
-                    <a
-                      href="#tools"
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href="#tools" class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerPdf")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href="#tools"
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href="#tools" class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerVideo")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href="#tools"
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href="#tools" class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerAudio")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href="#tools"
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href="#tools" class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerImage")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href="#tools"
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href="#tools" class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerEbook")}
                     </a>
                   </li>
@@ -1169,39 +1102,27 @@ export const root = new Elysia().use(userService).get(
               </div>
 
               <div>
-                <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">
+                <h5 class="text-ink font-bold mb-3 text-xs uppercase tracking-wider">
                   {tr(locale, "home.footerProduct")}
                 </h5>
-                <ul class="space-y-2 text-xs text-slate-600 dark:text-neutral-400">
+                <ul class="space-y-2 text-xs text-ink-muted">
                   <li>
-                    <a
-                      href="#pricing"
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href="#pricing" class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerPricing")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href="#how-it-works"
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href="#how-it-works" class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerHow")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href="#features"
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href="#features" class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerSecurity")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href={`${WEBROOT}/history`}
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href={`${WEBROOT}/history`} class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerHistory")}
                     </a>
                   </li>
@@ -1209,55 +1130,37 @@ export const root = new Elysia().use(userService).get(
               </div>
 
               <div>
-                <h5 class="text-slate-900 dark:text-white font-bold mb-3 text-xs uppercase tracking-wider">
+                <h5 class="text-ink font-bold mb-3 text-xs uppercase tracking-wider">
                   {tr(locale, "home.footerAccount")}
                 </h5>
-                <ul class="space-y-2 text-xs text-slate-600 dark:text-neutral-400">
+                <ul class="space-y-2 text-xs text-ink-muted">
                   <li>
-                    <a
-                      href={`${WEBROOT}/login`}
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href={`${WEBROOT}/login`} class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerSignIn")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href={`${WEBROOT}/register`}
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href={`${WEBROOT}/register`} class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerCreate")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href={`${WEBROOT}/account`}
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href={`${WEBROOT}/account`} class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerSettings")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href={`${WEBROOT}/terms`}
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href={`${WEBROOT}/terms`} class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerTerms")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href={`${WEBROOT}/privacy`}
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href={`${WEBROOT}/privacy`} class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerPrivacy")}
                     </a>
                   </li>
                   <li>
-                    <a
-                      href={`${WEBROOT}/refunds`}
-                      class="hover:text-slate-900 dark:hover:text-white transition-colors"
-                    >
+                    <a href={`${WEBROOT}/refunds`} class="transition-colors hover:text-ink">
                       {tr(locale, "home.footerRefunds")}
                     </a>
                   </li>

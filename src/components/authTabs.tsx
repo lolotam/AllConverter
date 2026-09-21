@@ -17,14 +17,12 @@ export function AuthTabs({
 }) {
   const suffix = reason ? `?reason=${reason}` : "";
   const tab = (isActive: boolean) =>
-    `flex-1 rounded-lg px-4 py-2.5 text-center text-sm font-semibold transition-colors ${
-      isActive
-        ? "bg-accent-500 text-neutral-950"
-        : "text-slate-600 hover:bg-slate-100 dark:text-neutral-300 dark:hover:bg-neutral-800"
+    `flex-1 rounded-button px-4 py-2.5 text-center text-[14px] font-semibold transition-colors ${
+      isActive ? "bg-cta text-cta-ink" : "text-ink-muted hover:bg-surface-2"
     }`;
 
   return (
-    <div class="mb-6 flex gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 dark:border-neutral-800 dark:bg-neutral-900">
+    <div class="mb-6 flex gap-1 rounded-card border border-rule bg-surface-2 p-1">
       <a href={`${webroot}/login${suffix}`} class={tab(active === "login")}>
         {t(locale, "auth.signInTab")}
       </a>
@@ -50,12 +48,7 @@ export function GoogleButton({
     <>
       <a
         href={`${webroot}/auth/google`}
-        class={`
-          flex w-full items-center justify-center gap-3 rounded-lg border border-slate-300 bg-white
-          px-4 py-3 text-sm font-semibold text-slate-700 transition-colors
-          hover:bg-slate-50
-          dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700
-        `}
+        class="flex w-full items-center justify-center gap-3 rounded-button border border-rule bg-surface px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
       >
         <svg class="size-5" viewBox="0 0 24 24" aria-hidden="true">
           <path
@@ -77,10 +70,10 @@ export function GoogleButton({
         </svg>
         {label}
       </a>
-      <div class="my-5 flex items-center gap-3 text-xs text-slate-500 dark:text-neutral-500">
-        <span class="h-px flex-1 bg-slate-200 dark:bg-neutral-800" />
+      <div class="my-5 flex items-center gap-3 text-xs text-ink-muted">
+        <span class="h-px flex-1 bg-rule" />
         {t(locale, "auth.orEmail")}
-        <span class="h-px flex-1 bg-slate-200 dark:bg-neutral-800" />
+        <span class="h-px flex-1 bg-rule" />
       </div>
     </>
   );

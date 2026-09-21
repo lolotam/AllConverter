@@ -1,3 +1,17 @@
+/*
+ * Two palettes live here.
+ *
+ * The neutral/accent scale is the original one, kept because every page outside the
+ * landing page still reads it. Its values are inverted between modes so that, for
+ * example, neutral-900 is always "the card colour".
+ *
+ * The editorial tokens below are the Airtable "warm workshop" reference. They are
+ * semantic rather than numbered — canvas, ink, rule, chapter — so a page written
+ * against them needs no dark: variants at all. Light mode carries the reference's
+ * values exactly; dark mode is derived, keeping the warmth rather than falling back
+ * to the cold slate the rest of the app uses.
+ */
+
 :root {
   /* Light mode */
   /* Neutral colors - Gray */
@@ -18,6 +32,41 @@
   --accent-500: oklch(64.8% 0.2 131.684);
   /* lime-500 */
   --accent-400: oklch(76.8% 0.233 130.85);
+
+  /* Editorial palette — reference values, unmodified */
+  --canvas: #faf5e8;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --frame: #181d26;
+  --ink: #040e20;
+  --ink-body: #333840;
+  --ink-muted: #525965;
+  --ink-faint: #9297a0;
+  --rule: #e0e2e6;
+  --link: #1b61c9;
+  --cta: #181d26;
+  --cta-ink: #ffffff;
+  --ghost-surface: #ffffff;
+  /* Section-scale surfaces only — never body text or small UI */
+  --chapter-terracotta: #aa2d00;
+  --chapter-sapphire: #254fad;
+  --chapter-forest: #0a2e0e;
+  --chapter-peach: #fcab79;
+  --chapter-sky: #c7e5f2;
+  --chapter-pink: #fa91e0;
+  --chapter-marigold: #fcb42a;
+  /* The white panel that sits inside a chapter card, and the ink on it */
+  --chapter-panel: #ffffff;
+  --chapter-panel-ink: #181d26;
+  /* The product frame is dark in both themes, so what sits on it never flips */
+  --frame-ink: #f4efe4;
+  --frame-ink-muted: #a9a294;
+  --frame-rule: rgba(255, 255, 255, 0.14);
+  --frame-surface: rgba(255, 255, 255, 0.05);
+  --shadow-nav: rgba(15, 48, 106, 0.05) 0px 0px 20px 0px;
+  --shadow-cta:
+    rgba(0, 0, 0, 0.32) 0px 0px 1px 0px, rgba(0, 0, 0, 0.08) 0px 0px 2px 0px,
+    rgba(45, 127, 249, 0.28) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 0px 0px 0.5px inset;
 }
 
 :root.dark,
@@ -41,6 +90,39 @@
   --accent-500: oklch(76.8% 0.233 130.85);
   /* lime-400 */
   --accent-400: oklch(84.1% 0.238 128.85);
+
+  /* Editorial palette — derived: warm espresso, not cold slate */
+  --canvas: #1a1714;
+  --surface: #242019;
+  --surface-2: #2e2920;
+  --frame: #26211a;
+  --ink: #f7f1e4;
+  --ink-body: #ddd5c6;
+  --ink-muted: #b0a695;
+  --ink-faint: #7d7566;
+  --rule: #3a342b;
+  --link: #8fb8ff;
+  /* The CTA inverts: cream fill on the dark canvas keeps the architectural contrast */
+  --cta: #faf5e8;
+  --cta-ink: #181d26;
+  --ghost-surface: #242019;
+  --chapter-terracotta: #aa2d00;
+  --chapter-sapphire: #254fad;
+  --chapter-forest: #0a2e0e;
+  --chapter-peach: #fcab79;
+  --chapter-sky: #c7e5f2;
+  --chapter-pink: #fa91e0;
+  --chapter-marigold: #fcb42a;
+  --chapter-panel: #faf5e8;
+  --chapter-panel-ink: #181d26;
+  /* The product frame is dark in both themes, so what sits on it never flips */
+  --frame-ink: #f4efe4;
+  --frame-ink-muted: #a9a294;
+  --frame-rule: rgba(255, 255, 255, 0.14);
+  --frame-surface: rgba(255, 255, 255, 0.05);
+  --shadow-nav: rgba(0, 0, 0, 0.45) 0px 0px 20px 0px;
+  --shadow-cta:
+    rgba(0, 0, 0, 0.5) 0px 1px 3px 0px, rgba(255, 255, 255, 0.08) 0px 0px 0px 0.5px inset;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -59,5 +141,29 @@
     --accent-600: oklch(64.8% 0.2 131.684);
     --accent-500: oklch(76.8% 0.233 130.85);
     --accent-400: oklch(84.1% 0.238 128.85);
+
+    --canvas: #1a1714;
+    --surface: #242019;
+    --surface-2: #2e2920;
+    --frame: #26211a;
+    --ink: #f7f1e4;
+    --ink-body: #ddd5c6;
+    --ink-muted: #b0a695;
+    --ink-faint: #7d7566;
+    --rule: #3a342b;
+    --link: #8fb8ff;
+    --cta: #faf5e8;
+    --cta-ink: #181d26;
+    --ghost-surface: #242019;
+    --chapter-panel: #faf5e8;
+    --chapter-panel-ink: #181d26;
+    /* The product frame is dark in both themes, so what sits on it never flips */
+    --frame-ink: #f4efe4;
+    --frame-ink-muted: #a9a294;
+    --frame-rule: rgba(255, 255, 255, 0.14);
+    --frame-surface: rgba(255, 255, 255, 0.05);
+    --shadow-nav: rgba(0, 0, 0, 0.45) 0px 0px 20px 0px;
+    --shadow-cta:
+      rgba(0, 0, 0, 0.5) 0px 1px 3px 0px, rgba(255, 255, 255, 0.08) 0px 0px 0px 0.5px inset;
   }
 }

@@ -99,8 +99,21 @@ export function setOfferedFormats(formats: string[]): void {
   // Marks the migration done, so a later read cannot overwrite what is being saved here
   migrateFromConverterSettings();
   const offered = new Set(formats.map(canonical));
+  const wasHiddenBefore = new Set(getJsonSetting<string[]>(HIDDEN_KEY, []));
   const hidden = [...everyFormat().keys()].filter((format) => !offered.has(format)).sort();
   setSetting(HIDDEN_KEY, JSON.stringify(hidden));
+
+  // Switching a format back on is the admin asking for it, whatever was disabled before the
+  // upgrade. Without this, a format whose only converter was switched off could be ticked,
+  // appear on the landing page, and still refuse every conversion.
+  const excluded = exclusions();
+  const cleared = [...offered].filter((format) => wasHiddenBefore.has(format) && excluded[format]);
+  if (cleared.length > 0) {
+    for (const format of cleared) {
+      delete excluded[format];
+    }
+    setSetting(EXCLUDED_KEY, JSON.stringify(excluded));
+  }
 }
 
 export function preferredConverters(): Record<string, string> {
@@ -177,17 +190,23 @@ export function resolveConverter(from: string, to: string): string | null {
     .filter(([, targets]) => targets.some((format) => canonical(format) === target))
     .map(([converter]) => converter);
 
-  return pickConverter(capable, preferredConverters()[target], new Set(excludedConverters()));
+  return pickConverter(capable, preferredConverters()[target], new Set(excludedFor(target)));
 }
 
 /**
  * Converters an admin had switched off before this version removed the converter-level
- * switch. They stay out of automatic selection — reinstating a tool somebody disabled
- * because it was unreliable should not happen behind their back.
+ * switch, per format. Reinstating a tool somebody disabled because it was unreliable
+ * should not happen behind their back — and the old settings could switch one off for a
+ * single target as easily as for everything, so this is keyed by format rather than being
+ * one flat list.
  */
-function excludedConverters(): string[] {
+function exclusions(): Record<string, string[]> {
   migrateFromConverterSettings();
-  return getJsonSetting<string[]>(EXCLUDED_KEY, []);
+  return getJsonSetting<Record<string, string[]>>(EXCLUDED_KEY, {});
+}
+
+function excludedFor(format: string): string[] {
+  return exclusions()[canonical(format)] ?? [];
 }
 
 /** The decision on its own: the preference if it can do the job, else the first that can. */
@@ -281,10 +300,20 @@ function migrateFromConverterSettings(): void {
   if (Object.keys(preferences).length > 0) {
     setSetting(PREFERRED_KEY, JSON.stringify({ ...preferences, ...preferredConverters() }));
   }
-  // The preference above covers the tool picked first; this keeps the disabled one out of
-  // the fallback too, for the inputs the preferred converter cannot read.
-  if (hiddenConverters.size > 0) {
-    setSetting(EXCLUDED_KEY, JSON.stringify([...hiddenConverters].sort()));
+  // The preference above covers the tool picked first; this keeps the disabled ones out of
+  // the fallback too, for the inputs the preferred converter cannot read. Recorded per
+  // format, because the old settings could switch a converter off for one target only.
+  // A format nothing is left to produce is already hidden, so it gets no entry: turning it
+  // back on should just work rather than refuse every conversion.
+  const exclusionsByFormat: Record<string, string[]> = {};
+  for (const [format, { converters, raw }] of catalogue) {
+    const off = converters.filter((converter) => wasHidden(converter, format, raw));
+    if (off.length > 0 && off.length < converters.length) {
+      exclusionsByFormat[format] = off.sort();
+    }
+  }
+  if (Object.keys(exclusionsByFormat).length > 0) {
+    setSetting(EXCLUDED_KEY, JSON.stringify(exclusionsByFormat));
   }
   setSetting(MIGRATED_KEY, new Date().toISOString());
 }

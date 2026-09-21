@@ -3,6 +3,7 @@
 import db, { getTierById } from "../db/db";
 import { User } from "../db/types";
 import { avatarUrl, initialsOf } from "../services/avatar";
+import { getConversionsToday, UNLIMITED_THRESHOLD } from "../services/quota";
 import { WEBROOT } from "./env";
 
 export type HeaderAccount = {
@@ -11,6 +12,10 @@ export type HeaderAccount = {
   accountAvatar?: string | undefined;
   accountInitials?: string | undefined;
   accountTier?: string | undefined;
+  accountUsed?: number | undefined;
+  accountLimit?: number | undefined;
+  accountUnlimited?: boolean | undefined;
+  accountPaid?: boolean | undefined;
   isAdmin?: boolean | undefined;
 };
 
@@ -25,12 +30,18 @@ export function headerAccount(userId?: string | number | null): HeaderAccount {
   }
 
   const tier = getTierById(account.tier ?? "free");
+  const limit = tier?.daily_conversions ?? 0;
   return {
     accountEmail: account.email,
     accountName: account.display_name ?? undefined,
     accountAvatar: avatarUrl(WEBROOT, String(account.id), account.avatar_path) ?? undefined,
     accountInitials: initialsOf(account.display_name, account.email),
     accountTier: tier?.name ?? account.tier ?? undefined,
+    // Today's usage is what people actually want to know before starting a batch
+    accountUsed: getConversionsToday(`user:${account.id}`),
+    accountLimit: limit,
+    accountUnlimited: limit >= UNLIMITED_THRESHOLD,
+    accountPaid: (account.tier ?? "free") !== "free",
     isAdmin: account.role === "admin",
   };
 }

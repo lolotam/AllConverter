@@ -17,6 +17,7 @@ import {
 } from "../helpers/env";
 import { USAGE_RETENTION_DAYS } from "../services/quota";
 import { deletionIsAutomatic, retentionSentence } from "../services/retention";
+import { headerAccount, type HeaderAccount } from "../helpers/headerUser";
 import { userService } from "./user";
 
 const SOURCE_CODE_URL = "https://github.com/C4illin/ConvertX";
@@ -103,10 +104,12 @@ const fileRetention = () =>
 const LegalPage = ({
   title,
   loggedIn,
+  account,
   children,
 }: {
   title: string;
   loggedIn: boolean;
+  account: HeaderAccount;
   children: JSX.Element[];
 }) => (
   <BaseHtml webroot={WEBROOT} title={`${BRANDING} | ${title}`}>
@@ -118,6 +121,7 @@ const LegalPage = ({
         allowUnauthenticated={ALLOW_UNAUTHENTICATED}
         hideHistory={HIDE_HISTORY}
         loggedIn={loggedIn}
+        {...account}
       />
       <main
         class="
@@ -166,11 +170,14 @@ const LegalPage = ({
 
 export const legal = new Elysia()
   .use(userService)
-  .resolve(async ({ jwt, cookie: { auth } }) => ({
-    loggedIn: auth?.value ? Boolean(await jwt.verify(auth.value as string)) : false,
-  }))
-  .get("/terms", ({ loggedIn }) => (
-    <LegalPage title="Terms of Service" loggedIn={loggedIn}>
+  .resolve(async ({ jwt, cookie: { auth } }) => {
+    const verified = auth?.value
+      ? ((await jwt.verify(auth.value as string)) as { id?: string } | false)
+      : false;
+    return { loggedIn: Boolean(verified), account: headerAccount(verified ? verified.id : null) };
+  })
+  .get("/terms", ({ loggedIn, account }) => (
+    <LegalPage title="Terms of Service" loggedIn={loggedIn} account={account}>
       <Section title="1. Agreement">
         <p>
           These terms govern your use of <span safe>{BRANDING}</span> (the "Service"), operated by{" "}
@@ -299,8 +306,8 @@ export const legal = new Elysia()
       </Section>
     </LegalPage>
   ))
-  .get("/privacy", ({ loggedIn }) => (
-    <LegalPage title="Privacy Policy" loggedIn={loggedIn}>
+  .get("/privacy", ({ loggedIn, account }) => (
+    <LegalPage title="Privacy Policy" loggedIn={loggedIn} account={account}>
       <Section title="Who we are">
         <p>
           <Entity /> operates <span safe>{BRANDING}</span> and is responsible for the personal data
@@ -421,8 +428,8 @@ export const legal = new Elysia()
       </Section>
     </LegalPage>
   ))
-  .get("/refunds", ({ loggedIn }) => (
-    <LegalPage title="Refund Policy" loggedIn={loggedIn}>
+  .get("/refunds", ({ loggedIn, account }) => (
+    <LegalPage title="Refund Policy" loggedIn={loggedIn} account={account}>
       <Section title="Money-back guarantee">
         <p>
           If you are not happy with a paid plan, you can request a full refund within{" "}

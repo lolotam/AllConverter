@@ -22,6 +22,12 @@ export const ar = {
   "menu.profile": "ملفي الشخصي",
   "menu.history": "سجل التحويلات",
   "menu.changePassword": "تغيير كلمة المرور",
+  "menu.plan": "الخطة والاستخدام",
+  "menu.billing": "الخطة والفوترة",
+  "menu.converters": "كل المحولات",
+  "menu.upgrade": "ترقية الخطة",
+  "menu.usageUnlimited": "تحويلات بلا حدود",
+  "menu.usageLeft": "تبقى {left} من {limit} تحويلات اليوم",
   "menu.admin": "لوحة الإدارة",
   "menu.signOut": "تسجيل الخروج",
 

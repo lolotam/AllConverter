@@ -5,12 +5,13 @@ import { onlyAvailable } from "../converters/availability";
 import { visibleTargets } from "../services/features";
 import { getAllInputs, getAllTargets } from "../converters/main";
 import { ALLOW_UNAUTHENTICATED, WEBROOT, BRANDING } from "../helpers/env";
+import { headerAccount } from "../helpers/headerUser";
 import { localeFromRequest, t } from "../i18n";
 import { userService } from "./user";
 
 export const listConverters = new Elysia().use(userService).get(
   "/converters",
-  async ({ request, cookie: { lang } }) => {
+  async ({ request, cookie: { lang }, user }) => {
     const locale = localeFromRequest(request, lang?.value);
     return (
       <BaseHtml webroot={WEBROOT} title="ConvertX | Converters" locale={locale}>
@@ -20,7 +21,8 @@ export const listConverters = new Elysia().use(userService).get(
             locale={locale}
             allowUnauthenticated={ALLOW_UNAUTHENTICATED}
             branding={BRANDING}
-            loggedIn
+            loggedIn={Boolean(user)}
+            {...headerAccount(user?.id)}
           />
           <main
             class={`

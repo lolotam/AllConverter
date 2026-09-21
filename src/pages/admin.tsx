@@ -25,6 +25,7 @@ import {
   HIDE_HISTORY,
   WEBROOT,
 } from "../helpers/env";
+import { headerAccount } from "../helpers/headerUser";
 import { onlyAvailable } from "../converters/availability";
 import { getAllTargets } from "../converters/main";
 import { analytics, queueSnapshot, storageUsage, systemHealth } from "../services/adminStats";
@@ -124,7 +125,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
               allowUnauthenticated={ALLOW_UNAUTHENTICATED}
               hideHistory={HIDE_HISTORY}
               loggedIn={true}
-              isAdmin={true}
+              {...headerAccount(currentUser.id)}
             />
 
             <div class="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#0b0c10] dark:text-neutral-100 transition-colors">

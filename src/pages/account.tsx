@@ -308,7 +308,7 @@ export const account = new Elysia()
                 </form>
               </section>
 
-              <section class={`${card} mb-6`}>
+              <section id="plan" class={`${card} mb-6`}>
                 <h2 class={heading}>{tr(locale, "account.plan")}</h2>
                 <p safe class="mb-4 text-sm text-slate-600 dark:text-neutral-300">
                   {tier?.name ?? userData.tier}

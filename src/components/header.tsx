@@ -11,6 +11,10 @@ const AccountMenu = ({
   avatar,
   initials,
   tier,
+  used,
+  limit,
+  unlimited,
+  paid,
   isAdmin,
   hideHistory,
 }: {
@@ -21,10 +25,18 @@ const AccountMenu = ({
   avatar?: string | undefined;
   initials?: string | undefined;
   tier?: string | undefined;
+  used?: number | undefined;
+  limit?: number | undefined;
+  unlimited?: boolean | undefined;
+  paid?: boolean | undefined;
   isAdmin?: boolean | undefined;
   hideHistory?: boolean | undefined;
 }) => {
   const item = `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-neutral-200 dark:hover:bg-neutral-800 transition-colors`;
+  const left = Math.max(0, (limit ?? 0) - (used ?? 0));
+  // A meter is only meaningful against a real ceiling
+  const showMeter = !unlimited && (limit ?? 0) > 0;
+  const spent = showMeter ? Math.min(100, Math.round(((used ?? 0) / (limit ?? 1)) * 100)) : 0;
   return (
     <details class="group relative" data-account-menu>
       <summary
@@ -80,6 +92,23 @@ const AccountMenu = ({
               {tier}
             </span>
           ) : null}
+
+          {/* What most people open this menu to find out: can I still convert today? */}
+          <div class="mt-2.5">
+            <p class="text-xs font-medium text-slate-600 dark:text-neutral-300">
+              {unlimited
+                ? t(locale, "menu.usageUnlimited")
+                : t(locale, "menu.usageLeft", { left, limit: limit ?? 0 })}
+            </p>
+            {showMeter ? (
+              <div class="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-neutral-800">
+                <div
+                  class={`h-full rounded-full ${left === 0 ? "bg-red-500" : "bg-accent-500"}`}
+                  style={`width:${spent}%`}
+                />
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div class="py-1">
@@ -91,15 +120,37 @@ const AccountMenu = ({
               <span>🕒</span> {t(locale, "menu.history")}
             </a>
           ) : null}
+          <a href={`${webroot}/account#plan`} class={item} role="menuitem">
+            <span>💳</span> {t(locale, paid ? "menu.billing" : "menu.plan")}
+          </a>
+          <a href={`${webroot}/converters`} class={item} role="menuitem">
+            <span>🔁</span> {t(locale, "menu.converters")}
+          </a>
           <a href={`${webroot}/account#password`} class={item} role="menuitem">
             <span>🔒</span> {t(locale, "menu.changePassword")}
           </a>
-          {isAdmin ? (
-            <a href={`${webroot}/admin`} class={item} role="menuitem">
-              <span>⚡</span> {t(locale, "menu.admin")}
+          {!paid ? (
+            <a
+              href={`${webroot}/#pricing`}
+              role="menuitem"
+              class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-lime-700 hover:bg-accent-500/10 dark:text-accent-400 dark:hover:bg-accent-500/10 transition-colors"
+            >
+              <span>🚀</span> {t(locale, "menu.upgrade")}
             </a>
           ) : null}
         </div>
+
+        {isAdmin ? (
+          <div class="border-t border-slate-200 py-1 dark:border-neutral-800">
+            <a
+              href={`${webroot}/admin`}
+              role="menuitem"
+              class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/10 transition-colors"
+            >
+              <span>⚡</span> {t(locale, "menu.admin")}
+            </a>
+          </div>
+        ) : null}
 
         <div class="border-t border-slate-200 pt-1 dark:border-neutral-800">
           <a
@@ -129,6 +180,10 @@ export const Header = ({
   accountAvatar,
   accountInitials,
   accountTier,
+  accountUsed,
+  accountLimit,
+  accountUnlimited,
+  accountPaid,
 }: {
   locale?: Locale | undefined;
   loggedIn?: boolean | undefined;
@@ -143,6 +198,10 @@ export const Header = ({
   accountAvatar?: string | undefined;
   accountInitials?: string | undefined;
   accountTier?: string | undefined;
+  accountUsed?: number | undefined;
+  accountLimit?: number | undefined;
+  accountUnlimited?: boolean | undefined;
+  accountPaid?: boolean | undefined;
 }) => {
   // Set in the admin dashboard; null or empty keeps what the app ships with
   const logo = brandingUrl(webroot, "logo");
@@ -289,6 +348,10 @@ export const Header = ({
                 avatar={accountAvatar}
                 initials={accountInitials}
                 tier={accountTier}
+                used={accountUsed}
+                limit={accountLimit}
+                unlimited={accountUnlimited}
+                paid={accountPaid}
                 isAdmin={isAdmin}
                 hideHistory={hideHistory}
               />

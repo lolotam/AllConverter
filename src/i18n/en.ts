@@ -21,6 +21,12 @@ export const en = {
   "menu.profile": "My profile",
   "menu.history": "Conversion history",
   "menu.changePassword": "Change password",
+  "menu.plan": "Plan and usage",
+  "menu.billing": "Plan and billing",
+  "menu.converters": "All converters",
+  "menu.upgrade": "Upgrade plan",
+  "menu.usageUnlimited": "Unlimited conversions",
+  "menu.usageLeft": "{left} of {limit} conversions left today",
   "menu.admin": "Admin dashboard",
   "menu.signOut": "Sign out",
 

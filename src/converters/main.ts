@@ -336,8 +336,15 @@ const possibleSources: Record<string, Record<string, string[]>> = {};
 for (const [from, byConverter] of Object.entries(possibleTargets)) {
   for (const [converterName, toList] of Object.entries(byConverter)) {
     for (const to of toList) {
-      possibleSources[to] ??= {};
-      (possibleSources[to][converterName] ??= []).push(from);
+      // Keyed the same way it is read back. Converters spell the same output several ways —
+      // markitdown offers "md" where pandoc offers "markdown" — and storing the raw spelling
+      // while looking up the normalized one loses whichever converter used the alias.
+      const key = normalizeFiletype(to);
+      possibleSources[key] ??= {};
+      const sources = (possibleSources[key][converterName] ??= []);
+      if (!sources.includes(from)) {
+        sources.push(from);
+      }
     }
   }
 }

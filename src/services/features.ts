@@ -204,10 +204,12 @@ function pickConverter(
   if (preferred && capable.includes(preferred)) {
     return preferred;
   }
-  // Otherwise a converter they had switched off is not resurrected by the fallback, unless
-  // it is the only thing that can do the job at all.
+  // Otherwise a converter they had switched off is not resurrected. If it is the only thing
+  // that could do this particular conversion, the answer is that we do not do it — which is
+  // exactly what happened before the upgrade, when a switched-off converter was dropped
+  // outright rather than kept as a last resort.
   const allowed = capable.filter((converter) => !excluded.has(converter));
-  return (allowed.length > 0 ? allowed : capable)[0] ?? null;
+  return allowed[0] ?? null;
 }
 
 /**

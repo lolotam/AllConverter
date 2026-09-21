@@ -1085,10 +1085,25 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
 
       const placeholders = body.jobIds.map(() => "?").join(", ");
       const jobs = db
-        .query(`SELECT id, user_id FROM jobs WHERE id IN (${placeholders})`)
-        .all(...body.jobIds) as { id: number; user_id: number }[];
+        .query(`SELECT id, user_id, status FROM jobs WHERE id IN (${placeholders})`)
+        .all(...body.jobIds) as { id: number; user_id: number; status: string }[];
 
-      return { success: true, deleted: deleteJobs(jobs) };
+      // A job still converting has a task running against its folders. Deleting it would
+      // pull them out from under that task mid-way, break somebody's conversion and leave
+      // file_names rows pointing at a job that no longer exists, so it is skipped and the
+      // admin is told. Everything else goes.
+      const running = jobs.filter((job) => job.status === "pending");
+      const deletable = jobs.filter((job) => job.status !== "pending");
+
+      return {
+        success: true,
+        deleted: deleteJobs(deletable),
+        skipped: running.length,
+        message:
+          running.length > 0
+            ? `${running.length} job(s) are still converting and were left alone.`
+            : undefined,
+      };
     },
     {
       body: t.Object({ jobIds: t.Array(t.String()) }),

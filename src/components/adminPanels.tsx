@@ -411,6 +411,10 @@ export function ConversionsPanel({
                     body: JSON.stringify({ jobIds }),
                   });
                   if (!response.ok) throw new Error("Request failed");
+                  // A job still converting is left alone; say so rather than silently
+                  // deleting fewer rows than were ticked
+                  const result = await response.json().catch(() => ({}));
+                  if (result.message) alert(result.message);
                   window.location.reload();
                 } catch (error) {
                   button.disabled = false;

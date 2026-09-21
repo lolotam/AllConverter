@@ -43,8 +43,11 @@ describe("converters disabled before the upgrade", () => {
     );
   });
 
-  it("is still used when nothing else can do the job", () => {
-    expect(pickConverter(["graphicsmagick"], undefined, excluded)).toBe("graphicsmagick");
+  it("is not used even when it is the only thing that could do the job", () => {
+    // Before the upgrade a switched-off converter was dropped outright, so this conversion
+    // was not on offer either. Resurrecting it as a last resort would add capability the
+    // admin had deliberately taken away.
+    expect(pickConverter(["graphicsmagick"], undefined, excluded)).toBeNull();
   });
 
   it("is honoured when the admin picks it again explicitly", () => {

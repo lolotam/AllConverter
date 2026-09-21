@@ -9,10 +9,6 @@ const subtle = `text-xs text-ink-muted`;
 const th = `px-3 py-2 text-start text-xs font-bold uppercase tracking-wide text-ink-muted`;
 const td = `px-3 py-2 text-caption text-ink-body`;
 
-// A format can accept several hundred inputs. Putting every one in a tooltip, on every row
-// of a table hundreds of rows long, adds up to a page nobody wants to download.
-const TOOLTIP_EXAMPLES = 40;
-
 function Bar({ percent, danger }: { percent: number; danger?: boolean | undefined }) {
   const width = Math.max(0, Math.min(100, percent));
   return (
@@ -333,45 +329,40 @@ export function ConversionsPanel({
                 <th class={th}>Status</th>
               </tr>
             </thead>
-            <tbody>
+            {/* Cell styling on the one element rather than on every cell, as in the format
+                table: this list goes up to 250 rows of eleven columns. */}
+            <tbody
+              class={`
+                [&_td]:px-3 [&_td]:py-2 [&_td]:text-caption [&_td]:text-ink-body
+                [&_td:nth-child(2)]:text-ink-muted
+                [&_td:nth-child(4)]:uppercase
+                [&_td:nth-child(5)]:font-medium [&_td:nth-child(5)]:uppercase [&_td:nth-child(5)]:text-ink
+                [&_tr]:border-b [&_tr]:border-rule
+                [&_input]:size-4 [&_input]:accent-cta
+              `}
+            >
               {recentJobs.length === 0 ? (
                 <tr>
-                  <td class={td} colspan="11">
+                  <td colspan="11">
                     <span class={subtle}>No jobs match these filters.</span>
                   </td>
                 </tr>
               ) : (
                 recentJobs.map((job, index) => (
-                  <tr class="border-b border-rule">
-                    <td class={td}>
-                      <input
-                        type="checkbox"
-                        data-job-id={String(job.id)}
-                        class="size-4 accent-cta"
-                      />
+                  <tr>
+                    <td>
+                      <input type="checkbox" data-job-id={String(job.id)} />
                     </td>
-                    <td class={`${td} text-ink-muted`}>{index + 1}</td>
-                    <td class={td}>#{job.id}</td>
-                    <td class={`${td} uppercase`} safe>
-                      {job.from_format || "—"}
-                    </td>
-                    <td class={`${td} font-medium uppercase text-ink`} safe>
-                      {job.to_format || "—"}
-                    </td>
-                    <td class={td} safe>
-                      {job.converter || "—"}
-                    </td>
-                    <td class={td}>{job.user_id}</td>
-                    <td class={td} safe>
-                      {job.date_created.replace("T", " ").slice(0, 16)}
-                    </td>
-                    <td class={td}>{job.num_files}</td>
-                    <td class={`${td} ${job.failed > 0 ? "font-bold text-terracotta" : ""}`}>
-                      {job.failed}
-                    </td>
-                    <td class={td} safe>
-                      {job.status}
-                    </td>
+                    <td>{index + 1}</td>
+                    <td>#{job.id}</td>
+                    <td safe>{job.from_format || "—"}</td>
+                    <td safe>{job.to_format || "—"}</td>
+                    <td safe>{job.converter || "—"}</td>
+                    <td>{job.user_id}</td>
+                    <td safe>{job.date_created.replace("T", " ").slice(0, 16)}</td>
+                    <td>{job.num_files}</td>
+                    <td class={job.failed > 0 ? "font-bold text-terracotta" : ""}>{job.failed}</td>
+                    <td safe>{job.status}</td>
                   </tr>
                 ))
               )}
@@ -810,42 +801,50 @@ export function SitePanel({
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              {/* Every cell's styling lives here, on the one element, instead of being
+                  repeated as a class attribute on all 3,500 of them. Same idiom as the
+                  history and landing-page tables; it is what keeps this page a sane size
+                  once a full image offers 500-odd formats. */}
+              <tbody
+                class={`
+                  [&_td]:px-3 [&_td]:py-2 [&_td]:text-caption [&_td]:text-ink-body
+                  [&_td:nth-child(1)]:text-ink-muted
+                  [&_td:nth-child(2)]:font-bold [&_td:nth-child(2)]:uppercase [&_td:nth-child(2)]:text-ink
+                  [&_td:nth-child(4)]:max-w-xs
+                  [&_td:nth-child(6)]:text-end [&_td:nth-child(6)]:tabular-nums
+                  [&_td:nth-child(7)]:text-end
+                  [&_tr]:border-b [&_tr]:border-rule [&_tr]:last:border-none
+                  [&_tr]:hover:bg-surface-2
+                  [&_input]:size-4 [&_input]:accent-cta
+                  [&_select]:rounded-button [&_select]:border [&_select]:border-rule
+                  [&_select]:bg-surface [&_select]:px-2 [&_select]:py-1 [&_select]:text-xs
+                  [&_select]:text-ink
+                `}
+              >
+                {/* The rows carry no data-search attribute: the format, category and
+                    converter are already in the cells, and repeating them 507 times is pure
+                    weight. The filter reads them off the cells instead. */}
                 {formats.map((row, index) => (
-                  <tr
-                    class="border-b border-rule last:border-none hover:bg-surface-2"
-                    data-format-row
-                    data-search={`${row.label} ${row.format} ${row.category} ${row.converters.join(" ")}`.toLowerCase()}
-                  >
-                    <td class={`${td} text-ink-muted`}>{index + 1}</td>
-                    <td class={`${td} font-bold text-ink uppercase`} safe>
-                      {row.label}
-                    </td>
-                    <td class={td}>{row.category}</td>
-                    <td class={`${td} max-w-xs`}>
+                  <tr data-format-row>
+                    <td>{index + 1}</td>
+                    <td safe>{row.label}</td>
+                    <td>{row.category}</td>
+                    <td>
                       {row.accepts.length === 0 ? (
                         <span class={subtle}>none</span>
                       ) : (
-                        <span title={row.accepts.slice(0, TOOLTIP_EXAMPLES).join(", ")}>
-                          <span class="font-medium text-ink">{row.accepts.length}</span>{" "}
-                          <span class="text-ink-muted" safe>
-                            {`(${row.accepts.slice(0, 4).join(", ")}${
-                              row.accepts.length > 4 ? `, +${row.accepts.length - 4}` : ""
-                            })`}
-                          </span>
+                        <span safe>
+                          {`${row.accepts.length} (${row.accepts.slice(0, 4).join(", ")}${
+                            row.accepts.length > 4 ? `, +${row.accepts.length - 4}` : ""
+                          })`}
                         </span>
                       )}
                     </td>
-                    <td class={td}>
+                    <td>
                       {row.converters.length === 1 ? (
-                        <span class="text-ink-body" safe>
-                          {row.converter}
-                        </span>
+                        <span safe>{row.converter}</span>
                       ) : (
-                        <select
-                          name={`converter.${row.format}`}
-                          class="rounded-button border border-rule bg-surface px-2 py-1 text-xs text-ink"
-                        >
+                        <select name={`converter.${row.format}`}>
                           {row.converters.map((converter) => (
                             <option value={converter} selected={converter === row.converter} safe>
                               {converter}
@@ -854,17 +853,14 @@ export function SitePanel({
                         </select>
                       )}
                     </td>
-                    <td class={`${td} text-end tabular-nums`}>
-                      {usage[row.label] ? String(usage[row.label]) : <span class={subtle}>—</span>}
-                    </td>
-                    <td class={`${td} text-end`}>
+                    <td>{usage[row.label] ? String(usage[row.label]) : "—"}</td>
+                    <td>
                       <input
                         type="checkbox"
                         name="format"
                         value={row.format}
                         checked={row.visible}
                         data-format-offered
-                        class="size-4 accent-cta"
                       />
                     </td>
                   </tr>
@@ -883,13 +879,22 @@ export function SitePanel({
               const rows = Array.from(document.querySelectorAll("[data-format-row]"));
               if (!filter || !all || !rows.length) return;
 
+              // Format, category and converter — not the accepted-formats cell, where
+              // nearly every row lists nearly every extension and would match anything
+              const keys = rows.map((row) =>
+                [row.cells[1], row.cells[2], row.cells[4]]
+                  .map((cell) => (cell ? cell.textContent : ""))
+                  .join(" ")
+                  .toLowerCase(),
+              );
+
               const visibleRows = () => rows.filter((row) => !row.classList.contains("hidden"));
 
               filter.addEventListener("input", () => {
                 const search = filter.value.trim().toLowerCase();
-                for (const row of rows) {
-                  row.classList.toggle("hidden", search !== "" && !row.dataset.search.includes(search));
-                }
+                rows.forEach((row, index) => {
+                  row.classList.toggle("hidden", search !== "" && !keys[index].includes(search));
+                });
                 if (shown) shown.textContent = String(visibleRows().length);
               });
 

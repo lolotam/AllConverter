@@ -5,7 +5,7 @@ import { groupByCategory } from "../converters/categories";
 import { formatCatalogue } from "../services/features";
 import { ALLOW_UNAUTHENTICATED, WEBROOT, BRANDING } from "../helpers/env";
 import { headerAccount } from "../helpers/headerUser";
-import { localeFromRequest, t } from "../i18n";
+import { localeFromRequest, safeT } from "../i18n";
 import { userService } from "./user";
 
 // The public list of what the site can do. It talks about formats only: which tool runs is
@@ -29,7 +29,7 @@ export const listConverters = new Elysia().use(userService).get(
     return (
       <BaseHtml
         webroot={WEBROOT}
-        title={`${BRANDING} | ${t(locale, "formats.title")}`}
+        title={`${BRANDING} | ${safeT(locale, "formats.title")}`}
         locale={locale}
       >
         <>
@@ -48,19 +48,21 @@ export const listConverters = new Elysia().use(userService).get(
             `}
           >
             <article class="article">
-              <h1 class="mb-1 text-subheading font-bold text-ink">{t(locale, "formats.title")}</h1>
-              <p class="mb-5 text-caption text-ink-muted">{t(locale, "formats.intro")}</p>
+              <h1 class="mb-1 text-subheading font-bold text-ink">
+                {safeT(locale, "formats.title")}
+              </h1>
+              <p class="mb-5 text-caption text-ink-muted">{safeT(locale, "formats.intro")}</p>
 
               <div class="mb-4 flex flex-wrap items-center gap-3">
                 <input
                   type="search"
                   id="format-search"
-                  placeholder={t(locale, "formats.filter")}
+                  placeholder={safeT(locale, "formats.filter")}
                   autocomplete="off"
                   class="field w-64 text-caption"
                 />
                 <span class="text-xs text-ink-muted">
-                  {t(locale, "formats.total", { count: offered.length })}
+                  {safeT(locale, "formats.total", { count: offered.length })}
                 </span>
               </div>
 
@@ -68,9 +70,9 @@ export const listConverters = new Elysia().use(userService).get(
                 <table class="w-full">
                   <thead class="bg-surface-2">
                     <tr class="border-b border-rule">
-                      <th class={th}>{t(locale, "formats.format")}</th>
-                      <th class={th}>{t(locale, "formats.category")}</th>
-                      <th class={th}>{t(locale, "formats.from")}</th>
+                      <th class={th}>{safeT(locale, "formats.format")}</th>
+                      <th class={th}>{safeT(locale, "formats.category")}</th>
+                      <th class={th}>{safeT(locale, "formats.from")}</th>
                     </tr>
                   </thead>
                   {byCategory.map(({ category, rows }) => (
@@ -87,14 +89,16 @@ export const listConverters = new Elysia().use(userService).get(
                           <td class={`${td} font-bold uppercase text-ink`} safe>
                             {row.label}
                           </td>
-                          <td class={td}>{t(locale, `formats.category.${category}`)}</td>
+                          <td class={td}>{safeT(locale, `formats.category.${category}`)}</td>
                           <td class={td}>
                             {row.accepts.length === 0 ? (
                               <span class="text-ink-muted">—</span>
                             ) : (
                               <>
                                 <span class="font-medium text-ink">
-                                  {t(locale, "formats.fromCount", { count: row.accepts.length })}
+                                  {safeT(locale, "formats.fromCount", {
+                                    count: row.accepts.length,
+                                  })}
                                 </span>
                                 <span class="text-ink-muted" safe>
                                   {` — ${row.accepts.slice(0, EXAMPLES).join(", ")}${
@@ -112,7 +116,7 @@ export const listConverters = new Elysia().use(userService).get(
                   ))}
                 </table>
                 <p id="format-empty" hidden class="p-4 text-caption text-ink-muted">
-                  {t(locale, "formats.none")}
+                  {safeT(locale, "formats.none")}
                 </p>
               </div>
             </article>

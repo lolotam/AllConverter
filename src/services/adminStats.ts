@@ -10,7 +10,7 @@ import { avatarsDir, incompleteUploadsDir, outputDir, uploadsDir } from "../help
 import { conversionQueue } from "../helpers/queue";
 import { describeRetention, shortRetention } from "./retention";
 
-export const FAILED_STATUSES = ["Failed, check logs", "File type not supported"];
+const FAILED_STATUSES = ["Failed, check logs", "File type not supported"];
 
 const dbPath = process.env.DB_PATH ?? "./data/mydb.sqlite";
 
@@ -374,7 +374,7 @@ export function systemHealth(features: { label: string; value: string }[] = []):
   };
 }
 
-export function humanBytes(bytes: number): string {
+export function safeHumanBytes(bytes: number): string {
   if (bytes >= 1024 ** 3) {
     return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
   }

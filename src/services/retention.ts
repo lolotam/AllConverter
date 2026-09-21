@@ -19,16 +19,6 @@ export function tierRetention(): TierRetention[] {
     .sort((a, b) => a.hours - b.hours);
 }
 
-/** The window a visitor without an account gets: the override, or the free plan's. */
-export function guestRetentionHours(): number {
-  const override = cleanupOverrideHours();
-  if (override !== null) {
-    return override;
-  }
-  const free = tierRetention().find((tier) => tier.id === "free");
-  return free?.hours ?? (AUTO_DELETE_EVERY_N_HOURS > 0 ? AUTO_DELETE_EVERY_N_HOURS : 2);
-}
-
 /** Whether anything is deleted automatically at all, for pages that describe it. */
 export function deletionIsAutomatic(): boolean {
   return cleanupEnabled();

@@ -1,6 +1,6 @@
 // The insight tabs of the admin dashboard. Kept out of admin.tsx, which is already long.
 import type { Analytics, QueueSnapshot, StorageUsage, SystemHealth } from "../services/adminStats";
-import { humanBytes, JOB_LIMIT_CHOICES } from "../services/adminStats";
+import { safeHumanBytes, JOB_LIMIT_CHOICES } from "../services/adminStats";
 import type { FormatRow } from "../services/features";
 
 const panel = `glass-card p-5`;
@@ -118,8 +118,9 @@ export function StoragePanel({
           <div class="mb-2 flex items-center justify-between">
             <span class="font-semibold text-ink">Volume</span>
             <span class={subtle}>
-              {humanBytes(usage.disk.totalBytes - usage.disk.freeBytes)} of{" "}
-              {humanBytes(usage.disk.totalBytes)} used · {humanBytes(usage.disk.freeBytes)} free
+              {safeHumanBytes(usage.disk.totalBytes - usage.disk.freeBytes)} of{" "}
+              {safeHumanBytes(usage.disk.totalBytes)} used · {safeHumanBytes(usage.disk.freeBytes)}{" "}
+              free
             </span>
           </div>
           <Bar percent={usage.disk.usedPercent} danger={lowOnSpace} />
@@ -137,7 +138,7 @@ export function StoragePanel({
             <p class={subtle} safe>
               {area.name}
             </p>
-            <p class="text-heading-sm font-extrabold text-ink">{humanBytes(area.bytes)}</p>
+            <p class="text-heading-sm font-extrabold text-ink">{safeHumanBytes(area.bytes)}</p>
             <p class={subtle}>
               {area.files} file{area.files === 1 ? "" : "s"}
             </p>
@@ -165,7 +166,7 @@ export function StoragePanel({
                   <td class={td}>#{job.jobId}</td>
                   <td class={td}>{job.userId}</td>
                   <td class={td}>{job.files}</td>
-                  <td class={td}>{humanBytes(job.bytes)}</td>
+                  <td class={td}>{safeHumanBytes(job.bytes)}</td>
                 </tr>
               ))}
             </tbody>
@@ -216,7 +217,9 @@ export function ConversionsPanel({
           <ul class="space-y-2">
             {active.map((job) => (
               <li class="flex items-center justify-between gap-4 text-sm">
-                <span class="font-medium text-ink">Job #{job.jobId}</span>
+                <span class="font-medium text-ink" safe>
+                  Job #{job.jobId}
+                </span>
                 <span class={subtle}>
                   {job.converting} converting · {job.queued} queued
                 </span>
@@ -468,7 +471,9 @@ export function HealthPanel({ health }: { health: SystemHealth }) {
         </div>
         <div class={panel}>
           <p class={subtle}>Database file</p>
-          <p class="text-heading-sm font-extrabold text-ink">{humanBytes(health.databaseBytes)}</p>
+          <p class="text-heading-sm font-extrabold text-ink">
+            {safeHumanBytes(health.databaseBytes)}
+          </p>
         </div>
       </div>
 

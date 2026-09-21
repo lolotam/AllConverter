@@ -7,7 +7,7 @@ import { brandingDir } from "../helpers/paths";
 import { type AvatarError, validateImage } from "./avatar";
 import { getSetting, setSetting } from "./settings";
 
-export const LOGO_TYPES: Record<string, string> = {
+const LOGO_TYPES: Record<string, string> = {
   "image/png": ".png",
   "image/jpeg": ".jpg",
   "image/webp": ".webp",
@@ -15,13 +15,13 @@ export const LOGO_TYPES: Record<string, string> = {
 };
 
 // A favicon is drawn at 16 pixels, so only the formats every browser reads there
-export const FAVICON_TYPES: Record<string, string> = {
+const FAVICON_TYPES: Record<string, string> = {
   "image/png": ".png",
   "image/x-icon": ".ico",
   "image/vnd.microsoft.icon": ".ico",
 };
 
-export const MAX_LOGO_BYTES = 1024 * 1024;
+const MAX_LOGO_BYTES = 1024 * 1024;
 
 type Asset = "logo" | "favicon";
 

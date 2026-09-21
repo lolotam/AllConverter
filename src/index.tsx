@@ -3,7 +3,9 @@ import { staticPlugin } from "@elysiajs/static";
 import { Elysia } from "elysia";
 import "./helpers/printVersions";
 import { unavailableConverters } from "./converters/availability";
-import db from "./db/db";
+// Imported for the side effect: db.ts opens the database and runs the migrations as it is
+// evaluated, and this is the first thing here that needs to have happened.
+import "./db/db";
 import { CANONICAL_HOST, UPLOAD_CHUNK_SIZE_MB, WEBROOT } from "./helpers/env";
 import { chooseConverter } from "./pages/chooseConverter";
 import { convert } from "./pages/convert";

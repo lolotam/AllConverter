@@ -121,10 +121,10 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
               </div>
 
               {/* Notification Banner */}
-              {message && (
+              {message !== "" && (
                 <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-8">
                   <div class="rounded-xl border border-forest/30 bg-forest/10 px-4 py-3 text-sm text-forest font-medium flex items-center justify-between">
-                    <span>✓ {message}</span>
+                    <span safe>✓ {message}</span>
                     <a
                       href={`${WEBROOT}/admin?tab=${currentTab}`}
                       class="text-xs text-ink-muted hover:text-ink"
@@ -159,7 +159,9 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                               : "font-medium text-ink-body hover:bg-surface-2 hover:text-ink"
                           }`}
                         >
-                          <span aria-hidden="true">{item.icon}</span>
+                          <span aria-hidden="true" safe>
+                            {item.icon}
+                          </span>
                           <span safe>{item.label}</span>
                         </a>
                       </li>
@@ -269,7 +271,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                             </div>
                             <div class="flex items-center justify-between py-2">
                               <span class="text-ink-muted">Admin Account</span>
-                              <span class="font-mono text-xs text-ink-muted font-semibold">
+                              <span class="font-mono text-xs text-ink-muted font-semibold" safe>
                                 {currentUser.email}
                               </span>
                             </div>
@@ -324,7 +326,10 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                         class="size-7 rounded-lg object-cover"
                                       />
                                     ) : (
-                                      <span class="flex size-7 items-center justify-center rounded-lg bg-surface-2 text-[10px] font-bold text-ink-body">
+                                      <span
+                                        class="flex size-7 items-center justify-center rounded-lg bg-surface-2 text-[10px] font-bold text-ink-body"
+                                        safe
+                                      >
                                         {initialsOf(u.display_name, u.email)}
                                       </span>
                                     )}
@@ -478,7 +483,10 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                 class="space-y-4"
                               >
                                 <div class="flex items-center justify-between">
-                                  <span class="rounded-lg bg-surface-2 px-2.5 py-1 text-xs font-mono font-bold text-ink-muted uppercase">
+                                  <span
+                                    class="rounded-lg bg-surface-2 px-2.5 py-1 text-xs font-mono font-bold text-ink-muted uppercase"
+                                    safe
+                                  >
                                     ID: {t.id}
                                   </span>
                                   {t.is_popular ? (
@@ -661,6 +669,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                                     name="features"
                                     rows="5"
                                     class="w-full rounded-xl bg-surface-2 border border-rule p-3 text-xs font-mono text-ink-body focus:outline-none focus:border-cta"
+                                    safe
                                   >
                                     {featuresList.join("\n")}
                                   </textarea>

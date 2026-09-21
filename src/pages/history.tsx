@@ -13,7 +13,7 @@ import {
   BRANDING,
 } from "../helpers/env";
 import { userService } from "./user";
-import { localeFromRequest, t as tr } from "../i18n";
+import { localeFromRequest, safeT as safeTr } from "../i18n";
 import { EyeIcon } from "../icons/eye";
 import { DeleteIcon } from "../icons/delete";
 
@@ -61,7 +61,9 @@ export const history = new Elysia().use(userService).get(
           >
             <article class="article">
               <div class="mb-4 flex items-center justify-between">
-                <h1 class="text-subheading font-bold text-ink">{tr(locale, "history.title")}</h1>
+                <h1 class="text-subheading font-bold text-ink">
+                  {safeTr(locale, "history.title")}
+                </h1>
                 <div id="delete-selected-container">
                   <button
                     id="delete-selected-btn"
@@ -73,7 +75,7 @@ export const history = new Elysia().use(userService).get(
                   >
                     <DeleteIcon />{" "}
                     <span>
-                      {tr(locale, "history.deleteSelectedLabel")} (
+                      {safeTr(locale, "history.deleteSelectedLabel")} (
                       <span id="selected-count">0</span>)
                     </span>
                   </button>
@@ -98,7 +100,7 @@ export const history = new Elysia().use(userService).get(
                         type="checkbox"
                         id="select-all"
                         class="size-4 cursor-pointer"
-                        title={tr(locale, "history.selectAll")}
+                        title={safeTr(locale, "history.selectAll")}
                       />
                     </th>
                     <th
@@ -107,7 +109,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      <span class="sr-only">{tr(locale, "history.expandDetails")}</span>
+                      <span class="sr-only">{safeTr(locale, "history.expandDetails")}</span>
                     </th>
                     <th
                       class={`
@@ -115,7 +117,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      {tr(locale, "history.time")}
+                      {safeTr(locale, "history.time")}
                     </th>
                     <th
                       class={`
@@ -123,7 +125,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      {tr(locale, "history.files")}
+                      {safeTr(locale, "history.files")}
                     </th>
                     <th
                       class={`
@@ -132,7 +134,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      {tr(locale, "history.filesDone")}
+                      {safeTr(locale, "history.filesDone")}
                     </th>
                     <th
                       class={`
@@ -140,7 +142,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      {tr(locale, "history.status")}
+                      {safeTr(locale, "history.status")}
                     </th>
                     <th
                       class={`
@@ -148,7 +150,7 @@ export const history = new Elysia().use(userService).get(
                         sm:px-4
                       `}
                     >
-                      {tr(locale, "history.actions")}
+                      {safeTr(locale, "history.actions")}
                     </th>
                   </tr>
                 </thead>
@@ -207,7 +209,7 @@ export const history = new Elysia().use(userService).get(
                         <td colspan="7">
                           <div class="p-2 text-caption text-ink-muted">
                             <div class="mb-1 font-semibold">
-                              {tr(locale, "history.detailedInfo")}
+                              {safeTr(locale, "history.detailedInfo")}
                             </div>
                             {job.files_detailed.map((file: Filename) => (
                               <div class="flex items-center">
@@ -243,11 +245,11 @@ export const history = new Elysia().use(userService).get(
           <script>
             {`
               const i18n = ${JSON.stringify({
-                confirmDelete: tr(locale, "history.confirmDelete"),
-                deletedOk: tr(locale, "history.deletedOk"),
-                deletedSomeFailed: tr(locale, "history.deletedSomeFailed"),
-                deletedFail: tr(locale, "history.deletedFail"),
-                deletedError: tr(locale, "history.deletedError"),
+                confirmDelete: safeTr(locale, "history.confirmDelete"),
+                deletedOk: safeTr(locale, "history.deletedOk"),
+                deletedSomeFailed: safeTr(locale, "history.deletedSomeFailed"),
+                deletedFail: safeTr(locale, "history.deletedFail"),
+                deletedError: safeTr(locale, "history.deletedError"),
               })};
 
               document.addEventListener('DOMContentLoaded', () => {

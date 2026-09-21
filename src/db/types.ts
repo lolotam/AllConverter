@@ -54,8 +54,3 @@ export class Tier {
   color_theme!: string;
   retention_hours!: number;
 }
-
-export class SystemSetting {
-  key!: string;
-  value!: string;
-}

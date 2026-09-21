@@ -46,7 +46,7 @@ const ContactEmail = () =>
   );
 
 const LegalLink = ({ path, children }: { path: string; children: string }) => (
-  <a href={`${WEBROOT}${path}`} class="text-link underline">
+  <a href={`${WEBROOT}${path}`} class="text-link underline" safe>
     {children}
   </a>
 );
@@ -56,7 +56,9 @@ const Section = ({ title, children }: { title: string; children: JSX.Element | J
     <h2 class="mb-3 text-subheading font-bold text-ink" safe>
       {title}
     </h2>
-    <div class="space-y-3 leading-relaxed text-ink-body">{children}</div>
+    <div class="space-y-3 leading-relaxed text-ink-body" safe>
+      {children}
+    </div>
   </section>
 );
 
@@ -174,9 +176,10 @@ export const legal = new Elysia()
       <Section title="5. Your files">
         <p>
           You keep all rights to the files you upload. You give us permission to store and process
-          them only to perform the conversions you request. Files are {fileRetention()}, as
-          described in the <LegalLink path="/privacy">Privacy Policy</LegalLink>. We do not keep
-          backups of your files, so keep your own copies.
+          them only to perform the conversions you request. Files are{" "}
+          <span safe>{fileRetention()}</span>, as described in the{" "}
+          <LegalLink path="/privacy">Privacy Policy</LegalLink>. We do not keep backups of your
+          files, so keep your own copies.
         </p>
       </Section>
 
@@ -328,8 +331,8 @@ export const legal = new Elysia()
 
       <Section title="How long we keep it">
         <List>
-          <li>Uploaded and converted files, and their file names, are {fileRetention()}.</li>
-          <li>Usage counters are deleted after {String(USAGE_RETENTION_DAYS)} days.</li>
+          <li safe>Uploaded and converted files, and their file names, are {fileRetention()}.</li>
+          <li safe>Usage counters are deleted after {String(USAGE_RETENTION_DAYS)} days.</li>
           <li>
             Account and subscription details are kept until you ask us to delete your account.
           </li>
@@ -378,7 +381,8 @@ export const legal = new Elysia()
       <Section title="Money-back guarantee">
         <p>
           If you are not happy with a paid plan, you can request a full refund within{" "}
-          {String(REFUND_WINDOW_DAYS)} days of your first payment or of any renewal payment.
+          <span safe>{String(REFUND_WINDOW_DAYS)}</span> days of your first payment or of any
+          renewal payment.
         </p>
       </Section>
 
@@ -405,9 +409,9 @@ export const legal = new Elysia()
 
       <Section title="After the refund window">
         <p>
-          After {String(REFUND_WINDOW_DAYS)} days we do not normally refund the current billing
-          period, but you can cancel to stop future charges. This does not affect any refund rights
-          you have under the consumer laws of your country.
+          After <span safe>{String(REFUND_WINDOW_DAYS)}</span> days we do not normally refund the
+          current billing period, but you can cancel to stop future charges. This does not affect
+          any refund rights you have under the consumer laws of your country.
         </p>
       </Section>
     </LegalPage>

@@ -4,7 +4,6 @@ import { dirname } from "node:path";
 import { Tier, User } from "./types";
 
 export function initializeDatabase(db: Database): void {
-  const dbVersion = db.query("PRAGMA user_version").get() as { user_version?: number };
   const hasTables = db.query("SELECT * FROM sqlite_master WHERE type='table'").get();
 
   if (!hasTables) {

@@ -185,7 +185,7 @@ export function resolveConverter(from: string, to: string): string | null {
  * switch. They stay out of automatic selection — reinstating a tool somebody disabled
  * because it was unreliable should not happen behind their back.
  */
-export function excludedConverters(): string[] {
+function excludedConverters(): string[] {
   migrateFromConverterSettings();
   return getJsonSetting<string[]>(EXCLUDED_KEY, []);
 }

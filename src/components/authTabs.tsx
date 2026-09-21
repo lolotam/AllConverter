@@ -1,6 +1,6 @@
 // Both entrances to the account are shown side by side: visitors sent here after their
 // free conversion were landing on a page that looked like sign-up only.
-import { t, type Locale } from "../i18n";
+import { safeT, type Locale } from "../i18n";
 
 export function AuthTabs({
   webroot,
@@ -24,11 +24,11 @@ export function AuthTabs({
   return (
     <div class="mb-6 flex gap-1 rounded-card border border-rule bg-surface-2 p-1">
       <a href={`${webroot}/login${suffix}`} class={tab(active === "login")}>
-        {t(locale, "auth.signInTab")}
+        {safeT(locale, "auth.signInTab")}
       </a>
       {accountRegistration ? (
         <a href={`${webroot}/register${suffix}`} class={tab(active === "register")}>
-          {t(locale, "auth.createTab")}
+          {safeT(locale, "auth.createTab")}
         </a>
       ) : null}
     </div>
@@ -68,11 +68,11 @@ export function GoogleButton({
             d="M12 4.75c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 1.46 14.97.5 12 .5A11 11 0 0 0 2.18 7.05l3.66 2.84c.87-2.6 3.3-4.14 6.16-4.14Z"
           />
         </svg>
-        {label}
+        <span safe>{label}</span>
       </a>
       <div class="my-5 flex items-center gap-3 text-xs text-ink-muted">
         <span class="h-px flex-1 bg-rule" />
-        {t(locale, "auth.orEmail")}
+        {safeT(locale, "auth.orEmail")}
         <span class="h-px flex-1 bg-rule" />
       </div>
     </>

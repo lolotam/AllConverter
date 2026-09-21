@@ -1,5 +1,4 @@
 import { Elysia } from "elysia";
-import { WEBROOT } from "../helpers/env";
 import { brandingFile } from "../services/branding";
 
 /** Serves the uploaded logo and favicon. Public, like the artwork they replace. */
@@ -27,5 +26,3 @@ export const branding = new Elysia().get("/branding/:asset", async ({ params, se
   set.headers["cache-control"] = "public, max-age=31536000";
   return contents;
 });
-
-export const BRANDING_ROUTE = `${WEBROOT}/branding`;

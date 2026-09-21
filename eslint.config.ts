@@ -6,7 +6,10 @@ import tseslint, { parser as eslintParserTypeScript } from "typescript-eslint";
 
 export default defineConfig(
   {
-    ignores: ["**/node_modules/**", "dist/**"],
+    // .kilo holds an editor tool's copy of the whole repo. Left in, its tsconfig makes the
+    // parser complain that it cannot tell which root it is looking at, and every file in
+    // it gets linted twice over.
+    ignores: ["**/node_modules/**", "dist/**", ".kilo/**", "public/tus.min.js"],
   },
   js.configs.recommended,
   tseslint.configs.recommended,

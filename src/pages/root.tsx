@@ -528,10 +528,13 @@ export const root = new Elysia().use(userService).get(
                           </article>
 
                           {/* Hidden element for selected format */}
+                          {/* Not "required": the control is hidden, so the browser can
+                              neither show nor focus its validation message, and the form
+                              would simply refuse to submit with nothing on screen. The
+                              choice is checked in script.js, and again on the server. */}
                           <select
                             name="convert_to"
                             aria-label={tr(locale, "home.convertTo")}
-                            required
                             hidden
                           >
                             <option selected disabled value="">

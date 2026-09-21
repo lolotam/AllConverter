@@ -198,12 +198,46 @@ function renderRecentPills() {
   } catch (e) {}
 }
 
+// Problems with the conversion itself are shown next to the button rather than thrown
+// into the console, where nobody but a developer would ever see them
+function showConvertProblem(message) {
+  const form = document.querySelector(`form[action='${webroot}/convert']`);
+  if (!form) {
+    return;
+  }
+  let notice = form.querySelector("[data-convert-problem]");
+  if (!notice) {
+    notice = document.createElement("p");
+    notice.setAttribute("data-convert-problem", "");
+    notice.setAttribute("role", "alert");
+    notice.className =
+      "mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-2.5 text-sm text-amber-700 dark:text-amber-300";
+    form.appendChild(notice);
+  }
+  notice.textContent = message;
+}
+
 function selectTarget(targetName, converterName, fullValue) {
   const convertToInput = document.querySelector("input[name='convert_to_search']");
   const convertToElement = document.querySelector("select[name='convert_to']");
   if (!convertToElement || !convertToInput) return;
 
-  const finalVal = fullValue || `${targetName},${converterName}`;
+  let finalVal = fullValue || `${targetName},${converterName}`;
+  // A shortcut such as the "Popular" chips names a format but no real converter
+  // ("pdf,popular"). Assigning a value the <select> does not have silently empties it,
+  // and an empty required control blocks the form with nothing shown, so the format is
+  // matched to a converter that actually offers it.
+  const options = [...convertToElement.options];
+  if (!options.some((option) => option.value === finalVal)) {
+    const match = options.find((option) => option.value.split(",")[0] === targetName.toLowerCase());
+    if (!match) {
+      showConvertProblem(`No converter offers ${targetName.toUpperCase()} right now.`);
+      return;
+    }
+    finalVal = match.value;
+    converterName = finalVal.split(",")[1] ?? "";
+  }
+
   convertToElement.value = finalVal;
   convertToInput.value = `${targetName.toUpperCase()}${converterName ? ` (${converterName})` : ""}`;
   formatSelected = true;
@@ -485,7 +519,21 @@ const updateQualityOption = () => {
 
 const formConvert = document.querySelector(`form[action='${webroot}/convert']`);
 
-formConvert.addEventListener("submit", () => {
+formConvert.addEventListener("submit", (event) => {
+  const chosen = document.querySelector("select[name='convert_to']")?.value ?? "";
+  if (!chosen) {
+    // The select is hidden, so the browser cannot show its own validation bubble: it
+    // just refuses to submit and the button appears dead
+    event.preventDefault();
+    showConvertProblem("Choose the format to convert to first.");
+    return;
+  }
+  if (fileNames.length === 0) {
+    event.preventDefault();
+    showConvertProblem("Add at least one file first.");
+    return;
+  }
+
   const hiddenInput = document.querySelector("input[name='file_names']");
   hiddenInput.value = JSON.stringify(fileNames);
 });

@@ -57,6 +57,16 @@ export function initializeDatabase(db: Database): void {
     db.exec("PRAGMA user_version = 2;");
   }
 
+  // What each job was asked to produce, and which tool ran. Older rows keep NULL; the admin
+  // dashboard reads their formats back off the stored filenames instead.
+  const jobColumns = db.query("PRAGMA table_info(jobs)").all() as { name: string }[];
+  if (!jobColumns.some((c) => c.name.toLowerCase() === "convert_to")) {
+    db.exec("ALTER TABLE jobs ADD COLUMN convert_to TEXT;");
+  }
+  if (!jobColumns.some((c) => c.name.toLowerCase() === "converter")) {
+    db.exec("ALTER TABLE jobs ADD COLUMN converter TEXT;");
+  }
+
   // Ensure user ID 1 is Super Admin with Pro tier
   const firstUser = db.query("SELECT id FROM users ORDER BY id ASC LIMIT 1").get() as {
     id: number;

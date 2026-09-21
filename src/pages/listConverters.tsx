@@ -1,20 +1,37 @@
 import Elysia from "elysia";
 import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
-import { onlyAvailable } from "../converters/availability";
-import { visibleTargets } from "../services/features";
-import { getAllInputs, getAllTargets } from "../converters/main";
+import { groupByCategory } from "../converters/categories";
+import { formatCatalogue } from "../services/features";
 import { ALLOW_UNAUTHENTICATED, WEBROOT, BRANDING } from "../helpers/env";
 import { headerAccount } from "../helpers/headerUser";
 import { localeFromRequest, t } from "../i18n";
 import { userService } from "./user";
 
+// The public list of what the site can do. It talks about formats only: which tool runs is
+// an admin setting the customer never chooses, so naming ffmpeg or libreoffice here would
+// only raise a question they cannot act on.
+
+// Most formats accept several hundred inputs. Printing every one on every row put a
+// megabyte of extensions on the page, so each row shows a count and a few examples.
+const EXAMPLES = 10;
+
 export const listConverters = new Elysia().use(userService).get(
   "/converters",
   async ({ request, cookie: { lang }, user }) => {
     const locale = localeFromRequest(request, lang?.value);
+    const offered = formatCatalogue().filter((row) => row.visible);
+    const byCategory = groupByCategory(offered, (row) => row.category);
+
+    const th = `px-4 py-3 text-start text-xs font-bold uppercase tracking-wide text-ink-muted`;
+    const td = `px-4 py-3 align-top text-caption text-ink-body`;
+
     return (
-      <BaseHtml webroot={WEBROOT} title="ConvertX | Converters" locale={locale}>
+      <BaseHtml
+        webroot={WEBROOT}
+        title={`${BRANDING} | ${t(locale, "formats.title")}`}
+        locale={locale}
+      >
         <>
           <Header
             webroot={WEBROOT}
@@ -31,55 +48,102 @@ export const listConverters = new Elysia().use(userService).get(
             `}
           >
             <article class="article">
-              <h1 class="mb-4 text-subheading font-bold text-ink">
-                {t(locale, "converters.title")}
-              </h1>
-              <table
-                class={`
-                  w-full table-auto rounded-card bg-surface-2 text-start
-                  [&_td]:p-4
-                  [&_tr]:rounded-sm [&_tr]:border-b [&_tr]:border-rule
-                  [&_ul]:list-inside [&_ul]:list-disc
-                `}
-              >
-                <thead>
-                  <tr>
-                    <th class="mx-4 my-2">{t(locale, "converters.converter")}</th>
-                    <th class="mx-4 my-2">{t(locale, "converters.from")}</th>
-                    <th class="mx-4 my-2">{t(locale, "converters.to")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(visibleTargets(onlyAvailable(getAllTargets()))).map(
-                    ([converter, targets]) => {
-                      const inputs = getAllInputs(converter);
-                      return (
-                        <tr>
-                          <td safe>{converter}</td>
-                          <td>
-                            {t(locale, "converters.count", { count: inputs.length })}
-                            <ul>
-                              {inputs.map((input) => (
-                                <li safe>{input}</li>
-                              ))}
-                            </ul>
+              <h1 class="mb-1 text-subheading font-bold text-ink">{t(locale, "formats.title")}</h1>
+              <p class="mb-5 text-caption text-ink-muted">{t(locale, "formats.intro")}</p>
+
+              <div class="mb-4 flex flex-wrap items-center gap-3">
+                <input
+                  type="search"
+                  id="format-search"
+                  placeholder={t(locale, "formats.filter")}
+                  autocomplete="off"
+                  class="field w-64 text-caption"
+                />
+                <span class="text-xs text-ink-muted">
+                  {t(locale, "formats.total", { count: offered.length })}
+                </span>
+              </div>
+
+              <div class="overflow-x-auto rounded-card border border-rule">
+                <table class="w-full">
+                  <thead class="bg-surface-2">
+                    <tr class="border-b border-rule">
+                      <th class={th}>{t(locale, "formats.format")}</th>
+                      <th class={th}>{t(locale, "formats.category")}</th>
+                      <th class={th}>{t(locale, "formats.from")}</th>
+                    </tr>
+                  </thead>
+                  {byCategory.map(({ category, rows }) => (
+                    <tbody data-category-group>
+                      {/* data-search deliberately leaves out the accepts list: nearly every
+                          format accepts nearly every other, so a search over it would match
+                          every row and tell the customer nothing */}
+                      {rows.map((row) => (
+                        <tr
+                          class="border-b border-rule last:border-none hover:bg-surface-2"
+                          data-format-entry
+                          data-search={`${row.format} ${row.category}`.toLowerCase()}
+                        >
+                          <td class={`${td} font-bold uppercase text-ink`} safe>
+                            {row.format}
                           </td>
-                          <td>
-                            {t(locale, "converters.count", { count: targets.length })}
-                            <ul>
-                              {targets.map((target) => (
-                                <li safe>{target}</li>
-                              ))}
-                            </ul>
+                          <td class={td}>{t(locale, `formats.category.${category}`)}</td>
+                          <td class={td}>
+                            {row.accepts.length === 0 ? (
+                              <span class="text-ink-muted">—</span>
+                            ) : (
+                              <>
+                                <span class="font-medium text-ink">
+                                  {t(locale, "formats.fromCount", { count: row.accepts.length })}
+                                </span>
+                                <span class="text-ink-muted" safe>
+                                  {` — ${row.accepts.slice(0, EXAMPLES).join(", ")}${
+                                    row.accepts.length > EXAMPLES
+                                      ? `, +${row.accepts.length - EXAMPLES}`
+                                      : ""
+                                  }`}
+                                </span>
+                              </>
+                            )}
                           </td>
                         </tr>
-                      );
-                    },
-                  )}
-                </tbody>
-              </table>
+                      ))}
+                    </tbody>
+                  ))}
+                </table>
+                <p id="format-empty" hidden class="p-4 text-caption text-ink-muted">
+                  {t(locale, "formats.none")}
+                </p>
+              </div>
             </article>
           </main>
+
+          <script>
+            {`
+              (() => {
+                const search = document.getElementById("format-search");
+                const empty = document.getElementById("format-empty");
+                const rows = Array.from(document.querySelectorAll("[data-format-entry]"));
+                const groups = Array.from(document.querySelectorAll("[data-category-group]"));
+                if (!search || !rows.length) return;
+
+                search.addEventListener("input", () => {
+                  const term = search.value.trim().toLowerCase();
+                  for (const row of rows) {
+                    row.hidden = term !== "" && !row.dataset.search.includes(term);
+                  }
+                  // A category whose every row is hidden should not leave an empty block
+                  for (const group of groups) {
+                    const visible = group.querySelectorAll("[data-format-entry]:not([hidden])");
+                    group.hidden = visible.length === 0;
+                  }
+                  if (empty) {
+                    empty.hidden = rows.some((row) => !row.hidden);
+                  }
+                });
+              })();
+            `}
+          </script>
         </>
       </BaseHtml>
     );

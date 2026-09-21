@@ -328,6 +328,44 @@ export const getPossibleTargets = (from: string): Record<string, string[]> => {
   return possibleTargets[fromClean] || {};
 };
 
+// The same table read the other way round: which inputs reach a given output, per converter.
+// The admin format table shows this, and it is the cheapest way to answer "can this
+// converter accept that upload" without walking every converter again.
+const possibleSources: Record<string, Record<string, string[]>> = {};
+
+for (const [from, byConverter] of Object.entries(possibleTargets)) {
+  for (const [converterName, toList] of Object.entries(byConverter)) {
+    for (const to of toList) {
+      possibleSources[to] ??= {};
+      (possibleSources[to][converterName] ??= []).push(from);
+    }
+  }
+}
+
+/** Converter to the input formats it can turn into `to`. */
+export const getPossibleSources = (to: string): Record<string, string[]> =>
+  possibleSources[normalizeFiletype(to)] || {};
+
+/** Every output group a converter declares, for working out what kind of format each one is. */
+export const outputGroups = (): { converter: string; group: string; formats: string[] }[] => {
+  const groups: { converter: string; group: string; formats: string[] }[] = [];
+
+  for (const converterName in properties) {
+    const converterProperties = properties[converterName]?.properties;
+    if (!converterProperties) continue;
+
+    for (const group in converterProperties.to) {
+      groups.push({
+        converter: converterName,
+        group,
+        formats: converterProperties.to[group] ?? [],
+      });
+    }
+  }
+
+  return groups;
+};
+
 const possibleInputs: string[] = [];
 for (const converterName in properties) {
   const converterProperties = properties[converterName]?.properties;

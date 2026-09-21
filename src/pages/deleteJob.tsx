@@ -1,8 +1,7 @@
-import { rmSync } from "node:fs";
 import { Elysia, t } from "elysia";
-import { outputDir, uploadsDir } from "..";
 import db from "../db/db";
 import { WEBROOT } from "../helpers/env";
+import { deleteJobs } from "../services/cleanup";
 import { userService } from "./user";
 import { Jobs } from "../db/types";
 
@@ -22,19 +21,7 @@ export const deleteJob = new Elysia()
         return redirect(`${WEBROOT}/results`, 302);
       }
 
-      // delete the directories
-      rmSync(`${outputDir}${job.user_id}/${job.id}`, {
-        recursive: true,
-        force: true,
-      });
-      rmSync(`${uploadsDir}${job.user_id}/${job.id}`, {
-        recursive: true,
-        force: true,
-      });
-
-      // delete the job
-      db.query("DELETE FROM file_names WHERE job_id = ?").run(job.id);
-      db.query("DELETE FROM jobs WHERE id = ?").run(job.id);
+      deleteJobs([job]);
       return redirect(`${WEBROOT}/history`, 302);
     },
     {
@@ -72,28 +59,7 @@ export const deleteJob = new Elysia()
             continue;
           }
 
-          // Delete the directories
-          try {
-            rmSync(`${outputDir}${job.user_id}/${job.id}`, {
-              recursive: true,
-              force: true,
-            });
-          } catch (error) {
-            console.error(`Failed to delete output directory for job ${jobId}:`, error);
-          }
-
-          try {
-            rmSync(`${uploadsDir}${job.user_id}/${job.id}`, {
-              recursive: true,
-              force: true,
-            });
-          } catch (error) {
-            console.error(`Failed to delete uploads directory for job ${jobId}:`, error);
-          }
-
-          // Delete the job from database
-          db.query("DELETE FROM file_names WHERE job_id = ?").run(job.id);
-          db.query("DELETE FROM jobs WHERE id = ?").run(job.id);
+          deleteJobs([job]);
           results.success.push(jobId);
         } catch (error) {
           results.failed.push({

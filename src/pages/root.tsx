@@ -10,6 +10,7 @@ import { Header } from "../components/header";
 import { headerAccount } from "../helpers/headerUser";
 import { isRegisteredSession } from "../helpers/session";
 import { onlyAvailable } from "../converters/availability";
+import { categoryOf, groupByCategory } from "../converters/categories";
 import { visibleTargets } from "../services/features";
 import { deletionIsAutomatic, retentionSentence } from "../services/retention";
 import { getAllTargets } from "../converters/main";
@@ -185,9 +186,36 @@ export const root = new Elysia().use(userService).get(
         .flat()
         .map((format) => String(format).toLowerCase()),
     );
+    // Before a file is uploaded there is nothing to resolve a converter against, so each
+    // card carries whichever tool can produce that format at all. It is only a placeholder
+    // that keeps the form well-formed — /convert works the real one out from the upload.
+    const formatCards = groupByCategory(
+      [...offeredFormats].sort().map((format) => ({
+        format,
+        converter:
+          Object.entries(allTargets).find(([, targets]) =>
+            targets.some((target) => String(target).toLowerCase() === format),
+          )?.[0] ?? "",
+      })),
+      (entry) => categoryOf(entry.format),
+    );
     const popularFormats = ["PDF", "MP4", "MP3", "JPG", "PNG", "DOCX", "EPUB", "WEBP"].filter(
       (format) => offeredFormats.has(format.toLowerCase()),
     );
+    // The shortcuts inside the picker, filtered the same way: a format an admin has
+    // switched off must not keep a chip that only leads to a refused conversion
+    const popularCards = [
+      "pdf",
+      "mp4",
+      "mp3",
+      "jpg",
+      "png",
+      "docx",
+      "webp",
+      "epub",
+      "xlsx",
+      "csv",
+    ].filter((format) => offeredFormats.has(format));
     const dbTiers = getTiers();
     const currentUser = user && user.id ? getUserById(user.id) : null;
     const checkout = checkoutConfig(currentUser);
@@ -460,18 +488,7 @@ export const root = new Elysia().use(userService).get(
                                 {tr(locale, "home.popularFormatsGroup")}
                               </header>
                               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">
-                                {[
-                                  "pdf",
-                                  "mp4",
-                                  "mp3",
-                                  "jpg",
-                                  "png",
-                                  "docx",
-                                  "webp",
-                                  "epub",
-                                  "xlsx",
-                                  "csv",
-                                ].map((pop) => (
+                                {popularCards.map((pop) => (
                                   <button
                                     tabindex={0}
                                     class="target rounded-tag border border-rule bg-surface px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-cta hover:text-cta-ink"
@@ -486,34 +503,30 @@ export const root = new Elysia().use(userService).get(
                               </ul>
                             </article>
 
-                            {Object.entries(allTargets).map(([converter, targets]) => (
+                            {formatCards.map(({ category, rows }) => (
                               <article
                                 class={`
                                   convert_to_group flex w-full flex-col border-b border-rule p-3 last:border-none
                                 `}
-                                data-converter={converter}
+                                data-converter={category}
                               >
-                                <header
-                                  class="mb-2 w-full text-xs font-semibold uppercase tracking-wider text-ink-muted"
-                                  safe
-                                >
-                                  {converter}
+                                <header class="mb-2 w-full text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                                  {tr(locale, `formats.category.${category}`)}
                                 </header>
                                 <ul class={`convert_to_target flex flex-row flex-wrap gap-1.5`}>
-                                  {targets.map((target) => (
+                                  {rows.map((entry) => (
                                     <button
                                       tabindex={0}
                                       class={`
                                         target rounded-tag border border-rule bg-surface-2 px-3 py-1 text-xs font-medium text-ink-body
                                         transition-colors hover:bg-cta hover:text-cta-ink
                                       `}
-                                      data-value={`${target},${converter}`}
-                                      data-target={target}
-                                      data-converter={converter}
+                                      data-value={`${entry.format},${entry.converter}`}
+                                      data-target={entry.format}
+                                      data-converter={entry.converter}
                                       type="button"
-                                      safe
                                     >
-                                      {target}
+                                      {entry.format.toUpperCase()}
                                     </button>
                                   ))}
                                 </ul>
@@ -534,11 +547,11 @@ export const root = new Elysia().use(userService).get(
                             <option selected disabled value="">
                               {tr(locale, "home.convertTo")}
                             </option>
-                            {Object.entries(allTargets).map(([converter, targets]) => (
-                              <optgroup label={converter}>
-                                {targets.map((target) => (
-                                  <option value={`${target},${converter}`} safe>
-                                    {target}
+                            {formatCards.map(({ category, rows }) => (
+                              <optgroup label={tr(locale, `formats.category.${category}`)}>
+                                {rows.map((entry) => (
+                                  <option value={`${entry.format},${entry.converter}`} safe>
+                                    {entry.format}
                                   </option>
                                 ))}
                               </optgroup>

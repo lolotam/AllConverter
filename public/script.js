@@ -239,7 +239,9 @@ function selectTarget(targetName, converterName, fullValue) {
   }
 
   convertToElement.value = finalVal;
-  convertToInput.value = `${targetName.toUpperCase()}${converterName ? ` (${converterName})` : ""}`;
+  // Only the format is shown. Which tool runs is an admin setting, and the server picks it
+  // again from the upload anyway, so naming one here would be noise at best and wrong at worst.
+  convertToInput.value = targetName.toUpperCase();
   formatSelected = true;
   updateQualityOption();
   if (pendingFiles === 0 && fileNames.length > 0) {

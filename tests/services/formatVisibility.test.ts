@@ -1,44 +1,28 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import {
-  hiddenFormats,
-  setHiddenConverters,
-  setHiddenFormatsFor,
-  visibleTargets,
-} from "../../src/services/features";
+import { describe, expect, it } from "bun:test";
+import { pickConverter } from "../../src/services/features";
 
-afterEach(() => {
-  setHiddenConverters([]);
-  setHiddenFormatsFor("ffmpeg", []);
-  setHiddenFormatsFor("pandoc", []);
-});
-
-describe("format visibility", () => {
-  it("offers every format until one is hidden", () => {
-    expect(visibleTargets({ ffmpeg: ["mp4", "mp3"] })).toEqual({ ffmpeg: ["mp4", "mp3"] });
+// The fallback rule on its own. resolveConverter wraps this with the real converter tables,
+// which only answer usefully on an image that has the tools installed.
+describe("preferred converter with fallback", () => {
+  it("uses the admin's choice when it can accept the input", () => {
+    expect(pickConverter(["libreoffice", "imagemagick"], "libreoffice")).toBe("libreoffice");
   });
 
-  it("removes only the formats an admin unticked", () => {
-    setHiddenFormatsFor("ffmpeg", ["mp3"]);
-    expect(visibleTargets({ ffmpeg: ["mp4", "mp3"], pandoc: ["docx"] })).toEqual({
-      ffmpeg: ["mp4"],
-      pandoc: ["docx"],
-    });
+  it("falls back when the preferred converter cannot read this input", () => {
+    // Only imagemagick reaches PDF from a PNG, whatever the admin picked for PDF
+    expect(pickConverter(["imagemagick"], "libreoffice")).toBe("imagemagick");
   });
 
-  it("drops a converter left with nothing to offer", () => {
-    setHiddenFormatsFor("ffmpeg", ["mp4", "mp3"]);
-    expect(visibleTargets({ ffmpeg: ["mp4", "mp3"], pandoc: ["docx"] })).toEqual({
-      pandoc: ["docx"],
-    });
+  it("uses the first capable converter when no preference is set", () => {
+    expect(pickConverter(["inkscape", "imagemagick"], undefined)).toBe("inkscape");
   });
 
-  it("still hides a converter switched off as a whole", () => {
-    setHiddenConverters(["pandoc"]);
-    expect(visibleTargets({ ffmpeg: ["mp4"], pandoc: ["docx"] })).toEqual({ ffmpeg: ["mp4"] });
+  it("ignores a preference that is no longer installed", () => {
+    expect(pickConverter(["vips"], "graphicsmagick")).toBe("vips");
   });
 
-  it("stores hidden formats lowercased, once each, per converter", () => {
-    setHiddenFormatsFor("ffmpeg", ["MP4", "mp4", "MKV"]);
-    expect(hiddenFormats().ffmpeg).toEqual(["mkv", "mp4"]);
+  it("returns null when nothing can do the conversion", () => {
+    expect(pickConverter([], "ffmpeg")).toBeNull();
+    expect(pickConverter([], undefined)).toBeNull();
   });
 });

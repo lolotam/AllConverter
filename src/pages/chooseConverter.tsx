@@ -1,6 +1,7 @@
 import Elysia, { t } from "elysia";
 import { onlyAvailable } from "../converters/availability";
-import { visibleTargets } from "../services/features";
+import { categoryOf, groupByCategory } from "../converters/categories";
+import { resolveConverter, visibleTargets } from "../services/features";
 import { getPossibleTargets } from "../converters/main";
 import { userService } from "./user";
 
@@ -25,8 +26,21 @@ export const chooseConverter = new Elysia().use(userService).post(
   "/conversions",
   ({ body }) => {
     const possibleTargets = visibleTargets(onlyAvailable(getPossibleTargets(body.fileType)));
-    const allUniqueTargets = Array.from(new Set(Object.values(possibleTargets).flat()));
-    const popularTargets = POPULAR_FORMATS.filter((p) => allUniqueTargets.includes(p));
+
+    // A format is offered once, not once per tool that happens to produce it. Which tool
+    // runs is the admin's call, resolved here so the customer never sees a converter name.
+    const formats = [...new Set(Object.values(possibleTargets).flat())]
+      .map((format) => ({
+        format,
+        converter: resolveConverter(body.fileType, format) ?? "",
+      }))
+      .filter((entry) => entry.converter !== "")
+      .sort((a, b) => a.format.localeCompare(b.format));
+
+    const byCategory = groupByCategory(formats, (entry) => categoryOf(entry.format));
+    const popularTargets = POPULAR_FORMATS.map((popular) =>
+      formats.find((entry) => entry.format === popular),
+    ).filter((entry): entry is (typeof formats)[number] => entry !== undefined);
 
     return (
       <>
@@ -61,52 +75,44 @@ export const chooseConverter = new Elysia().use(userService).post(
                 <span>🔥</span> Popular Formats (الأكثر شهرة)
               </header>
               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">
-                {popularTargets.map((target) => {
-                  const converterEntry = Object.entries(possibleTargets).find(([_, tList]) =>
-                    tList.includes(target),
-                  );
-                  const converterName = converterEntry ? converterEntry[0] : "";
-                  return (
-                    <button
-                      tabindex={0}
-                      class="target rounded-tag border border-rule bg-surface px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-cta hover:text-cta-ink"
-                      data-value={`${target},${converterName}`}
-                      data-target={target}
-                      data-converter={converterName}
-                      type="button"
-                    >
-                      {target.toUpperCase()}
-                    </button>
-                  );
-                })}
+                {popularTargets.map((entry) => (
+                  <button
+                    tabindex={0}
+                    class="target rounded-tag border border-rule bg-surface px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-cta hover:text-cta-ink"
+                    data-value={`${entry.format},${entry.converter}`}
+                    data-target={entry.format}
+                    data-converter={entry.converter}
+                    type="button"
+                    safe
+                  >
+                    {entry.format.toUpperCase()}
+                  </button>
+                ))}
               </ul>
             </article>
           )}
 
-          {/* All Converter Groups */}
-          {Object.entries(possibleTargets).map(([converter, targets]) => (
+          {/* Every offered format, grouped the way a customer thinks about them */}
+          {byCategory.map(({ category, rows }) => (
             <article
               class="convert_to_group flex w-full flex-col border-b border-rule p-3 last:border-none"
-              data-converter={converter}
+              data-converter={category}
             >
-              <header
-                class="mb-2 w-full text-xs font-semibold uppercase tracking-wider text-ink-muted"
-                safe
-              >
-                {converter}
+              <header class="mb-2 w-full text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                {category}
               </header>
               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">
-                {targets.map((target) => (
+                {rows.map((entry) => (
                   <button
                     tabindex={0}
                     class="target rounded-tag border border-rule bg-surface-2 px-3 py-1 text-xs font-medium text-ink-body transition-colors hover:bg-cta hover:text-cta-ink"
-                    data-value={`${target},${converter}`}
-                    data-target={target}
-                    data-converter={converter}
+                    data-value={`${entry.format},${entry.converter}`}
+                    data-target={entry.format}
+                    data-converter={entry.converter}
                     type="button"
                     safe
                   >
-                    {target}
+                    {entry.format}
                   </button>
                 ))}
               </ul>
@@ -118,11 +124,11 @@ export const chooseConverter = new Elysia().use(userService).post(
           <option selected disabled value="">
             Convert to
           </option>
-          {Object.entries(possibleTargets).map(([converter, targets]) => (
-            <optgroup label={converter}>
-              {targets.map((target) => (
-                <option value={`${target},${converter}`} safe>
-                  {target}
+          {byCategory.map(({ category, rows }) => (
+            <optgroup label={category}>
+              {rows.map((entry) => (
+                <option value={`${entry.format},${entry.converter}`} safe>
+                  {entry.format}
                 </option>
               ))}
             </optgroup>

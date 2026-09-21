@@ -51,6 +51,29 @@ test("every menu entry is reachable and sign out is last", () => {
   expect(markup.indexOf("/logoff")).toBeGreaterThan(markup.indexOf("/account#plan"));
 });
 
+test("a visitor with no account still gets an avatar menu", () => {
+  // ALLOW_UNAUTHENTICATED gives a guest an id but no row in users
+  const markup = render({ loggedIn: true, accountRegistration: true });
+  expect(markup).toContain(`aria-haspopup="menu"`);
+  expect(markup).toContain("Browsing as a guest");
+  for (const href of ["/login", "/register", "/history", "/converters", "/#pricing"]) {
+    expect(markup).toContain(`href="${href}"`);
+  }
+});
+
+test("a guest is offered no profile, no sign out and no admin", () => {
+  const markup = render({ loggedIn: true, accountRegistration: true, isAdmin: true });
+  for (const href of ["/logoff", "/admin", "/account"]) {
+    expect(markup).not.toContain(`href="${href}"`);
+  }
+});
+
+test("registration links stay hidden when registration is closed", () => {
+  const markup = render({ loggedIn: true, accountRegistration: false });
+  expect(markup).not.toContain(`href="/register"`);
+  expect(markup).toContain(`href="/login"`);
+});
+
 test("history is dropped from the menu when the feature is off", () => {
   const markup = render({ ...signedIn, hideHistory: true });
   expect(markup).not.toContain(`href="/history"`);

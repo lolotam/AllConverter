@@ -19,6 +19,12 @@ export const ar = {
   "header.getStarted": "ابدأ مجانًا",
 
   // Account menu
+  "menu.guestMenu": "قائمة الزائر",
+  "menu.guestTitle": "تتصفح كزائر",
+  "menu.guestHint": "سجّل الدخول للحفاظ على خصوصية ملفاتك ورفع حدّك اليومي.",
+  "menu.signIn": "تسجيل الدخول",
+  "menu.createAccount": "إنشاء حساب",
+  "menu.pricing": "الخطط والأسعار",
   "menu.profile": "ملفي الشخصي",
   "menu.history": "سجل التحويلات",
   "menu.changePassword": "تغيير كلمة المرور",

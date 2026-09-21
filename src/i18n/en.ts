@@ -18,6 +18,12 @@ export const en = {
   "header.getStarted": "Get Started Free",
 
   // Account menu
+  "menu.guestMenu": "Guest menu",
+  "menu.guestTitle": "Browsing as a guest",
+  "menu.guestHint": "Sign in to keep your files private and raise your daily limit.",
+  "menu.signIn": "Sign in",
+  "menu.createAccount": "Create an account",
+  "menu.pricing": "Plans and pricing",
   "menu.profile": "My profile",
   "menu.history": "Conversion history",
   "menu.changePassword": "Change password",

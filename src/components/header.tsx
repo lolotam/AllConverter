@@ -2,6 +2,103 @@ import { isRtl, t, type Locale } from "../i18n";
 import { brandingUrl } from "../services/branding";
 import { siteName, siteTagline } from "../services/siteName";
 
+const menuItem = `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-neutral-200 dark:hover:bg-neutral-800 transition-colors`;
+
+const menuPanel = `absolute end-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-neutral-800 dark:bg-neutral-900`;
+
+const summaryButton = `flex cursor-pointer list-none items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 pe-2 shadow-sm transition-all hover:border-accent-500/60 hover:shadow dark:border-neutral-700 dark:bg-neutral-900`;
+
+const Chevron = () => (
+  <svg
+    class="size-4 text-slate-500 transition-transform group-open:rotate-180 dark:text-neutral-400"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+);
+
+/**
+ * With ALLOW_UNAUTHENTICATED a visitor is never asked to sign in, so most people
+ * never have an account to show. They still get the same control, offering the
+ * way in rather than the way out.
+ */
+const GuestMenu = ({
+  webroot,
+  locale,
+  accountRegistration,
+  hideHistory,
+}: {
+  webroot: string;
+  locale: Locale;
+  accountRegistration?: boolean | undefined;
+  hideHistory?: boolean | undefined;
+}) => (
+  <details class="group relative" data-account-menu>
+    <summary class={summaryButton} aria-haspopup="menu" title={t(locale, "menu.guestMenu")}>
+      <span class="flex size-8 items-center justify-center rounded-lg bg-slate-200 text-slate-500 dark:bg-neutral-800 dark:text-neutral-400">
+        <svg
+          class="size-5"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      </span>
+      <Chevron />
+    </summary>
+
+    <div role="menu" class={menuPanel}>
+      <div class="border-b border-slate-200 px-3 pb-3 pt-2 dark:border-neutral-800">
+        <p class="text-sm font-bold text-slate-900 dark:text-white">
+          {t(locale, "menu.guestTitle")}
+        </p>
+        <p class="mt-0.5 text-xs text-slate-500 dark:text-neutral-400">
+          {t(locale, "menu.guestHint")}
+        </p>
+      </div>
+
+      <div class="py-1">
+        {!hideHistory ? (
+          <a href={`${webroot}/history`} class={menuItem} role="menuitem">
+            <span>🕒</span> {t(locale, "menu.history")}
+          </a>
+        ) : null}
+        <a href={`${webroot}/converters`} class={menuItem} role="menuitem">
+          <span>🔁</span> {t(locale, "menu.converters")}
+        </a>
+        <a href={`${webroot}/#pricing`} class={menuItem} role="menuitem">
+          <span>💳</span> {t(locale, "menu.pricing")}
+        </a>
+      </div>
+
+      <div class="border-t border-slate-200 pt-1 dark:border-neutral-800">
+        <a
+          href={`${webroot}/login`}
+          role="menuitem"
+          class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-semibold text-lime-700 hover:bg-accent-500/10 dark:text-accent-400 dark:hover:bg-accent-500/10 transition-colors"
+        >
+          <span>🔑</span> {t(locale, "menu.signIn")}
+        </a>
+        {accountRegistration ? (
+          <a href={`${webroot}/register`} class={menuItem} role="menuitem">
+            <span>✨</span> {t(locale, "menu.createAccount")}
+          </a>
+        ) : null}
+      </div>
+    </div>
+  </details>
+);
+
 /** The avatar button and the menu it opens. Only shown for a real account. */
 const AccountMenu = ({
   webroot,
@@ -32,23 +129,14 @@ const AccountMenu = ({
   isAdmin?: boolean | undefined;
   hideHistory?: boolean | undefined;
 }) => {
-  const item = `flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-neutral-200 dark:hover:bg-neutral-800 transition-colors`;
+  const item = menuItem;
   const left = Math.max(0, (limit ?? 0) - (used ?? 0));
   // A meter is only meaningful against a real ceiling
   const showMeter = !unlimited && (limit ?? 0) > 0;
   const spent = showMeter ? Math.min(100, Math.round(((used ?? 0) / (limit ?? 1)) * 100)) : 0;
   return (
     <details class="group relative" data-account-menu>
-      <summary
-        class={`
-          flex cursor-pointer list-none items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 pe-2
-          shadow-sm transition-all
-          hover:border-accent-500/60 hover:shadow
-          dark:border-neutral-700 dark:bg-neutral-900
-        `}
-        aria-haspopup="menu"
-        title={t(locale, "header.accountMenu")}
-      >
+      <summary class={summaryButton} aria-haspopup="menu" title={t(locale, "header.accountMenu")}>
         {avatar ? (
           <img src={avatar} alt="" width="32" height="32" class="size-8 rounded-lg object-cover" />
         ) : (
@@ -56,27 +144,10 @@ const AccountMenu = ({
             {initials ?? "??"}
           </span>
         )}
-        <svg
-          class="size-4 text-slate-500 transition-transform group-open:rotate-180 dark:text-neutral-400"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M6 9l6 6 6-6" />
-        </svg>
+        <Chevron />
       </summary>
 
-      <div
-        role="menu"
-        class={`
-          absolute end-0 z-50 mt-2 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-1.5
-          shadow-xl
-          dark:border-neutral-800 dark:bg-neutral-900
-        `}
-      >
+      <div role="menu" class={menuPanel}>
         <div class="border-b border-slate-200 px-3 pb-3 pt-2 dark:border-neutral-800">
           <p safe class="truncate text-sm font-bold text-slate-900 dark:text-white">
             {name || email}
@@ -357,46 +428,21 @@ export const Header = ({
               />
             </div>
           ) : loggedIn ? (
-            <div class="flex items-center gap-3 text-sm">
-              {isAdmin && (
+            <div class="flex items-center gap-2.5 text-sm">
+              {accountRegistration ? (
                 <a
-                  href={`${webroot}/admin`}
-                  class="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 font-bold text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 transition-all shadow-sm"
+                  href={`${webroot}/register`}
+                  class="hidden rounded-xl bg-gradient-to-r from-accent-500 to-lime-400 px-4 py-1.5 text-xs font-bold text-neutral-950 shadow-md hover:from-accent-400 hover:to-lime-300 transition-all sm:inline-block"
                 >
-                  <span>⚡</span> {t(locale, "header.dashboard")}
-                </a>
-              )}
-              {!hideHistory && (
-                <a
-                  href={`${webroot}/history`}
-                  class="rounded-lg px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white transition-all"
-                >
-                  {t(locale, "header.history")}
-                </a>
-              )}
-              {!allowUnauthenticated ? (
-                <a
-                  href={`${webroot}/account`}
-                  class="rounded-lg px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-neutral-300 dark:hover:bg-neutral-800 dark:hover:text-white transition-all"
-                >
-                  {t(locale, "header.account")}
+                  {t(locale, "header.getStarted")}
                 </a>
               ) : null}
-              {!allowUnauthenticated ? (
-                <a
-                  href={`${webroot}/logoff`}
-                  class="rounded-lg px-3 py-1.5 font-medium text-slate-500 hover:bg-red-50 hover:text-red-600 dark:text-neutral-400 dark:hover:bg-neutral-800 dark:hover:text-red-400 transition-all"
-                >
-                  {t(locale, "header.logout")}
-                </a>
-              ) : (
-                <a
-                  href={`${webroot}/#pricing`}
-                  class="rounded-xl bg-gradient-to-r from-accent-500 to-lime-400 px-4 py-1.5 text-xs font-bold text-neutral-950 shadow-md hover:from-accent-400 hover:to-lime-300 transition-all"
-                >
-                  {t(locale, "header.upgrade")}
-                </a>
-              )}
+              <GuestMenu
+                webroot={webroot}
+                locale={locale}
+                accountRegistration={accountRegistration}
+                hideHistory={hideHistory}
+              />
             </div>
           ) : (
             <div class="flex items-center gap-2.5 text-sm">

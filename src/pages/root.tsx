@@ -11,7 +11,7 @@ import { headerAccount } from "../helpers/headerUser";
 import { isRegisteredSession } from "../helpers/session";
 import { onlyAvailable } from "../converters/availability";
 import { categoryOf, groupByCategory } from "../converters/categories";
-import { visibleTargets } from "../services/features";
+import { formatLabel, visibleTargets } from "../services/features";
 import { deletionIsAutomatic, retentionSentence } from "../services/retention";
 import { getAllTargets } from "../converters/main";
 import db, { getTiers, getUserById } from "../db/db";
@@ -180,12 +180,10 @@ export const root = new Elysia().use(userService).get(
     });
 
     const allTargets = visibleTargets(onlyAvailable(getAllTargets()));
-    // Offering a shortcut to a format no visible converter produces would only fail later
-    const offeredFormats = new Set(
-      Object.values(allTargets)
-        .flat()
-        .map((format) => String(format).toLowerCase()),
-    );
+    // What the site actually offers — a shortcut to anything else would only fail later.
+    // One entry per conversion, not per spelling: a converter listing both jpg and jpeg
+    // would otherwise put two cards on screen that do exactly the same thing.
+    const offeredFormats = new Set(Object.values(allTargets).flat().map(formatLabel));
     // Before a file is uploaded there is nothing to resolve a converter against, so each
     // card carries whichever tool can produce that format at all. It is only a placeholder
     // that keeps the form well-formed — /convert works the real one out from the upload.
@@ -194,7 +192,7 @@ export const root = new Elysia().use(userService).get(
         format,
         converter:
           Object.entries(allTargets).find(([, targets]) =>
-            targets.some((target) => String(target).toLowerCase() === format),
+            targets.some((target) => formatLabel(target) === format),
           )?.[0] ?? "",
       })),
       (entry) => categoryOf(entry.format),

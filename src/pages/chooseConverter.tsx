@@ -1,7 +1,7 @@
 import Elysia, { t } from "elysia";
 import { onlyAvailable } from "../converters/availability";
 import { categoryOf, groupByCategory } from "../converters/categories";
-import { resolveConverter, visibleTargets } from "../services/features";
+import { formatLabel, resolveConverter, visibleTargets } from "../services/features";
 import { getPossibleTargets } from "../converters/main";
 import { userService } from "./user";
 
@@ -27,9 +27,12 @@ export const chooseConverter = new Elysia().use(userService).post(
   ({ body }) => {
     const possibleTargets = visibleTargets(onlyAvailable(getPossibleTargets(body.fileType)));
 
-    // A format is offered once, not once per tool that happens to produce it. Which tool
-    // runs is the admin's call, resolved here so the customer never sees a converter name.
-    const formats = [...new Set(Object.values(possibleTargets).flat())]
+    // A format is offered once — not once per tool that happens to produce it, and not
+    // once per spelling either: a converter listing both jpg and jpeg means one conversion,
+    // so the names are canonicalised before deduplicating and shown as the familiar
+    // extension. Which tool runs is the admin's call, resolved here so the customer never
+    // sees a converter name.
+    const formats = [...new Set(Object.values(possibleTargets).flat().map(formatLabel))]
       .map((format) => ({
         format,
         converter: resolveConverter(body.fileType, format) ?? "",

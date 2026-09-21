@@ -13,6 +13,8 @@ import { getJsonSetting, getSetting, setSetting } from "./settings";
 const HIDDEN_KEY = "formats.hidden";
 const PREFERRED_KEY = "formats.converter";
 const MIGRATED_KEY = "formats.migrated";
+/** Converters switched off before the upgrade; kept out of automatic selection. */
+const EXCLUDED_KEY = "formats.excludedConverters";
 
 // Superseded by the two keys above; read once by the migration below, then left alone.
 const OLD_CONVERTERS_KEY = "converters.hidden";
@@ -44,6 +46,19 @@ const canonical = (format: string): string => normalizeFiletype(String(format).t
 
 /** The reverse, for display: the internal key is not what anyone calls the format. */
 const FRIENDLY: Record<string, string> = { jpeg: "jpg", latex: "tex", markdown: "md" };
+
+/** The key a format is stored and looked up under. */
+export const canonicalFormat = (format: string): string => canonical(format);
+
+/**
+ * What to show and offer for a format. Pickers must build their list from this, or a
+ * converter advertising both spellings — ImageMagick lists jpg and jpeg — puts two cards
+ * on screen for one conversion.
+ */
+export const formatLabel = (format: string): string => {
+  const key = canonical(format);
+  return FRIENDLY[key] ?? key;
+};
 
 /**
  * Every output format an installed converter can produce, keyed canonically so aliases are
@@ -162,15 +177,37 @@ export function resolveConverter(from: string, to: string): string | null {
     .filter(([, targets]) => targets.some((format) => canonical(format) === target))
     .map(([converter]) => converter);
 
-  return pickConverter(capable, preferredConverters()[target]);
+  return pickConverter(capable, preferredConverters()[target], new Set(excludedConverters()));
+}
+
+/**
+ * Converters an admin had switched off before this version removed the converter-level
+ * switch. They stay out of automatic selection — reinstating a tool somebody disabled
+ * because it was unreliable should not happen behind their back.
+ */
+export function excludedConverters(): string[] {
+  migrateFromConverterSettings();
+  return getJsonSetting<string[]>(EXCLUDED_KEY, []);
 }
 
 /** The decision on its own: the preference if it can do the job, else the first that can. */
-function pickConverter(capable: string[], preferred: string | undefined): string | null {
+function pickConverter(
+  capable: string[],
+  preferred: string | undefined,
+  excluded: ReadonlySet<string> = new Set(),
+): string | null {
   if (capable.length === 0) {
     return null;
   }
-  return preferred && capable.includes(preferred) ? preferred : (capable[0] ?? null);
+  // An explicit choice always wins, including a converter that was switched off before the
+  // upgrade — picking it in the dropdown is the admin saying they want it back.
+  if (preferred && capable.includes(preferred)) {
+    return preferred;
+  }
+  // Otherwise a converter they had switched off is not resurrected by the fallback, unless
+  // it is the only thing that can do the job at all.
+  const allowed = capable.filter((converter) => !excluded.has(converter));
+  return (allowed.length > 0 ? allowed : capable)[0] ?? null;
 }
 
 /**
@@ -241,6 +278,11 @@ function migrateFromConverterSettings(): void {
   setSetting(HIDDEN_KEY, JSON.stringify(hidden));
   if (Object.keys(preferences).length > 0) {
     setSetting(PREFERRED_KEY, JSON.stringify({ ...preferences, ...preferredConverters() }));
+  }
+  // The preference above covers the tool picked first; this keeps the disabled one out of
+  // the fallback too, for the inputs the preferred converter cannot read.
+  if (hiddenConverters.size > 0) {
+    setSetting(EXCLUDED_KEY, JSON.stringify([...hiddenConverters].sort()));
   }
   setSetting(MIGRATED_KEY, new Date().toISOString());
 }

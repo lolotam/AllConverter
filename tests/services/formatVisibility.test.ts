@@ -26,3 +26,34 @@ describe("preferred converter with fallback", () => {
     expect(pickConverter([], undefined)).toBeNull();
   });
 });
+
+// An admin who switched a converter off before this version removed the converter-level
+// switch should not find it quietly back in use after upgrading.
+describe("converters disabled before the upgrade", () => {
+  const excluded = new Set(["graphicsmagick"]);
+
+  it("is kept out of automatic selection", () => {
+    expect(pickConverter(["graphicsmagick", "vips"], undefined, excluded)).toBe("vips");
+  });
+
+  it("is kept out of the fallback too, not just the first choice", () => {
+    // The preference cannot read this input, so resolution falls through to the rest
+    expect(pickConverter(["graphicsmagick", "imagemagick"], "libreoffice", excluded)).toBe(
+      "imagemagick",
+    );
+  });
+
+  it("is still used when nothing else can do the job", () => {
+    expect(pickConverter(["graphicsmagick"], undefined, excluded)).toBe("graphicsmagick");
+  });
+
+  it("is honoured when the admin picks it again explicitly", () => {
+    expect(pickConverter(["graphicsmagick", "vips"], "graphicsmagick", excluded)).toBe(
+      "graphicsmagick",
+    );
+  });
+
+  it("changes nothing when no converter was ever disabled", () => {
+    expect(pickConverter(["inkscape", "imagemagick"], undefined, new Set())).toBe("inkscape");
+  });
+});

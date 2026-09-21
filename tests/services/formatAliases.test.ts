@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { normalizeFiletype } from "../../src/helpers/normalizeFiletype";
 import { setSetting } from "../../src/services/settings";
-import { visibleTargets } from "../../src/services/features";
+import { canonicalFormat, formatLabel, visibleTargets } from "../../src/services/features";
 
 // Converters spell the same format several ways, and /convert runs the chosen target
 // through normalizeFiletype before looking anything up. Visibility has to agree with it,
@@ -49,5 +49,32 @@ describe("format aliases", () => {
   it("leaves unrelated formats alone", () => {
     hide(["jpeg"]);
     expect(visibleTargets({ ffmpeg: ["mp4", "mkv"] })).toEqual({ ffmpeg: ["mp4", "mkv"] });
+  });
+});
+
+// A converter that advertises both spellings of a format must not put two identical
+// choices in front of the customer.
+describe("formatLabel", () => {
+  it("collapses the aliases onto the extension people type", () => {
+    expect(formatLabel("jpeg")).toBe("jpg");
+    expect(formatLabel("jpg")).toBe("jpg");
+    expect(formatLabel("markdown")).toBe("md");
+    expect(formatLabel("md")).toBe("md");
+    expect(formatLabel("latex")).toBe("tex");
+    expect(formatLabel("htm")).toBe("html");
+  });
+
+  it("deduplicates a converter that lists both spellings", () => {
+    const offered = [...new Set(["jpg", "jpeg", "png", "md", "markdown"].map(formatLabel))];
+    expect(offered).toEqual(["jpg", "png", "md"]);
+  });
+
+  it("leaves everything else alone, whatever the case", () => {
+    expect(formatLabel("MP4")).toBe("mp4");
+    expect(formatLabel("webp")).toBe("webp");
+  });
+
+  it("agrees with the key the conversion path looks up", () => {
+    expect(canonicalFormat(formatLabel("jpeg"))).toBe(normalizeFiletype("jpg"));
   });
 });

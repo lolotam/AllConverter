@@ -61,14 +61,21 @@ export const formatLabel = (format: string): string => {
 };
 
 /**
- * Every output format an installed converter can produce, keyed canonically so aliases are
- * one entry. `raw` keeps the spellings the converters themselves use, which is what the
- * input-format index is keyed by.
+ * Every output format a converter can produce, keyed canonically so aliases are one entry.
+ * `raw` keeps the spellings the converters themselves use, which is what the input-format
+ * index is keyed by.
+ *
+ * Only installed converters count, with one exception: the one-time migration has to read
+ * the settings of every converter the build declares, or a tool that simply was not on PATH
+ * the minute somebody upgraded would lose what an admin had decided about it for good.
  */
-function everyFormat(): Map<string, { converters: string[]; raw: Set<string> }> {
+function everyFormat(
+  includeUninstalled = false,
+): Map<string, { converters: string[]; raw: Set<string> }> {
   const byFormat = new Map<string, { converters: string[]; raw: Set<string> }>();
+  const declared = includeUninstalled ? getAllTargets() : onlyAvailable(getAllTargets());
 
-  for (const [converter, targets] of Object.entries(onlyAvailable(getAllTargets()))) {
+  for (const [converter, targets] of Object.entries(declared)) {
     for (const target of Array.isArray(targets) ? targets : []) {
       const format = canonical(target);
       const entry = byFormat.get(format);
@@ -289,7 +296,8 @@ function migrateFromConverterSettings(): void {
     hiddenConverters.has(converter) ||
     (hiddenFormats[converter] ?? []).some((name) => name === format || aliases.has(name));
 
-  const catalogue = [...everyFormat().entries()];
+  // Every declared converter, installed or not: see everyFormat's note
+  const catalogue = [...everyFormat(true).entries()];
 
   const hidden = catalogue
     .filter(([format, { converters, raw }]) =>

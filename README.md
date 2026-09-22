@@ -117,6 +117,11 @@ All are optional, JWT_SECRET is recommended to be set.
 | PADDLE_WEBHOOK_SECRET        |                                                    | Secret of the Paddle notification destination pointing at `/paddle/webhook`.                                                                                  |
 | PADDLE_PRICE_<TIER>          |                                                    | Paddle price id for a tier, e.g. `PADDLE_PRICE_PRO=pri_...`. Checkout is hidden until one is set.                                                             |
 | PADDLE_API_KEY               |                                                    | Optional. Paddle API key, enables the "Manage billing" customer portal link.                                                                                  |
+| LEGAL_ENTITY_NAME            |                                                    | The company or person operating the site, named in `/terms` and `/privacy` as the party a visitor is agreeing with.                                           |
+| LEGAL_CONTACT_EMAIL          |                                                    | Address published on the legal pages for privacy requests and notices. It is shown to the public, so use a role address rather than a personal one.           |
+| LEGAL_GOVERNING_LAW          |                                                    | Country or state whose law governs the terms and where disputes are heard, e.g. `Kuwait`.                                                                     |
+| LEGAL_EFFECTIVE_DATE         |                                                    | Date the current terms took effect, shown at the top of each legal page, e.g. `22 September 2026`.                                                            |
+| REFUND_WINDOW_DAYS           | 14                                                 | Days a customer has to ask for a refund, stated in `/refunds`. Set to 0 to offer no money-back window.                                                        |
 | PORT                         | 3000                                               | Application listen port                                                                                                                                       |
 
 ### Docker images

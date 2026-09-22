@@ -66,6 +66,31 @@ export function initializeDatabase(db: Database): void {
     db.exec("ALTER TABLE jobs ADD COLUMN converter TEXT;");
   }
 
+  // How often each format has been converted into, for the admin format table.
+  //
+  // Deliberately its own table rather than a count over file_names: those rows go when a
+  // job is deleted, whether by the retention sweep, a user clearing their history or an
+  // admin purging everything — so the figure would fall as the site got busier. This one
+  // only ever goes up. It is seeded from the history that still exists, so the numbers
+  // carry on from where the old count left off rather than restarting at zero.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS format_usage (
+      format TEXT PRIMARY KEY,
+      count INTEGER NOT NULL DEFAULT 0
+    );
+  `);
+  const seeded = db.query("SELECT COUNT(*) AS count FROM format_usage").get() as { count: number };
+  if (seeded.count === 0) {
+    db.exec(`
+      INSERT INTO format_usage (format, count)
+      SELECT lower(replace(output_file_name, rtrim(output_file_name, replace(output_file_name, '.', '')), '')) AS format,
+             COUNT(*)
+        FROM file_names
+       WHERE output_file_name LIKE '%.%' AND format <> ''
+       GROUP BY format;
+    `);
+  }
+
   // Ensure user ID 1 is Super Admin with Pro tier
   const firstUser = db.query("SELECT id FROM users ORDER BY id ASC LIMIT 1").get() as {
     id: number;

@@ -8,6 +8,7 @@ import { onlyAvailable } from "../converters/availability";
 import { categoryOf, type Category } from "../converters/categories";
 import { getAllTargets, getPossibleSources, getPossibleTargets } from "../converters/main";
 import { normalizeFiletype } from "../helpers/normalizeFiletype";
+import { formatUsageCounts } from "./formatUsage";
 import { getJsonSetting, getSetting, setSetting } from "./settings";
 
 const HIDDEN_KEY = "formats.hidden";
@@ -28,8 +29,13 @@ export type FormatRow = {
   category: Category;
   /** Every installed converter that can produce this format. */
   converters: string[];
-  /** The preferred one — the admin's choice, or the first capable converter. */
-  converter: string;
+  /**
+   * The converters to try, in order: the admin's default and up to two fallbacks, padded
+   * with what resolution would pick anyway so the row always shows three choices.
+   */
+  chain: string[];
+  /** Conversions into this format, ever — counted separately from any user's history. */
+  used: number;
   /** Input formats that reach this one, across every capable converter. */
   accepts: string[];
   visible: boolean;
@@ -134,22 +140,45 @@ export function setOfferedFormats(formats: string[]): void {
   }
 }
 
-export function preferredConverters(): Record<string, string> {
-  return getJsonSetting<Record<string, string>>(PREFERRED_KEY, {});
+/** How many converters an admin can line up per format: a default and two fallbacks. */
+export const CHAIN_LENGTH = 3;
+
+/**
+ * The converters to try for each format, in order. Earlier versions stored a single name,
+ * so a stored string is read as a chain of one.
+ */
+export function preferredConverters(): Record<string, string[]> {
+  const stored = getJsonSetting<Record<string, string | string[]>>(PREFERRED_KEY, {});
+  return Object.fromEntries(
+    Object.entries(stored).map(([format, choice]) => [
+      format,
+      (Array.isArray(choice) ? choice : [choice]).filter(Boolean),
+    ]),
+  );
 }
 
-/** Merges into what is already stored; a format mapped to "" goes back to the default. */
-export function setPreferredConverters(choices: Record<string, string>): void {
+/**
+ * Merges into what is already stored. A chain is trimmed to converters that really produce
+ * the format, deduplicated — picking the same tool as default and first fallback means one
+ * choice, not two — and dropped entirely when nothing is left, which is how a row goes back
+ * to being decided automatically.
+ */
+export function setPreferredConverters(choices: Record<string, string[]>): void {
   const all = preferredConverters();
   const capable = everyFormat();
 
-  for (const [format, converter] of Object.entries(choices)) {
+  for (const [format, chain] of Object.entries(choices)) {
     const key = canonical(format);
+    const produce = capable.get(key)?.converters ?? [];
     // Never trust a posted converter name: it has to be one that really produces this
-    if (!converter || !(capable.get(key)?.converters ?? []).includes(converter)) {
+    const kept = [...new Set(chain.filter(Boolean))]
+      .filter((converter) => produce.includes(converter))
+      .slice(0, CHAIN_LENGTH);
+
+    if (kept.length === 0) {
       delete all[key];
     } else {
-      all[key] = converter;
+      all[key] = kept;
     }
   }
 
@@ -161,6 +190,7 @@ export function formatCatalogue(): FormatRow[] {
   const hidden = new Set(hiddenOutputFormats());
   const preferred = preferredConverters();
   const excluded = exclusions();
+  const usage = formatUsageCounts();
 
   return [...everyFormat().entries()]
     .map(([format, { converters, raw }]) => {
@@ -168,8 +198,9 @@ export function formatCatalogue(): FormatRow[] {
       // converter alone supports advertises a conversion that /convert then refuses. The
       // admin's own choice counts as using it, so it stays in.
       const excludedHere = new Set(excluded[format] ?? []);
+      const chosen = preferred[format] ?? [];
       const usable = converters.filter(
-        (converter) => !excludedHere.has(converter) || preferred[format] === converter,
+        (converter) => !excludedHere.has(converter) || chosen.includes(converter),
       );
 
       // The input index is keyed by the spellings converters use, so every alias of this
@@ -185,14 +216,22 @@ export function formatCatalogue(): FormatRow[] {
         .map((from) => from.toLowerCase())
         .sort((a, b) => a.localeCompare(b));
 
-      const choice = preferred[format];
+      const offered = [...converters].sort((a, b) => a.localeCompare(b));
+      // What the admin chose, minus anything since uninstalled, then topped up with the
+      // order resolution would have used anyway. The table shows three slots either way, so
+      // an untouched row still reads as the decision the site is actually making.
+      const automatic = offered.filter((converter) => !excludedHere.has(converter));
+      const chain = [
+        ...new Set([...chosen.filter((converter) => converters.includes(converter)), ...automatic]),
+      ].slice(0, CHAIN_LENGTH);
+
       return {
         format,
         label: FRIENDLY[format] ?? format,
         category: categoryOf(format),
-        converters: [...converters].sort((a, b) => a.localeCompare(b)),
-        // A converter that has since been uninstalled falls back to whatever is left
-        converter: choice && converters.includes(choice) ? choice : (converters[0] ?? ""),
+        converters: offered,
+        chain,
+        used: usage[format] ?? 0,
         accepts,
         visible: !hidden.has(format),
       };
@@ -217,7 +256,7 @@ export function resolveConverter(from: string, to: string): string | null {
     .filter(([, targets]) => targets.some((format) => canonical(format) === target))
     .map(([converter]) => converter);
 
-  return pickConverter(capable, preferredConverters()[target], new Set(excludedFor(target)));
+  return pickConverter(capable, preferredConverters()[target] ?? [], new Set(excludedFor(target)));
 }
 
 /**
@@ -239,21 +278,23 @@ function excludedFor(format: string): string[] {
 /** The decision on its own: the preference if it can do the job, else the first that can. */
 function pickConverter(
   capable: string[],
-  preferred: string | undefined,
+  chain: readonly string[] = [],
   excluded: ReadonlySet<string> = new Set(),
 ): string | null {
   if (capable.length === 0) {
     return null;
   }
-  // An explicit choice always wins, including a converter that was switched off before the
-  // upgrade — picking it in the dropdown is the admin saying they want it back.
-  if (preferred && capable.includes(preferred)) {
-    return preferred;
+  // The admin's own order, first that can read this input. An explicit choice wins even for
+  // a converter switched off before the upgrade: naming it here is asking for it back.
+  for (const converter of chain) {
+    if (capable.includes(converter)) {
+      return converter;
+    }
   }
-  // Otherwise a converter they had switched off is not resurrected. If it is the only thing
-  // that could do this particular conversion, the answer is that we do not do it — which is
-  // exactly what happened before the upgrade, when a switched-off converter was dropped
-  // outright rather than kept as a last resort.
+  // Past the end of the chain, a converter they had switched off is not resurrected. If it
+  // is the only thing that could do this particular conversion, the answer is that we do not
+  // do it — which is what happened before the upgrade, when a switched-off converter was
+  // dropped outright rather than kept as a last resort.
   const allowed = capable.filter((converter) => !excluded.has(converter));
   return allowed[0] ?? null;
 }

@@ -294,6 +294,30 @@ for (const { group, formats } of outputGroups()) {
   }
 }
 
+/**
+ * One hue per category, so a row in the admin format table says what kind of thing it is
+ * without spending a column on it. The first six match the chapter cards on the landing
+ * page, so a category is the same colour wherever somebody meets it.
+ *
+ * These are section-scale surfaces, never text: used here as a row stripe and a tab dot.
+ *
+ * Written out in full rather than built from a hue name, because Tailwind finds the classes
+ * it has to generate by scanning the source — a class assembled at runtime is one it never
+ * sees and never emits, and the colour would simply not appear.
+ */
+export const CATEGORY_HUE: Record<Category, { dot: string; stripe: string }> = {
+  Document: { dot: "bg-terracotta", stripe: "border-s-terracotta" },
+  Video: { dot: "bg-sapphire", stripe: "border-s-sapphire" },
+  Audio: { dot: "bg-forest", stripe: "border-s-forest" },
+  Image: { dot: "bg-peach", stripe: "border-s-peach" },
+  Ebook: { dot: "bg-sky", stripe: "border-s-sky" },
+  Vector: { dot: "bg-pink", stripe: "border-s-pink" },
+  Data: { dot: "bg-marigold", stripe: "border-s-marigold" },
+  "3D": { dot: "bg-iris", stripe: "border-s-iris" },
+  Archive: { dot: "bg-clay", stripe: "border-s-clay" },
+  Other: { dot: "bg-slate", stripe: "border-s-slate" },
+};
+
 export function categoryOf(format: string): Category {
   const key = format.toLowerCase();
   return explicit.get(key) ?? byProvenance.get(key) ?? "Other";

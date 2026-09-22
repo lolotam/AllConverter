@@ -53,3 +53,9 @@ package-lock.json
 /public/generated.css
 public/tus.min.js
 .playwright-mcp/
+
+# Scratch directory for editor tooling: it holds a second copy of the whole repo.
+# .prettierignore and eslint.config.ts already skip it; this keeps git consistent with
+# them, instead of relying on .git/info/exclude, which lives in one clone and is never
+# shared with anyone else who checks the project out.
+.kilo/

@@ -35,13 +35,14 @@ export default defineConfig(
       },
     },
     rules: {
-      "better-tailwindcss/enforce-consistent-line-wrapping": [
-        "warn",
-        {
-          group: "newLine",
-          printWidth: 100,
-        },
-      ],
+      // Off because it and Prettier disagree and neither yields: the rule rewrites a long
+      // class string across several lines, Prettier joins it back, and running the two in
+      // sequence — which is exactly what `bun run format` and the autofix.ci workflow do —
+      // lands in a two-state loop that never settles. That left autofix.ci reporting a diff
+      // on every run, so it could never pass, and buried 457 warnings in the lint output
+      // where a real one would not be noticed. Prettier owns formatting; this plugin keeps
+      // the rule below, which catches a class name that does not exist.
+      "better-tailwindcss/enforce-consistent-line-wrapping": "off",
       "better-tailwindcss/no-unknown-classes": [
         "warn",
         {
@@ -54,6 +55,10 @@ export default defineConfig(
             "target",
             "convert_to_target",
             "job-details-toggle",
+            // Set on <html> by the theme toggle, and read by Tailwind's dark variant
+            "dark",
+            // Hooks for script.js, like the ones above
+            "recent-pills-list",
           ],
         },
       ],

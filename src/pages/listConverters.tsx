@@ -86,7 +86,7 @@ export const listConverters = new Elysia().use(userService).get(
                           data-format-entry
                           data-search={`${row.label} ${row.format} ${row.category}`.toLowerCase()}
                         >
-                          <td class={`${td} font-bold uppercase text-ink`} safe>
+                          <td class={`${td} font-bold text-ink uppercase`} safe>
                             {row.label}
                           </td>
                           <td class={td}>{safeT(locale, `formats.category.${category}`)}</td>

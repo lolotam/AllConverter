@@ -336,12 +336,12 @@ export function ConversionsPanel({
                 table: this list goes up to 250 rows of eleven columns. */}
             <tbody
               class={`
-                [&_td]:px-3 [&_td]:py-2 [&_td]:text-caption [&_td]:text-ink-body
-                [&_td:nth-child(2)]:text-ink-muted
-                [&_td:nth-child(4)]:uppercase
-                [&_td:nth-child(5)]:font-medium [&_td:nth-child(5)]:uppercase [&_td:nth-child(5)]:text-ink
+                [&_input]:size-4 [&_input]:accent-cta [&_td]:px-3 [&_td]:py-2
+                [&_td]:text-caption
+                [&_td]:text-ink-body
+                [&_td:nth-child(2)]:text-ink-muted [&_td:nth-child(4)]:uppercase [&_td:nth-child(5)]:font-medium
+                [&_td:nth-child(5)]:text-ink [&_td:nth-child(5)]:uppercase
                 [&_tr]:border-b [&_tr]:border-rule
-                [&_input]:size-4 [&_input]:accent-cta
               `}
             >
               {recentJobs.length === 0 ? (
@@ -589,7 +589,7 @@ export function AnalyticsPanel({ data }: { data: Analytics }) {
           <ul class="space-y-2">
             {data.topFormats.map((format) => (
               <li class="flex items-center gap-3 text-sm">
-                <span class="w-20 shrink-0 font-bold uppercase text-ink" safe>
+                <span class="w-20 shrink-0 font-bold text-ink uppercase" safe>
                   {format.format || "—"}
                 </span>
                 <span class="flex-1">
@@ -719,10 +719,10 @@ export function SitePanel({
                 alt="Current favicon"
                 width="32"
                 height="32"
-                class="size-8 rounded object-contain"
+                class="size-8 rounded-sm object-contain"
               />
             ) : (
-              <span class="flex size-8 items-center justify-center rounded bg-surface-2 text-[10px] font-bold text-ink-muted">
+              <span class="flex size-8 items-center justify-center rounded-sm bg-surface-2 text-[10px] font-bold text-ink-muted">
                 ICO
               </span>
             )}
@@ -792,7 +792,7 @@ export function SitePanel({
             </div>
           </div>
 
-          <div class="max-h-[32rem] overflow-auto rounded-card border border-rule">
+          <div class="max-h-128 overflow-auto rounded-card border border-rule">
             <table class="w-full" id="format-table">
               <thead class="sticky top-0 z-10 bg-surface">
                 <tr class="border-b border-rule">
@@ -816,18 +816,18 @@ export function SitePanel({
                   once a full image offers 500-odd formats. */}
               <tbody
                 class={`
-                  [&_td]:px-3 [&_td]:py-2 [&_td]:text-caption [&_td]:text-ink-body
-                  [&_td:nth-child(1)]:text-ink-muted
-                  [&_td:nth-child(2)]:font-bold [&_td:nth-child(2)]:uppercase [&_td:nth-child(2)]:text-ink
-                  [&_td:nth-child(4)]:max-w-xs
-                  [&_td:nth-child(6)]:text-end [&_td:nth-child(6)]:tabular-nums
-                  [&_td:nth-child(7)]:text-end
-                  [&_tr]:border-b [&_tr]:border-rule [&_tr]:last:border-none
+                  [&_input]:size-4 [&_input]:accent-cta [&_select]:rounded-button [&_select]:border
+                  [&_select]:border-rule
+                  [&_select]:bg-surface [&_select]:px-2 [&_select]:py-1
+                  [&_select]:text-xs
+                  [&_select]:text-ink [&_td]:px-3
+                  [&_td]:py-2
+                  [&_td]:text-caption [&_td]:text-ink-body [&_td:nth-child(1)]:text-ink-muted
+                  [&_td:nth-child(2)]:font-bold
+                  [&_td:nth-child(2)]:text-ink [&_td:nth-child(2)]:uppercase
+                  [&_td:nth-child(4)]:max-w-xs [&_td:nth-child(6)]:text-end [&_td:nth-child(6)]:tabular-nums
+                  [&_td:nth-child(7)]:text-end [&_tr]:border-b [&_tr]:border-rule [&_tr]:last:border-none
                   [&_tr]:hover:bg-surface-2
-                  [&_input]:size-4 [&_input]:accent-cta
-                  [&_select]:rounded-button [&_select]:border [&_select]:border-rule
-                  [&_select]:bg-surface [&_select]:px-2 [&_select]:py-1 [&_select]:text-xs
-                  [&_select]:text-ink
                 `}
               >
                 {/* The rows carry no data-search attribute: the format, category and

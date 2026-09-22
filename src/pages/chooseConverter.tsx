@@ -49,7 +49,7 @@ export const chooseConverter = new Elysia().use(userService).post(
       <>
         <article
           class={`
-            convert_to_popup absolute z-20 mt-2 m-0 hidden h-[32vh] max-h-[50vh] w-full flex-col
+            convert_to_popup absolute z-20 m-0 mt-2 hidden h-[32vh] max-h-[50vh] w-full flex-col
             overflow-x-hidden overflow-y-auto rounded-card border border-rule bg-surface p-2 text-ink-body shadow-lg
           `}
         >
@@ -59,7 +59,7 @@ export const chooseConverter = new Elysia().use(userService).post(
             class="convert_to_group mb-1 hidden w-full flex-col rounded-card border-b border-rule bg-sky/25 p-3"
             data-converter="🕒 Recent Formats"
           >
-            <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+            <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold tracking-wider text-ink-muted uppercase">
               <span>🕒</span> Recently Used (المستخدمة مؤخراً)
             </header>
             <ul
@@ -74,7 +74,7 @@ export const chooseConverter = new Elysia().use(userService).post(
               class="convert_to_group mb-1 flex w-full flex-col rounded-card border-b border-rule bg-marigold/20 p-3"
               data-converter="🔥 Popular Formats"
             >
-              <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold tracking-wider text-ink-muted uppercase">
                 <span>🔥</span> Popular Formats (الأكثر شهرة)
               </header>
               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">
@@ -101,7 +101,7 @@ export const chooseConverter = new Elysia().use(userService).post(
               class="convert_to_group flex w-full flex-col border-b border-rule p-3 last:border-none"
               data-converter={category}
             >
-              <header class="mb-2 w-full text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              <header class="mb-2 w-full text-xs font-semibold tracking-wider text-ink-muted uppercase">
                 {category}
               </header>
               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">

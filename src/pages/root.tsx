@@ -267,16 +267,16 @@ export const root = new Elysia().use(userService).get(
             </div>
 
             {/* HERO SECTION */}
-            <section class="px-4 pb-16 pt-12 sm:px-6 lg:px-8">
+            <section class="px-4 pt-12 pb-16 sm:px-6 lg:px-8">
               <div class="relative mx-auto max-w-[1200px] text-center">
                 {/* Marigold is the reference's chip hue; it stays a chip and goes nowhere else */}
-                <div class="chip mb-6 bg-marigold text-[#181d26]">
+                <div class="mb-6 chip bg-marigold text-[#181d26]">
                   <span>{safeTr(locale, "home.badge")}</span>
                 </div>
 
                 {/* Display 900, no tracking — the reference is explicit that the display
                     face is drawn tight and must not be letter-spaced */}
-                <h1 class="display-xl mb-6 text-ink">
+                <h1 class="mb-6 display-xl text-ink">
                   {safeTr(locale, "home.heroTitle")} {safeTr(locale, "home.heroTitleHighlight")}
                 </h1>
 
@@ -395,7 +395,7 @@ export const root = new Elysia().use(userService).get(
                       id="quick-recent-pills"
                       class="mt-4 hidden border-t border-frame-rule pt-3"
                     >
-                      <div class="flex items-center gap-2 flex-wrap text-xs">
+                      <div class="flex flex-wrap items-center gap-2 text-xs">
                         <span class="flex items-center gap-1 font-semibold text-frame-ink-muted">
                           {safeTr(locale, "home.recent")}
                         </span>
@@ -469,7 +469,7 @@ export const root = new Elysia().use(userService).get(
                               class="convert_to_group mb-1 hidden w-full flex-col rounded-card border-b border-rule bg-sky/25 p-3"
                               data-converter={safeTr(locale, "home.recentFormatsGroup")}
                             >
-                              <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                              <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold tracking-wider text-ink-muted uppercase">
                                 {safeTr(locale, "home.recentlyUsed")}
                               </header>
                               <ul
@@ -483,7 +483,7 @@ export const root = new Elysia().use(userService).get(
                               class="convert_to_group mb-1 flex w-full flex-col rounded-card border-b border-rule bg-marigold/20 p-3"
                               data-converter={safeTr(locale, "home.popularFormatsGroup")}
                             >
-                              <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                              <header class="mb-2 flex w-full items-center gap-1.5 text-xs font-semibold tracking-wider text-ink-muted uppercase">
                                 {safeTr(locale, "home.popularFormatsGroup")}
                               </header>
                               <ul class="convert_to_target flex flex-row flex-wrap gap-1.5">
@@ -509,7 +509,7 @@ export const root = new Elysia().use(userService).get(
                                 `}
                                 data-converter={category}
                               >
-                                <header class="mb-2 w-full text-xs font-semibold uppercase tracking-wider text-ink-muted">
+                                <header class="mb-2 w-full text-xs font-semibold tracking-wider text-ink-muted uppercase">
                                   {safeTr(locale, `formats.category.${category}`)}
                                 </header>
                                 <ul class={`convert_to_target flex flex-row flex-wrap gap-1.5`}>
@@ -577,7 +577,7 @@ export const root = new Elysia().use(userService).get(
                       {/* Big Call to Action Button */}
                       <input
                         class={`
-                          btn-on-frame w-full text-center
+                          w-full btn-on-frame text-center
                           disabled:cursor-not-allowed disabled:opacity-40
                         `}
                         type="submit"
@@ -609,14 +609,14 @@ export const root = new Elysia().use(userService).get(
             {/* CATEGORY TOOLS GRID (Inspired by iLovePDF & Online-Convert) */}
             <section id="tools" class="border-t border-rule px-4 py-16 sm:px-6 lg:px-8">
               <div class="mx-auto max-w-7xl">
-                <div class="text-center max-w-3xl mx-auto mb-14">
-                  <h2 class="display-lg mb-4 text-ink">{safeTr(locale, "home.toolsTitle")}</h2>
+                <div class="mx-auto mb-14 max-w-3xl text-center">
+                  <h2 class="mb-4 display-lg text-ink">{safeTr(locale, "home.toolsTitle")}</h2>
                   <p class="text-body text-ink-body">{safeTr(locale, "home.toolsSubtitle")}</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {/* Chapter 1: Document */}
-                  <div class="chapter-card group bg-terracotta">
+                  <div class="group chapter-card bg-terracotta">
                     <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-white/15 text-[#faf5e8]">
                       <svg
                         class="size-6"
@@ -654,7 +654,7 @@ export const root = new Elysia().use(userService).get(
                   </div>
 
                   {/* Chapter 2: Video */}
-                  <div class="chapter-card group bg-sapphire">
+                  <div class="group chapter-card bg-sapphire">
                     <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-white/15 text-[#faf5e8]">
                       <svg
                         class="size-6"
@@ -692,7 +692,7 @@ export const root = new Elysia().use(userService).get(
                   </div>
 
                   {/* Chapter 3: Audio */}
-                  <div class="chapter-card group bg-forest">
+                  <div class="group chapter-card bg-forest">
                     <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-white/15 text-[#faf5e8]">
                       <svg
                         class="size-6"
@@ -730,7 +730,7 @@ export const root = new Elysia().use(userService).get(
                   </div>
 
                   {/* Chapter 4: Image */}
-                  <div class="chapter-card group bg-peach">
+                  <div class="group chapter-card bg-peach">
                     <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-black/10 text-[#181d26]">
                       <svg
                         class="size-6"
@@ -768,7 +768,7 @@ export const root = new Elysia().use(userService).get(
                   </div>
 
                   {/* Chapter 5: E-Book */}
-                  <div class="chapter-card group bg-sky">
+                  <div class="group chapter-card bg-sky">
                     <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-black/10 text-[#181d26]">
                       <svg
                         class="size-6"
@@ -806,7 +806,7 @@ export const root = new Elysia().use(userService).get(
                   </div>
 
                   {/* Chapter 6: Data & Archives */}
-                  <div class="chapter-card group bg-pink">
+                  <div class="group chapter-card bg-pink">
                     <div class="mb-5 flex size-12 items-center justify-center rounded-card bg-black/10 text-[#181d26]">
                       <svg
                         class="size-6"
@@ -849,21 +849,21 @@ export const root = new Elysia().use(userService).get(
             {/* HOW IT WORKS SECTION */}
             <section id="how-it-works" class="border-t border-rule px-4 py-16 sm:px-6 lg:px-8">
               <div class="mx-auto max-w-7xl">
-                <div class="text-center max-w-3xl mx-auto mb-16">
-                  <h2 class="display-lg mb-4 text-ink">{safeTr(locale, "home.howTitle")}</h2>
+                <div class="mx-auto mb-16 max-w-3xl text-center">
+                  <h2 class="mb-4 display-lg text-ink">{safeTr(locale, "home.howTitle")}</h2>
                   <p class="text-body text-ink-body">{safeTr(locale, "home.howSubtitle")}</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center relative">
+                <div class="relative grid grid-cols-1 gap-8 text-center md:grid-cols-3">
                   {/* Step 1 */}
                   <div class="flex flex-col items-center">
                     <div class="mb-4 flex size-14 items-center justify-center rounded-card border border-rule bg-surface text-subheading font-semibold text-ink-muted">
                       1
                     </div>
-                    <h3 class="text-lg font-bold text-ink mb-2">
+                    <h3 class="mb-2 text-lg font-bold text-ink">
                       {safeTr(locale, "home.step1Title")}
                     </h3>
-                    <p class="text-sm text-ink-muted max-w-xs">
+                    <p class="max-w-xs text-sm text-ink-muted">
                       {safeTr(locale, "home.step1Desc")}
                     </p>
                   </div>
@@ -873,10 +873,10 @@ export const root = new Elysia().use(userService).get(
                     <div class="mb-4 flex size-14 items-center justify-center rounded-card border border-rule bg-surface text-subheading font-semibold text-ink-muted">
                       2
                     </div>
-                    <h3 class="text-lg font-bold text-ink mb-2">
+                    <h3 class="mb-2 text-lg font-bold text-ink">
                       {safeTr(locale, "home.step2Title")}
                     </h3>
-                    <p class="text-sm text-ink-muted max-w-xs">
+                    <p class="max-w-xs text-sm text-ink-muted">
                       {safeTr(locale, "home.step2Desc")}
                     </p>
                   </div>
@@ -886,10 +886,10 @@ export const root = new Elysia().use(userService).get(
                     <div class="mb-4 flex size-14 items-center justify-center rounded-card bg-cta text-subheading font-semibold text-cta-ink">
                       3
                     </div>
-                    <h3 class="text-lg font-bold text-ink mb-2">
+                    <h3 class="mb-2 text-lg font-bold text-ink">
                       {safeTr(locale, "home.step3Title")}
                     </h3>
-                    <p class="text-sm text-ink-muted max-w-xs">
+                    <p class="max-w-xs text-sm text-ink-muted">
                       {safeTr(locale, "home.step3Desc")}
                     </p>
                   </div>
@@ -900,15 +900,15 @@ export const root = new Elysia().use(userService).get(
             {/* FREEMIUM PRICING SECTION (SaaS Monetization) */}
             <section id="pricing" class="border-t border-rule px-4 py-16 sm:px-6 lg:px-8">
               <div class="mx-auto max-w-7xl">
-                <div class="text-center max-w-3xl mx-auto mb-16">
-                  <div class="chip mb-4 bg-marigold text-[#181d26]">
+                <div class="mx-auto mb-16 max-w-3xl text-center">
+                  <div class="mb-4 chip bg-marigold text-[#181d26]">
                     <span>{safeTr(locale, "home.pricingBadge")}</span>
                   </div>
-                  <h2 class="display-lg mb-4 text-ink">{safeTr(locale, "home.pricingTitle")}</h2>
+                  <h2 class="mb-4 display-lg text-ink">{safeTr(locale, "home.pricingTitle")}</h2>
                   <p class="text-body text-ink-body">{safeTr(locale, "home.pricingSubtitle")}</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-stretch">
+                <div class="mx-auto grid max-w-6xl grid-cols-1 items-stretch gap-8 md:grid-cols-3">
                   {dbTiers.map((t) => {
                     let featuresList: string[];
                     try {
@@ -919,37 +919,37 @@ export const root = new Elysia().use(userService).get(
 
                     return (
                       <div
-                        class={`rounded-3xl border p-8 flex flex-col justify-between transition-all ${
+                        class={`flex flex-col justify-between rounded-3xl border p-8 transition-all ${
                           t.is_popular
                             ? "relative border-2 border-cta bg-surface shadow-lg"
                             : "border-rule bg-surface"
                         }`}
                       >
                         {t.is_popular ? (
-                          <div class="absolute -top-4 left-1/2 -translate-x-1/2 rounded-tag bg-marigold px-4 py-1 text-xs font-semibold uppercase tracking-wider text-[#181d26]">
+                          <div class="absolute -top-4 left-1/2 -translate-x-1/2 rounded-tag bg-marigold px-4 py-1 text-xs font-semibold tracking-wider text-[#181d26] uppercase">
                             <span safe>{t.badge || safeTr(locale, "home.mostPopular")}</span>
                           </div>
                         ) : null}
 
                         <div>
-                          <h3 safe class="text-xl font-bold text-ink mb-2">
+                          <h3 safe class="mb-2 text-xl font-bold text-ink">
                             {t.name}
                           </h3>
-                          <p safe class="text-sm text-ink-muted mb-6">
+                          <p safe class="mb-6 text-sm text-ink-muted">
                             {t.description}
                           </p>
-                          <div class="flex items-baseline gap-1 mb-6">
+                          <div class="mb-6 flex items-baseline gap-1">
                             <span class="text-4xl font-extrabold text-ink" safe>
                               {t.price}
                             </span>
-                            <span class="text-ink-muted text-sm" safe>
+                            <span class="text-sm text-ink-muted" safe>
                               {t.billing_period}
                             </span>
                           </div>
-                          <ul class="space-y-3.5 text-sm text-ink-body mb-8">
+                          <ul class="mb-8 space-y-3.5 text-sm text-ink-body">
                             {featuresList.map((feat) => (
                               <li class="flex items-center gap-2.5">
-                                <span class="text-ink font-bold">✓</span> <span safe>{feat}</span>
+                                <span class="font-bold text-ink">✓</span> <span safe>{feat}</span>
                               </li>
                             ))}
                           </ul>
@@ -958,7 +958,7 @@ export const root = new Elysia().use(userService).get(
                         {checkout && priceIdForTier(t.id) && currentUser?.tier === t.id ? (
                           <a
                             href={`${WEBROOT}/account`}
-                            class="w-full text-center text-sm font-bold btn-secondary"
+                            class="w-full btn-secondary text-center text-sm font-bold"
                           >
                             {safeTr(locale, "home.currentPlan")}
                           </a>
@@ -990,14 +990,14 @@ export const root = new Elysia().use(userService).get(
             </section>
 
             {/* WHY CHOOSE US & SECURITY */}
-            <section id="features" class="py-20 px-4 sm:px-6 lg:px-8 border-t border-rule">
+            <section id="features" class="border-t border-rule px-4 py-20 sm:px-6 lg:px-8">
               <div class="mx-auto max-w-7xl">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div class="grid grid-cols-1 items-center gap-12 md:grid-cols-2">
                   <div>
-                    <h2 class="text-3xl sm:text-4xl font-black text-ink tracking-tight mb-6">
+                    <h2 class="mb-6 text-3xl font-black tracking-tight text-ink sm:text-4xl">
                       {safeTr(locale, "home.featuresTitle")}
                     </h2>
-                    <p class="text-ink-body text-base mb-8 leading-relaxed">
+                    <p class="mb-8 text-base/relaxed text-ink-body">
                       {safeTr(locale, "home.featuresIntro")} {safeFileDeletionPromise(locale)}
                     </p>
                     <div class="space-y-4">
@@ -1006,7 +1006,7 @@ export const root = new Elysia().use(userService).get(
                           🛡️
                         </div>
                         <div>
-                          <h4 class="font-bold text-ink text-base">
+                          <h4 class="text-base font-bold text-ink">
                             {safeTr(locale, "home.autoDeleteTitle")}
                           </h4>
                           <p class="text-sm text-ink-muted">{safeFileDeletionPromise(locale)}</p>
@@ -1017,7 +1017,7 @@ export const root = new Elysia().use(userService).get(
                           ⚡
                         </div>
                         <div>
-                          <h4 class="font-bold text-ink text-base">
+                          <h4 class="text-base font-bold text-ink">
                             {safeTr(locale, "home.industryTitle")}
                           </h4>
                           <p class="text-sm text-ink-muted">
@@ -1030,7 +1030,7 @@ export const root = new Elysia().use(userService).get(
                           📱
                         </div>
                         <div>
-                          <h4 class="font-bold text-ink text-base">
+                          <h4 class="text-base font-bold text-ink">
                             {safeTr(locale, "home.zeroInstallTitle")}
                           </h4>
                           <p class="text-sm text-ink-muted">
@@ -1042,7 +1042,7 @@ export const root = new Elysia().use(userService).get(
                   </div>
 
                   <div class="rounded-feature border border-rule bg-surface p-8">
-                    <h3 class="text-xl font-bold text-ink mb-4">
+                    <h3 class="mb-4 text-xl font-bold text-ink">
                       {safeTr(locale, "home.librariesTitle")}
                     </h3>
                     <div class="grid grid-cols-2 gap-3 text-sm text-ink-body">
@@ -1079,20 +1079,20 @@ export const root = new Elysia().use(userService).get(
 
           {/* SAAS FOOTER */}
           <footer class="w-full border-t border-rule px-4 py-12 sm:px-6 lg:px-8">
-            <div class="mx-auto max-w-7xl grid grid-cols-2 md:grid-cols-5 gap-8 mb-10 text-sm">
+            <div class="mx-auto mb-10 grid max-w-7xl grid-cols-2 gap-8 text-sm md:grid-cols-5">
               <div class="col-span-2">
-                <div class="flex items-center gap-2.5 mb-3">
-                  <div class="flex size-7 items-center justify-center rounded-lg bg-gradient-to-tr from-accent-500 to-lime-400 text-neutral-950 font-bold text-sm">
+                <div class="mb-3 flex items-center gap-2.5">
+                  <div class="flex size-7 items-center justify-center rounded-lg bg-linear-to-tr from-accent-500 to-lime-400 text-sm font-bold text-neutral-950">
                     CX
                   </div>
-                  <span class="text-lg font-bold text-ink tracking-tight" safe>
+                  <span class="text-lg font-bold tracking-tight text-ink" safe>
                     {BRANDING}
                   </span>
                 </div>
-                <p class="text-ink-muted text-xs max-w-sm leading-relaxed mb-4">
+                <p class="mb-4 max-w-sm text-xs/relaxed text-ink-muted">
                   {safeTr(locale, "home.footerTagline")}
                 </p>
-                <p class="text-ink-muted text-xs">
+                <p class="text-xs text-ink-muted">
                   {safeTr(locale, "home.copyright", {
                     year: new Date().getFullYear(),
                     brand: BRANDING,
@@ -1101,7 +1101,7 @@ export const root = new Elysia().use(userService).get(
               </div>
 
               <div>
-                <h5 class="text-ink font-bold mb-3 text-xs uppercase tracking-wider">
+                <h5 class="mb-3 text-xs font-bold tracking-wider text-ink uppercase">
                   {safeTr(locale, "home.footerConverters")}
                 </h5>
                 <ul class="space-y-2 text-xs text-ink-muted">
@@ -1134,7 +1134,7 @@ export const root = new Elysia().use(userService).get(
               </div>
 
               <div>
-                <h5 class="text-ink font-bold mb-3 text-xs uppercase tracking-wider">
+                <h5 class="mb-3 text-xs font-bold tracking-wider text-ink uppercase">
                   {safeTr(locale, "home.footerProduct")}
                 </h5>
                 <ul class="space-y-2 text-xs text-ink-muted">
@@ -1162,7 +1162,7 @@ export const root = new Elysia().use(userService).get(
               </div>
 
               <div>
-                <h5 class="text-ink font-bold mb-3 text-xs uppercase tracking-wider">
+                <h5 class="mb-3 text-xs font-bold tracking-wider text-ink uppercase">
                   {safeTr(locale, "home.footerAccount")}
                 </h5>
                 <ul class="space-y-2 text-xs text-ink-muted">

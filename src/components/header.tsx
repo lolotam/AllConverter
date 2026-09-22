@@ -58,7 +58,7 @@ const GuestMenu = ({
     </summary>
 
     <div role="menu" class={menuPanel}>
-      <div class="border-b border-rule px-3 pb-3 pt-2">
+      <div class="border-b border-rule px-3 pt-2 pb-3">
         <p class="text-[14px] font-semibold text-ink">{safeT(locale, "menu.guestTitle")}</p>
         <p class="mt-0.5 text-xs text-ink-muted">{safeT(locale, "menu.guestHint")}</p>
       </div>
@@ -81,7 +81,7 @@ const GuestMenu = ({
         <a
           href={`${webroot}/login`}
           role="menuitem"
-          class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-link hover:bg-surface-2 transition-colors"
+          class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-link transition-colors hover:bg-surface-2"
         >
           <span>🔑</span> {safeT(locale, "menu.signIn")}
         </a>
@@ -151,7 +151,7 @@ const AccountMenu = ({
       </summary>
 
       <div role="menu" class={menuPanel}>
-        <div class="border-b border-rule px-3 pb-3 pt-2">
+        <div class="border-b border-rule px-3 pt-2 pb-3">
           <p safe class="truncate text-[14px] font-semibold text-ink">
             {name || email}
           </p>
@@ -161,7 +161,7 @@ const AccountMenu = ({
           {tier ? (
             <span
               safe
-              class="mt-2 inline-block rounded-tag bg-marigold px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#181d26]"
+              class="mt-2 inline-block rounded-tag bg-marigold px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-[#181d26] uppercase"
             >
               {tier}
             </span>
@@ -207,7 +207,7 @@ const AccountMenu = ({
             <a
               href={`${webroot}/#pricing`}
               role="menuitem"
-              class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-link hover:bg-surface-2 transition-colors"
+              class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-link transition-colors hover:bg-surface-2"
             >
               <span>🚀</span> {safeT(locale, "menu.upgrade")}
             </a>
@@ -219,7 +219,7 @@ const AccountMenu = ({
             <a
               href={`${webroot}/admin`}
               role="menuitem"
-              class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-ink hover:bg-surface-2 transition-colors"
+              class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
             >
               <span>⚡</span> {safeT(locale, "menu.admin")}
             </a>
@@ -230,7 +230,7 @@ const AccountMenu = ({
           <a
             href={`${webroot}/logoff`}
             role="menuitem"
-            class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-medium text-terracotta hover:bg-surface-2 transition-colors"
+            class="flex items-center gap-2.5 rounded-button px-3 py-2 text-[14px] font-medium text-terracotta transition-colors hover:bg-surface-2"
           >
             <span>↩</span> {safeT(locale, "menu.signOut")}
           </a>
@@ -286,7 +286,7 @@ export const Header = ({
       locale === target ? "font-semibold text-ink" : "text-ink-faint hover:text-ink"
     }`;
   return (
-    <header class="sticky top-0 z-50 w-full bg-surface text-ink-body shadow-[var(--shadow-nav)] transition-colors duration-200">
+    <header class="sticky top-0 z-50 w-full bg-surface text-ink-body shadow-(--shadow-nav) transition-colors duration-200">
       <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Brand Logo */}
         <div class="flex items-center gap-8">
@@ -321,7 +321,7 @@ export const Header = ({
               {tagline ? (
                 <span
                   safe
-                  class="-mt-0.5 text-[10px] font-semibold uppercase tracking-wider text-ink-muted"
+                  class="-mt-0.5 text-[10px] font-semibold tracking-wider text-ink-muted uppercase"
                 >
                   {tagline}
                 </span>
@@ -330,7 +330,7 @@ export const Header = ({
           </a>
 
           {/* Center Navigation Links (Hidden on small screens) */}
-          <nav class="hidden md:flex items-center gap-6 text-body-sm text-ink-body">
+          <nav class="hidden items-center gap-6 text-body-sm text-ink-body md:flex">
             <a href={`${webroot}/#tools`} class="transition-colors hover:text-ink">
               {safeT(locale, "header.tools")}
             </a>
@@ -380,8 +380,8 @@ export const Header = ({
               }
             "
           >
-            <span class="dark:hidden text-base">🌙</span>
-            <span class="hidden dark:inline text-base">☀️</span>
+            <span class="text-base dark:hidden">🌙</span>
+            <span class="hidden text-base dark:inline">☀️</span>
           </button>
           {loggedIn && accountEmail ? (
             <div class="flex items-center gap-3 text-sm">
@@ -430,7 +430,7 @@ export const Header = ({
             <div class="flex items-center gap-2.5 text-sm">
               <a
                 href={`${webroot}/login`}
-                class="rounded-button border border-cta bg-[var(--ghost-surface)] px-4 py-2 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
+                class="rounded-button border border-cta bg-(--ghost-surface) px-4 py-2 text-[14px] font-semibold text-ink transition-colors hover:bg-surface-2"
               >
                 {safeT(locale, "header.signIn")}
               </a>

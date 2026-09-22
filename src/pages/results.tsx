@@ -120,7 +120,7 @@ function ProgressList({
             ? safeTr(locale, "results.convertingOne")
             : safeTr(locale, "results.convertingMany", { count: job.num_files })}
         </span>
-        <span data-progress-overall class="tabular-nums font-bold text-ink">
+        <span data-progress-overall class="font-bold text-ink tabular-nums">
           0%
         </span>
       </div>
@@ -137,7 +137,7 @@ function ProgressList({
               </span>
               <span
                 data-progress-label
-                class="shrink-0 text-xs font-bold tabular-nums text-ink-muted group-data-[state=failed]:text-terracotta"
+                class="shrink-0 text-xs font-bold text-ink-muted tabular-nums group-data-[state=failed]:text-terracotta"
               >
                 0%
               </span>
@@ -189,7 +189,7 @@ function ResultsArticle({
       <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 class="text-heading-sm font-black text-ink">{safeTr(locale, "results.title")}</h1>
-          <p class="text-xs text-ink-muted mt-1">
+          <p class="mt-1 text-xs text-ink-muted">
             {safeTr(locale, "results.job", { id: job.id })}{" "}
             {finished
               ? files.length === 1
@@ -203,7 +203,7 @@ function ResultsArticle({
         <div class="flex flex-wrap items-center gap-2.5">
           <a
             href={`${WEBROOT}/`}
-            class="btn-secondary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5"
+            class="inline-flex btn-secondary items-center gap-1.5 px-3 py-2 text-xs sm:text-sm"
           >
             <span>+</span> {safeTr(locale, "results.convertMore")}
           </a>
@@ -211,7 +211,7 @@ function ResultsArticle({
             <button
               type="submit"
               style={finished ? "" : "pointer-events: none;"}
-              class="btn-secondary text-xs sm:text-sm py-2 px-3 text-terracotta hover:bg-terracotta/10 inline-flex items-center gap-1.5"
+              class="inline-flex btn-secondary items-center gap-1.5 px-3 py-2 text-xs text-terracotta hover:bg-terracotta/10 sm:text-sm"
               {...(finished ? "" : { disabled: true, "aria-busy": "true" })}
             >
               <DeleteIcon /> <span>{safeTr(locale, "results.delete")}</span>
@@ -221,13 +221,13 @@ function ResultsArticle({
             style={finished ? "" : "pointer-events: none;"}
             href={`${WEBROOT}/archive/${job.id}?token=${token}`}
             download={`converted_files_${job.id}.tar`}
-            class="btn-primary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5"
+            class="inline-flex btn-primary items-center gap-1.5 px-3 py-2 text-xs sm:text-sm"
             {...(finished ? "" : { disabled: true, "aria-busy": "true" })}
           >
             <DownloadIcon /> <span>{safeTr(locale, "results.tarArchive")}</span>
           </a>
           <button
-            class="btn-primary text-xs sm:text-sm py-2 px-3 inline-flex items-center gap-1.5"
+            class="inline-flex btn-primary items-center gap-1.5 px-3 py-2 text-xs sm:text-sm"
             onclick="downloadAll()"
           >
             <DownloadIcon /> <span>{safeTr(locale, "results.downloadAll")}</span>
@@ -270,7 +270,7 @@ function ResultsArticle({
               <button
                 type="button"
                 data-download-selected
-                class="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs"
+                class="inline-flex btn-primary items-center gap-1.5 px-3 py-1.5 text-xs"
               >
                 <DownloadIcon /> <span>{safeTr(locale, "results.downloadSelected")}</span>
               </button>
@@ -286,7 +286,7 @@ function ResultsArticle({
             class="overflow-x-auto rounded-card border border-rule bg-surface-2 shadow-sm"
           >
             <table class="w-full table-auto text-start text-sm">
-              <thead class="border-b border-rule text-xs font-bold uppercase tracking-wider text-ink-muted">
+              <thead class="border-b border-rule text-xs font-bold tracking-wider text-ink-muted uppercase">
                 <tr>
                   <th class="p-4">
                     <input
@@ -361,7 +361,7 @@ function ResultsArticle({
                             <EyeIcon />
                           </button>
                           <a
-                            class="btn-primary inline-flex items-center gap-1.5 px-3 py-1.5 text-xs shadow"
+                            class="inline-flex btn-primary items-center gap-1.5 px-3 py-1.5 text-xs shadow-sm"
                             href={entry.downloadUrl}
                             download={entry.name}
                             title={safeTr(locale, "results.downloadFile", { name: entry.name })}
@@ -396,7 +396,7 @@ function ResultsArticle({
                 data-result-item
                 data-name={entry.name}
                 data-download={entry.downloadUrl}
-                class="group relative overflow-hidden rounded-card border border-rule bg-surface shadow-sm"
+                class="group relative overflow-hidden glass-card"
               >
                 <div class="relative flex h-36 items-center justify-center overflow-hidden bg-surface-2">
                   {entry.isImage && !entry.failed ? (
@@ -417,7 +417,7 @@ function ResultsArticle({
                       data-preview={entry.previewUrl}
                       data-is-image={String(entry.isImage)}
                       title={safeTr(locale, "results.previewFile", { name: entry.name })}
-                      class="absolute inset-0 flex items-center justify-center bg-frame/0 text-frame-ink opacity-0 transition-all hover:bg-frame/40 group-hover:opacity-100"
+                      class="absolute inset-0 flex items-center justify-center bg-frame/0 text-frame-ink opacity-0 transition-all group-hover:opacity-100 hover:bg-frame/40"
                     >
                       <span class="rounded-full bg-frame/70 p-3">
                         <EyeIcon />
@@ -431,7 +431,7 @@ function ResultsArticle({
                       type="checkbox"
                       data-select
                       aria-label={safeTr(locale, "results.selectFile", { name: entry.name })}
-                      class="absolute start-2 top-2 size-4 accent-cta"
+                      class="absolute inset-s-2 top-2 size-4 accent-cta"
                     />
                   )}
                 </div>

@@ -27,17 +27,16 @@ import {
 } from "../helpers/env";
 import { activeJobs } from "../converters/progress";
 import { headerAccount } from "../helpers/headerUser";
-import {
-  analytics,
-  formatUsage,
-  queueSnapshot,
-  storageUsage,
-  systemHealth,
-} from "../services/adminStats";
+import { analytics, queueSnapshot, storageUsage, systemHealth } from "../services/adminStats";
 import { brandingUrl, removeBrandingAsset, saveBrandingAsset } from "../services/branding";
 import { initialsOf } from "../services/avatar";
 import { siteName, siteTagline, setSiteName, setSiteTagline } from "../services/siteName";
-import { formatCatalogue, setOfferedFormats, setPreferredConverters } from "../services/features";
+import {
+  CHAIN_LENGTH,
+  formatCatalogue,
+  setOfferedFormats,
+  setPreferredConverters,
+} from "../services/features";
 import {
   CLEANUP_INTERVAL_CHOICES,
   deleteJobs,
@@ -108,7 +107,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
             <div class="min-h-screen bg-canvas text-ink transition-colors">
               {/* Dashboard header */}
               <div class="border-b border-rule bg-surface p-4 backdrop-blur-sm sm:px-8">
-                <div class="mx-auto flex max-w-7xl items-center gap-3">
+                <div class="flex items-center gap-3">
                   <div class="flex size-10 items-center justify-center rounded-xl border border-marigold/50 bg-marigold/20 text-xl font-bold text-ink-muted">
                     ⚡
                   </div>
@@ -123,7 +122,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
 
               {/* Notification Banner */}
               {message !== "" && (
-                <div class="mx-auto max-w-7xl px-4 pt-4 sm:px-8">
+                <div class="px-4 pt-4 sm:px-8">
                   <div class="flex items-center justify-between rounded-xl border border-forest/30 bg-forest/10 px-4 py-3 text-sm font-medium text-forest">
                     <span safe>✓ {message}</span>
                     <a
@@ -137,7 +136,7 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
               )}
 
               {/* Side menu and content */}
-              <div class="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-8 sm:px-8 lg:flex-row">
+              <div class="flex flex-col gap-6 px-4 py-8 sm:px-8 lg:flex-row">
                 <nav class="lg:w-56 lg:shrink-0">
                   <ul class="flex flex-wrap gap-1 lg:sticky lg:top-24 lg:flex-col">
                     {[
@@ -773,7 +772,6 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
                       siteName={siteName()}
                       siteTagline={siteTagline()}
                       formats={formatCatalogue()}
-                      usage={formatUsage()}
                     />
                   )}
                 </div>
@@ -1038,15 +1036,29 @@ export const admin = new Elysia({ prefix: `${WEBROOT}/admin` })
 
       setOfferedFormats(ticked);
 
-      // The selects arrive as converter.<format>; setPreferredConverters checks each name
-      // against the converters that really produce that format before storing it
-      const choices: Record<string, string> = {};
+      // Three selects per row, named converter.<format>.<slot>: the default and two
+      // fallbacks. They are collected in slot order, so the chain comes out the way the
+      // admin read it down the row. setPreferredConverters checks each name against the
+      // converters that really produce that format before storing anything.
+      const choices: Record<string, string[]> = {};
       for (const [key, value] of Object.entries(body)) {
-        if (key.startsWith("converter.") && typeof value === "string") {
-          choices[key.slice("converter.".length)] = value;
+        if (!key.startsWith("converter.") || typeof value !== "string") {
+          continue;
         }
+        const parts = key.slice("converter.".length).split(".");
+        const slot = Number(parts.pop());
+        const format = parts.join(".");
+        if (!format || !Number.isInteger(slot) || slot < 0 || slot >= CHAIN_LENGTH) {
+          continue;
+        }
+        (choices[format] ??= [])[slot] = value;
       }
-      setPreferredConverters(choices);
+      // Holes left by an empty slot collapse, so clearing the default promotes the fallback
+      setPreferredConverters(
+        Object.fromEntries(
+          Object.entries(choices).map(([format, chain]) => [format, chain.filter(Boolean)]),
+        ),
+      );
 
       const message = `${ticked.length} of ${catalogue.length} formats offered`;
       return redirect(`${WEBROOT}/admin?tab=site&msg=${encodeURIComponent(message)}`, 302);

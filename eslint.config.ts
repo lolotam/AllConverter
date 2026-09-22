@@ -55,6 +55,8 @@ export default defineConfig(
             "target",
             "convert_to_target",
             "job-details-toggle",
+            // Hook for the category tabs in the admin format table
+            "format-tab",
             // Set on <html> by the theme toggle, and read by Tailwind's dark variant
             "dark",
             // Hooks for script.js, like the ones above

@@ -269,19 +269,6 @@ export function queueSnapshot(filters: JobFilters = {}): QueueSnapshot {
   };
 }
 
-/** How many files have been produced in each output format, for the admin format table. */
-export function formatUsage(): Record<string, number> {
-  const rows = db
-    .query(
-      `SELECT ${EXTENSION_OF("output_file_name")} AS format, COUNT(*) AS count
-         FROM file_names
-        GROUP BY format`,
-    )
-    .all() as { format: string; count: number }[];
-
-  return Object.fromEntries(rows.filter((row) => row.format).map((row) => [row.format, row.count]));
-}
-
 export type Analytics = {
   perDay: { day: string; jobs: number; files: number }[];
   topFormats: { format: string; count: number }[];

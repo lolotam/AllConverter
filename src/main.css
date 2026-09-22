@@ -46,6 +46,9 @@
   --color-sky: var(--chapter-sky);
   --color-pink: var(--chapter-pink);
   --color-marigold: var(--chapter-marigold);
+  --color-iris: var(--chapter-iris);
+  --color-clay: var(--chapter-clay);
+  --color-slate: var(--chapter-slate);
 
   /* Display face is reserved for 40px and up; the reference sets no tracking on it */
   --font-display: "Roboto Slab", Georgia, "Times New Roman", serif;

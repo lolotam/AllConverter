@@ -1,6 +1,7 @@
 // The insight tabs of the admin dashboard. Kept out of admin.tsx, which is already long.
 import type { Analytics, QueueSnapshot, StorageUsage, SystemHealth } from "../services/adminStats";
 import { safeHumanBytes, JOB_LIMIT_CHOICES } from "../services/adminStats";
+import { CATEGORY_HUE, groupByCategory } from "../converters/categories";
 import type { FormatRow } from "../services/features";
 
 const panel = `glass-card p-5`;
@@ -612,7 +613,6 @@ export function SitePanel({
   siteName,
   siteTagline,
   formats,
-  usage,
 }: {
   webroot: string;
   logoUrl: string | null;
@@ -620,11 +620,16 @@ export function SitePanel({
   siteName: string;
   siteTagline: string;
   formats: FormatRow[];
-  /** Files produced per format, keyed by lowercase extension. */
-  usage: Record<string, number>;
 }) {
   const uploadField = `text-caption file:me-3 file:cursor-pointer file:rounded-button file:border-0 file:bg-surface-2 file:px-3 file:py-2 file:text-caption file:font-semibold file:text-ink`;
   const input = `field text-caption`;
+  const filterField = `rounded-button border border-rule bg-surface px-2 py-1.5 text-caption text-ink`;
+
+  // The tab counts come from the same grouping that colours the rows
+  const byCategory = groupByCategory(formats, (row) => row.category);
+  const allConverters = [...new Set(formats.flatMap((row) => row.converters))].sort((a, b) =>
+    a.localeCompare(b),
+  );
   return (
     <div class="space-y-6">
       <div>
@@ -761,28 +766,77 @@ export function SitePanel({
         <h3 class="mb-1 font-bold text-ink">Formats offered</h3>
         <p class={`${subtle} mb-4`}>
           One row per format a customer can convert into. Untick a format and it disappears from the
-          landing page, so nobody can start a conversion into it. The converter is yours to choose
-          and is never shown to customers — when it cannot read the file somebody uploads, the next
-          capable one runs instead. Formats whose tools are missing from the image never appear here
-          at all.
+          landing page, so nobody can start a conversion into it. The three converter slots are
+          tried in order and never shown to customers: when the default cannot read the file
+          somebody uploads, the first fallback runs, then the second, then whatever else can.
+          Formats whose tools are missing from the image never appear here at all.
         </p>
 
+        {/* One tab per category. The colour is the same one that category wears on the landing
+            page, so the stripe down a row is enough to place it once a tab is off. */}
+        <div class="mb-3 flex flex-wrap gap-1" id="format-tabs">
+          <button
+            type="button"
+            data-category=""
+            class="format-tab rounded-tag border border-rule px-3 py-1.5 text-caption font-semibold text-ink"
+            aria-pressed="true"
+          >
+            All <span class="text-ink-muted">{formats.length}</span>
+          </button>
+          {byCategory.map(({ category, rows }) => (
+            <button
+              type="button"
+              data-category={category}
+              class="format-tab flex items-center gap-1.5 rounded-tag border border-rule px-3 py-1.5 text-caption font-medium text-ink-body"
+              aria-pressed="false"
+            >
+              <span class={`${CATEGORY_HUE[category].dot} size-2.5 shrink-0 rounded-full`} />
+              <span>{category}</span> <span class="text-ink-muted">{rows.length}</span>
+            </button>
+          ))}
+        </div>
+
         <form method="post" action={`${webroot}/admin/site/formats`}>
-          <div class="mb-3 flex flex-wrap items-center gap-2">
-            <input
-              type="search"
-              id="format-filter"
-              placeholder="Filter by format, category or converter…"
-              autocomplete="off"
-              class="field w-64 text-caption"
-            />
-            <span class={subtle}>
+          <div class="mb-3 flex flex-wrap items-end gap-2">
+            <label class="flex flex-col gap-1 text-xs">
+              <span class="font-medium text-ink-muted">Format</span>
+              <select id="filter-format" class={filterField}>
+                <option value="">Any</option>
+                {formats.map((row) => (
+                  <option value={row.format} safe>
+                    {row.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label class="flex flex-col gap-1 text-xs">
+              <span class="font-medium text-ink-muted">Converter</span>
+              <select id="filter-converter" class={filterField}>
+                <option value="">Any</option>
+                {allConverters.map((converter) => (
+                  <option value={converter} safe>
+                    {converter}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label class="flex flex-col gap-1 text-xs">
+              <span class="font-medium text-ink-muted">Search</span>
+              <input
+                type="search"
+                id="format-filter"
+                placeholder="format or converter…"
+                autocomplete="off"
+                class={`${filterField} w-56`}
+              />
+            </label>
+            <span class={`${subtle} pb-2`}>
               <span id="format-shown" safe>
                 {String(formats.length)}
               </span>{" "}
               of {formats.length} formats · {formats.filter((row) => row.visible).length} offered
             </span>
-            <div class="ms-auto flex flex-wrap gap-2">
+            <div class="ms-auto flex flex-wrap gap-2 pb-1">
               <button type="submit" class="btn-primary px-4 py-2 text-sm">
                 Save formats
               </button>
@@ -792,16 +846,17 @@ export function SitePanel({
             </div>
           </div>
 
-          <div class="max-h-128 overflow-auto rounded-card border border-rule">
+          <div class="max-h-[60vh] overflow-auto rounded-card border border-rule">
             <table class="w-full" id="format-table">
               <thead class="sticky top-0 z-10 bg-surface">
                 <tr class="border-b border-rule">
                   <th class={`${th} w-12`}>#</th>
                   <th class={th}>Format</th>
-                  <th class={th}>Category</th>
                   <th class={th}>Accepted formats</th>
-                  <th class={th}>Converter</th>
-                  <th class={`${th} text-end`}>Usage</th>
+                  <th class={th}>Default converter</th>
+                  <th class={th}>1st fallback</th>
+                  <th class={th}>2nd fallback</th>
+                  <th class={`${th} text-end`}>Used</th>
                   <th class={`${th} text-end`}>
                     <label class="flex items-center justify-end gap-2">
                       <span>Offered</span>
@@ -810,34 +865,34 @@ export function SitePanel({
                   </th>
                 </tr>
               </thead>
-              {/* Every cell's styling lives here, on the one element, instead of being
-                  repeated as a class attribute on all 3,500 of them. Same idiom as the
-                  history and landing-page tables; it is what keeps this page a sane size
-                  once a full image offers 500-odd formats. */}
+              {/* Cell styling on the one element rather than on every cell; see the jobs
+                  table above for why. */}
               <tbody
                 class={`
-                  [&_input]:size-4 [&_input]:accent-cta [&_select]:rounded-button [&_select]:border
-                  [&_select]:border-rule
-                  [&_select]:bg-surface [&_select]:px-2 [&_select]:py-1
-                  [&_select]:text-xs
-                  [&_select]:text-ink [&_td]:px-3
-                  [&_td]:py-2
-                  [&_td]:text-caption [&_td]:text-ink-body [&_td:nth-child(1)]:text-ink-muted
-                  [&_td:nth-child(2)]:font-bold
-                  [&_td:nth-child(2)]:text-ink [&_td:nth-child(2)]:uppercase
-                  [&_td:nth-child(4)]:max-w-xs [&_td:nth-child(6)]:text-end [&_td:nth-child(6)]:tabular-nums
-                  [&_td:nth-child(7)]:text-end [&_tr]:border-b [&_tr]:border-rule [&_tr]:last:border-none
-                  [&_tr]:hover:bg-surface-2
+                  [&_input]:size-4 [&_input]:accent-cta [&_select]:w-full [&_select]:rounded-button
+                  [&_select]:border
+                  [&_select]:border-rule [&_select]:bg-surface [&_select]:px-2
+                  [&_select]:py-1
+                  [&_select]:text-xs [&_select]:text-ink
+                  [&_td]:px-3
+                  [&_td]:py-2 [&_td]:text-caption [&_td]:text-ink-body
+                  [&_td:nth-child(1)]:text-ink-muted
+                  [&_td:nth-child(2)]:font-bold [&_td:nth-child(2)]:text-ink
+                  [&_td:nth-child(2)]:uppercase [&_td:nth-child(3)]:max-w-xs [&_td:nth-child(7)]:text-end
+                  [&_td:nth-child(7)]:tabular-nums [&_td:nth-child(8)]:text-end [&_tr]:border-b
+                  [&_tr]:border-b-rule [&_tr]:last:border-b-0 [&_tr]:hover:bg-surface-2
                 `}
               >
-                {/* The rows carry no data-search attribute: the format, category and
-                    converter are already in the cells, and repeating them 507 times is pure
-                    weight. The filter reads them off the cells instead. */}
                 {formats.map((row, index) => (
-                  <tr data-format-row>
+                  <tr
+                    data-format-row
+                    data-category={row.category}
+                    data-format={row.format}
+                    data-converters={row.converters.join(" ")}
+                    class={`${CATEGORY_HUE[row.category].stripe} border-s-4`}
+                  >
                     <td>{index + 1}</td>
                     <td safe>{row.label}</td>
-                    <td>{row.category}</td>
                     <td>
                       {row.accepts.length === 0 ? (
                         <span class={subtle}>none</span>
@@ -849,20 +904,41 @@ export function SitePanel({
                         </span>
                       )}
                     </td>
+                    {/* Three slots, tried in the order they are read across the row. A slot
+                        left empty simply drops out, so clearing the default promotes the
+                        fallback rather than leaving a hole. */}
+                    {[0, 1, 2].map((slot) => (
+                      <td>
+                        {row.converters.length <= slot ? (
+                          <span class={subtle}>—</span>
+                        ) : (
+                          <select name={`converter.${row.format}.${slot}`}>
+                            <option value="">— none —</option>
+                            {row.converters.map((converter) => (
+                              <option
+                                value={converter}
+                                selected={row.chain[slot] === converter}
+                                safe
+                              >
+                                {converter}
+                              </option>
+                            ))}
+                          </select>
+                        )}
+                      </td>
+                    ))}
                     <td>
-                      {row.converters.length === 1 ? (
-                        <span safe>{row.converter}</span>
+                      {row.used > 0 ? (
+                        <span
+                          class="inline-block rounded-tag bg-surface-2 px-2 py-0.5 font-bold text-ink tabular-nums"
+                          safe
+                        >
+                          {String(row.used)}
+                        </span>
                       ) : (
-                        <select name={`converter.${row.format}`}>
-                          {row.converters.map((converter) => (
-                            <option value={converter} selected={converter === row.converter} safe>
-                              {converter}
-                            </option>
-                          ))}
-                        </select>
+                        <span class={subtle}>0</span>
                       )}
                     </td>
-                    <td>{usage[row.label] ? String(usage[row.label]) : "—"}</td>
                     <td>
                       <input
                         type="checkbox"
@@ -876,48 +952,84 @@ export function SitePanel({
                 ))}
               </tbody>
             </table>
+            <p id="format-empty" hidden class="p-4 text-caption text-ink-muted">
+              No formats match these filters.
+            </p>
           </div>
         </form>
 
         <script>
           {`
             (() => {
-              const filter = document.getElementById("format-filter");
+              const rows = Array.from(document.querySelectorAll("[data-format-row]"));
               const all = document.getElementById("format-all");
               const shown = document.getElementById("format-shown");
-              const rows = Array.from(document.querySelectorAll("[data-format-row]"));
-              if (!filter || !all || !rows.length) return;
+              const empty = document.getElementById("format-empty");
+              const search = document.getElementById("format-filter");
+              const byFormat = document.getElementById("filter-format");
+              const byConverter = document.getElementById("filter-converter");
+              const tabs = Array.from(document.querySelectorAll(".format-tab"));
+              if (!rows.length || !all) return;
 
-              // Format, category and converter — not the accepted-formats cell, where
-              // nearly every row lists nearly every extension and would match anything
+              // Format and converter, not the accepted-formats cell: nearly every format
+              // accepts nearly every other, so searching it would match every row.
               const keys = rows.map((row) =>
-                [row.cells[1], row.cells[2], row.cells[4]]
-                  .map((cell) => (cell ? cell.textContent : ""))
-                  .join(" ")
-                  .toLowerCase(),
+                (row.dataset.format + " " + row.dataset.converters).toLowerCase(),
               );
 
-              const visibleRows = () => rows.filter((row) => !row.classList.contains("hidden"));
+              let category = "";
 
-              filter.addEventListener("input", () => {
-                const search = filter.value.trim().toLowerCase();
-                rows.forEach((row, index) => {
-                  row.classList.toggle("hidden", search !== "" && !keys[index].includes(search));
+              const apply = () => {
+                const term = (search ? search.value : "").trim().toLowerCase();
+                const format = byFormat ? byFormat.value : "";
+                const converter = byConverter ? byConverter.value : "";
+
+                rows.forEach((row, i) => {
+                  const hide =
+                    (category !== "" && row.dataset.category !== category) ||
+                    (format !== "" && row.dataset.format !== format) ||
+                    (converter !== "" && !row.dataset.converters.split(" ").includes(converter)) ||
+                    (term !== "" && !keys[i].includes(term));
+                  row.classList.toggle("hidden", hide);
                 });
-                if (shown) shown.textContent = String(visibleRows().length);
-              });
+
+                const visible = rows.filter((row) => !row.classList.contains("hidden"));
+                if (shown) shown.textContent = String(visible.length);
+                if (empty) empty.hidden = visible.length > 0;
+              };
+
+              for (const tab of tabs) {
+                tab.addEventListener("click", () => {
+                  category = tab.dataset.category;
+                  for (const other of tabs) {
+                    const on = other === tab;
+                    other.setAttribute("aria-pressed", String(on));
+                    other.classList.toggle("bg-cta", on);
+                    other.classList.toggle("text-cta-ink", on);
+                    other.classList.toggle("text-ink-body", !on);
+                  }
+                  apply();
+                });
+              }
+
+              if (search) search.addEventListener("input", apply);
+              if (byFormat) byFormat.addEventListener("change", apply);
+              if (byConverter) byConverter.addEventListener("change", apply);
 
               // Ticking the header box applies to what is on screen, so it works with a filter
               all.addEventListener("change", () => {
-                for (const row of visibleRows()) {
+                for (const row of rows) {
+                  if (row.classList.contains("hidden")) continue;
                   const box = row.querySelector("[data-format-offered]");
                   if (box) box.checked = all.checked;
                 }
               });
+
+              apply();
             })();
           `}
         </script>
-      </div>{" "}
+      </div>
     </div>
   );
 }

@@ -9,6 +9,7 @@ import { Jobs } from "../db/types";
 import { WEBROOT } from "../helpers/env";
 import { normalizeFiletype } from "../helpers/normalizeFiletype";
 import { resolveConverter } from "../services/features";
+import { recordFormatUse } from "../services/formatUsage";
 import { consumeConversions, getQuotaContext } from "../services/quota";
 import { userService } from "./user";
 
@@ -101,6 +102,11 @@ export const convert = new Elysia().use(userService).post(
     db.query(
       "UPDATE jobs SET num_files = ?1, status = 'pending', convert_to = ?2, converter = ?3 WHERE id = ?4",
     ).run(fileNames.length, convertTo, converterName, jobId.value);
+
+    // Counted here rather than on completion: what this records is how often the format is
+    // asked for, which is the question the admin table answers, and a conversion that fails
+    // still says somebody wanted it.
+    recordFormatUse(convertTo, fileNames.length);
 
     const jobKey = jobId.value;
 

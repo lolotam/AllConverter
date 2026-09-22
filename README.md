@@ -1,20 +1,17 @@
-![ConvertX](images/logo.png)
+![AllConverter](images/logo.png)
 
-# ConvertX
+# AllConverter
 
-[![Docker](https://github.com/C4illin/ConvertX/actions/workflows/docker-publish.yml/badge.svg?branch=main)](https://github.com/C4illin/ConvertX/actions/workflows/docker-publish.yml)
-[![ghcr.io Pulls](https://img.shields.io/badge/dynamic/json?logo=github&url=https%3A%2F%2Fipitio.github.io%2Fbackage%2FC4illin%2FConvertX%2Fconvertx.json&query=%24.downloads&label=ghcr.io%20pulls&cacheSeconds=14400)](https://github.com/C4illin/ConvertX/pkgs/container/ConvertX)
-[![Docker Pulls](https://img.shields.io/docker/pulls/c4illin/convertx?style=flat&logo=docker&label=dockerhub%20pulls&link=https%3A%2F%2Fhub.docker.com%2Frepository%2Fdocker%2Fc4illin%2Fconvertx%2Fgeneral)](https://hub.docker.com/r/c4illin/convertx)
-[![GitHub Release](https://img.shields.io/github/v/release/C4illin/ConvertX)](https://github.com/C4illin/ConvertX/pkgs/container/convertx)
-![GitHub commits since latest release](https://img.shields.io/github/commits-since/C4illin/ConvertX/latest)
-![GitHub repo size](https://img.shields.io/github/repo-size/C4illin/ConvertX)
-![Docker container size](https://ghcr-badge.egpl.dev/c4illin/convertx/size?color=%230375b6&tag=latest&label=image+size&trim=)
+[![Check Lint](https://github.com/lolotam/AllConverter/actions/workflows/check-lint.yml/badge.svg?branch=main)](https://github.com/lolotam/AllConverter/actions/workflows/check-lint.yml)
+[![Check Tests](https://github.com/lolotam/AllConverter/actions/workflows/run-bun-test.yml/badge.svg?branch=main)](https://github.com/lolotam/AllConverter/actions/workflows/run-bun-test.yml)
+![GitHub repo size](https://img.shields.io/github/repo-size/lolotam/AllConverter)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue)](LICENSE)
 
-<a href="https://trendshift.io/repositories/13818" target="_blank"><img src="https://trendshift.io/api/badge/repositories/13818" alt="C4illin%2FConvertX | Trendshift" style="width: 250px; height: 55px;" width="250" height="55"/></a>
+An online file converter. Supports over a thousand different formats. Written with TypeScript,
+Bun and Elysia.
 
-<!-- ![Dev image size](https://ghcr-badge.egpl.dev/c4illin/convertx/size?color=%230375b6&tag=main&label=dev+image&trim=) -->
-
-A self-hosted online file converter. Supports over a thousand different formats. Written with TypeScript, Bun and Elysia.
+A fork of [C4illin/ConvertX](https://github.com/C4illin/ConvertX), which is where the converter
+engine and most of this list came from. See [Credits](#credits).
 
 ## Features
 
@@ -58,12 +55,15 @@ Any missing converter? Open an issue or pull request!
 > [!WARNING]
 > If you can't login, make sure you are accessing the service over localhost or https otherwise set HTTP_ALLOWED=true
 
+This fork publishes no image to a registry — it is built from the `Dockerfile` in this
+repository, which is also how the hosted site is deployed.
+
 ```yml
 # docker-compose.yml
 services:
-  convertx:
-    image: ghcr.io/c4illin/convertx
-    container_name: convertx
+  allconverter:
+    build: .
+    container_name: allconverter
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -77,8 +77,11 @@ services:
 or
 
 ```bash
-docker run -p 3000:3000 -v ./data:/app/data ghcr.io/c4illin/convertx
+docker build -t allconverter .
+docker run -p 3000:3000 -v ./data:/app/data allconverter
 ```
+
+The build installs every converter, so expect it to take several minutes the first time.
 
 Then visit `http://localhost:3000` in your browser and create your account. Don't leave it unconfigured and open, as anyone can register the first account.
 
@@ -96,7 +99,7 @@ All are optional, JWT_SECRET is recommended to be set.
 | ALLOW_UNAUTHENTICATED        | false                                              | Allow unauthenticated users to use the service, only set this to true locally                                                                                 |
 | AUTO_DELETE_EVERY_N_HOURS    | 24                                                 | Checks every n hours for files older then n hours and deletes them, set to 0 to disable                                                                       |
 | WEBROOT                      |                                                    | The address to the root path setting this to "/convert" will serve the website on "example.com/convert/"                                                      |
-| BRANDING                     | ConvertX                                           | Custom string that allows you to change the display name of the website in the header (max 26 characters)                                                     |
+| BRANDING                     | AllConverter Tech                                  | Custom string that allows you to change the display name of the website in the header (max 26 characters)                                                     |
 | FFMPEG_ARGS                  |                                                    | Arguments to pass to the input file of ffmpeg, e.g. `-hwaccel vaapi`. See https://github.com/C4illin/ConvertX/issues/190 for more info about hw-acceleration. |
 | FFMPEG_OUTPUT_ARGS           |                                                    | Arguments to pass to the output of ffmpeg, e.g. `-preset veryfast`                                                                                            |
 | HIDE_HISTORY                 | false                                              | Hide the history page                                                                                                                                         |
@@ -126,21 +129,12 @@ All are optional, JWT_SECRET is recommended to be set.
 
 ### Docker images
 
-There is a `:latest` tag that is updated with every release and a `:main` tag that is updated with every push to the main branch. `:latest` is recommended for normal use.
+This fork does not publish an image. Build it from the `Dockerfile` as shown above; the
+hosted site is deployed the same way, straight from `main`.
 
-The image is available on [GitHub Container Registry](https://github.com/C4illin/ConvertX/pkgs/container/ConvertX) and [Docker Hub](https://hub.docker.com/r/c4illin/convertx).
-
-| Image                                  | What it is                       |
-| -------------------------------------- | -------------------------------- |
-| `image: ghcr.io/c4illin/convertx`      | The latest release on ghcr       |
-| `image: ghcr.io/c4illin/convertx:main` | The latest commit on ghcr        |
-| `image: c4illin/convertx`              | The latest release on docker hub |
-| `image: c4illin/convertx:main`         | The latest commit on docker hub  |
-
-![Release image size](https://ghcr-badge.egpl.dev/c4illin/convertx/size?color=%230375b6&tag=latest&label=release+image&trim=)
-![Dev image size](https://ghcr-badge.egpl.dev/c4illin/convertx/size?color=%230375b6&tag=main&label=dev+image&trim=)
-
-<!-- Dockerhub was introduced in 0.9.0 and older releases -->
+If you would rather run a prebuilt image and do not need the changes in this fork, upstream
+publishes one on [GitHub Container Registry](https://github.com/C4illin/ConvertX/pkgs/container/ConvertX)
+and [Docker Hub](https://hub.docker.com/r/c4illin/convertx).
 
 ### Tutorial
 
@@ -155,7 +149,7 @@ Tutorial in polish: <https://www.kreatywnyprogramista.pl/convertx-lokalny-konwer
 
 ## Screenshots
 
-![ConvertX Preview](images/preview.png)
+![AllConverter Preview](images/preview.png)
 
 ## Development
 
@@ -168,20 +162,17 @@ Pull requests are welcome! See open issues for the list of todos. The ones tagge
 
 Use [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/#summary) for commit messages.
 
-## Contributors
+## Credits
+
+AllConverter is a fork of [ConvertX](https://github.com/C4illin/ConvertX) by
+[C4illin](https://github.com/C4illin) and its
+[contributors](https://github.com/C4illin/ConvertX/graphs/contributors), who wrote the
+converter engine this is still built on.
 
 <a href="https://github.com/C4illin/ConvertX/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=C4illin/ConvertX" alt="Image with all contributors"/>
+  <img src="https://contrib.rocks/image?repo=C4illin/ConvertX" alt="ConvertX contributors"/>
 </a>
 
-![Alt](https://repobeats.axiom.co/api/embed/dcdabd0564fcdcccbf5680c1bdc2efad54a3d4d9.svg "Repobeats analytics image")
-
-## Star History
-
-<a href="https://github.com/C4illin/ConvertX/stargazers">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=C4illin/ConvertX&type=Date&theme=dark" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=C4illin/ConvertX&type=Date" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=C4illin/ConvertX&type=Date" />
- </picture>
-</a>
+Licensed under the [GNU AGPL v3](LICENSE), as the upstream project is. Because the AGPL
+covers use over a network, anyone running a modified copy as a public service has to offer
+that copy's source to its users.

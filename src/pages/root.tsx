@@ -11,7 +11,9 @@ import { headerAccount } from "../helpers/headerUser";
 import { isRegisteredSession } from "../helpers/session";
 import { onlyAvailable } from "../converters/availability";
 import { categoryOf, groupByCategory } from "../converters/categories";
+import { brandingUrl } from "../services/branding";
 import { formatLabel, visibleTargets } from "../services/features";
+import { siteName } from "../services/siteName";
 import { deletionIsAutomatic, retentionSentence } from "../services/retention";
 import { getAllTargets } from "../converters/main";
 import db, { getTiers, getUserById } from "../db/db";
@@ -224,6 +226,9 @@ export const root = new Elysia().use(userService).get(
         : Math.max(0, dailyLimit - getConversionsToday(subject));
     const limitMessageKey = query.limit ? LIMIT_MESSAGE_KEYS[query.limit] : undefined;
     const locale = localeFromRequest(request, lang?.value);
+    // Read the same way the header reads them, so the footer cannot drift from it
+    const footerLogo = brandingUrl(WEBROOT, "logo");
+    const footerName = siteName() || BRANDING;
 
     return (
       <BaseHtml
@@ -1081,12 +1086,19 @@ export const root = new Elysia().use(userService).get(
           <footer class="w-full border-t border-rule px-4 py-12 sm:px-6 lg:px-8">
             <div class="mx-auto mb-10 grid max-w-7xl grid-cols-2 gap-8 text-sm md:grid-cols-5">
               <div class="col-span-2">
+                {/* The same logo and name the header shows, both set in the admin
+                    dashboard. A site that has uploaded its own mark should not meet the
+                    one this app ships with half a page further down. */}
                 <div class="mb-3 flex items-center gap-2.5">
-                  <div class="flex size-7 items-center justify-center rounded-lg bg-linear-to-tr from-accent-500 to-lime-400 text-sm font-bold text-neutral-950">
-                    CX
-                  </div>
+                  <img
+                    src={footerLogo ?? `${WEBROOT}/favicon.svg`}
+                    alt=""
+                    width="28"
+                    height="28"
+                    class="size-7 rounded-lg object-contain"
+                  />
                   <span class="text-lg font-bold tracking-tight text-ink" safe>
-                    {BRANDING}
+                    {footerName}
                   </span>
                 </div>
                 <p class="mb-4 max-w-sm text-xs/relaxed text-ink-muted">
@@ -1095,7 +1107,7 @@ export const root = new Elysia().use(userService).get(
                 <p class="text-xs text-ink-muted">
                   {safeTr(locale, "home.copyright", {
                     year: new Date().getFullYear(),
-                    brand: BRANDING,
+                    brand: footerName,
                   })}
                 </p>
               </div>

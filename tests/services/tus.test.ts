@@ -6,7 +6,8 @@ import { Tier } from "../../src/db/types";
 
 process.env.DB_PATH ??= "./data/test-tus.sqlite";
 process.env.JWT_SECRET ??= "tus-test-secret";
-process.env.ALLOW_UNAUTHENTICATED = "false";
+// ALLOW_UNAUTHENTICATED is set once for the whole suite in tests/setup.ts. Setting it here
+// decided the value for every file that loaded afterwards, and nothing in this one needs it.
 
 const { default: db } = await import("../../src/db/db");
 const { assertUploadAllowed } = await import("../../src/services/tus");

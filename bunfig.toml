@@ -1,4 +1,6 @@
 [test]
+# Establishes the environment before any test file or src module loads; see tests/setup.ts
+preload = ["./tests/setup.ts"]
 coverage = true
 coveragePathIgnorePatterns = [
   "tests/converters/helpers/commonTests.ts"

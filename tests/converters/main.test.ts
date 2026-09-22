@@ -42,10 +42,17 @@ afterEach(() => {
   }
 });
 
-// closes the DB and removes the temp directory after all tests finish
+// Closes this file's own handle, but leaves the directory alone.
+//
+// Setting DB_PATH above is process-wide, and `bun test` runs every file in one process, so
+// src/db/db.ts opens whichever path won the race and every later file shares it. Deleting
+// the directory here took that database out from under them: SQLite cannot write its WAL
+// into a directory that no longer exists, so the first insert in a later file threw. It
+// showed up as an unrelated test failing on Linux and passing on Windows, purely because
+// the two order the files differently. The directory is cleared at the top of this file on
+// the next run instead, which cleans up without stepping on anyone.
 afterAll(() => {
   testDb.close();
-  rmSync(testDbDir, { recursive: true, force: true });
 });
 
 // Mock factory for jobId Cookie to avoid repeated `as Cookie` casts

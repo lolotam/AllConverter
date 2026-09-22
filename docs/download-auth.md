@@ -15,7 +15,7 @@ browser works only because it cached the credentials.
 That is not what is happening here. Evidence, collected 2026-09-20 with no cookies at all:
 
 ```
-$ curl -s -D - -o /dev/null https://convertx.walidmohamed.com/archive/1
+$ curl -s -D - -o /dev/null https://allconverter.tech/archive/1
 HTTP/1.1 401 Unauthorized
 Content-Type: application/json;charset=utf-8
 Content-Length: 42

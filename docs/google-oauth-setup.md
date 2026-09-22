@@ -5,11 +5,11 @@ them unset, `/login` and `/register` simply show the email form as before.
 
 ## Variables
 
-| Variable               | Required | Example                                                  | Where it comes from                             |
-| ---------------------- | -------- | -------------------------------------------------------- | ----------------------------------------------- |
-| `GOOGLE_CLIENT_ID`     | yes      | `1234567890-abc….apps.googleusercontent.com`             | Google Cloud console                            |
-| `GOOGLE_CLIENT_SECRET` | yes      | `GOCSPX-…`                                               | Google Cloud console — **secret**               |
-| `GOOGLE_REDIRECT_URI`  | no       | `https://convertx.walidmohamed.com/auth/google/callback` | defaults to this host + `/auth/google/callback` |
+| Variable               | Required | Example                                          | Where it comes from                             |
+| ---------------------- | -------- | ------------------------------------------------ | ----------------------------------------------- |
+| `GOOGLE_CLIENT_ID`     | yes      | `1234567890-abc….apps.googleusercontent.com`     | Google Cloud console                            |
+| `GOOGLE_CLIENT_SECRET` | yes      | `GOCSPX-…`                                       | Google Cloud console — **secret**               |
+| `GOOGLE_REDIRECT_URI`  | no       | `https://allconverter.tech/auth/google/callback` | defaults to this host + `/auth/google/callback` |
 
 Paste both into **Dokploy → the ConvertX application → Environment**, never into a chat or
 a commit. `.env` is gitignored, but the secret should live in Dokploy only.
@@ -26,8 +26,8 @@ a commit. `.env` is gitignored, but the secret should live in Dokploy only.
      publishing does not require Google's verification review.
 3. **APIs & Services → Credentials → Create credentials → OAuth client ID**
    - Application type: **Web application**
-   - Authorised JavaScript origins: `https://convertx.walidmohamed.com`
-   - Authorised redirect URIs: `https://convertx.walidmohamed.com/auth/google/callback`
+   - Authorised JavaScript origins: `https://allconverter.tech`
+   - Authorised redirect URIs: `https://allconverter.tech/auth/google/callback`
      (add `http://localhost:3000/auth/google/callback` too if you want it locally)
 4. Copy the client ID and client secret into Dokploy, then redeploy.
 

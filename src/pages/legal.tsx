@@ -1,3 +1,4 @@
+import type { Children } from "@kitajs/html";
 import { Elysia } from "elysia";
 import { BaseHtml } from "../components/base";
 import { Header } from "../components/header";
@@ -20,7 +21,11 @@ import { deletionIsAutomatic, retentionSentence } from "../services/retention";
 import { headerAccount, type HeaderAccount } from "../helpers/headerUser";
 import { userService } from "./user";
 
-const SOURCE_CODE_URL = "https://github.com/C4illin/ConvertX";
+// The AGPL asks whoever runs the software over a network to offer its users the source of
+// the version they are actually using, so this has to be this fork rather than the project
+// it came from. Upstream is named separately, as credit rather than as the offer.
+const SOURCE_CODE_URL = "https://github.com/lolotam/AllConverter";
+const UPSTREAM_URL = "https://github.com/C4illin/ConvertX";
 
 // Missing operator details stay visibly marked instead of being invented
 const Placeholder = ({ children }: { children: string }) => (
@@ -51,14 +56,17 @@ const LegalLink = ({ path, children }: { path: string; children: string }) => (
   </a>
 );
 
-const Section = ({ title, children }: { title: string; children: JSX.Element | JSX.Element[] }) => (
+// The Children type rather than a JSX.Element union: it is the type the xss lint recognises as
+// content that has already been rendered and must not be escaped again.
+const Section = ({ title, children }: { title: string; children: Children }) => (
   <section class="mb-8">
     <h2 class="mb-3 text-subheading font-bold text-ink" safe>
       {title}
     </h2>
-    <div class="space-y-3 leading-relaxed text-ink-body" safe>
-      {children}
-    </div>
+    {/* No `safe` here: children arrive already rendered, and escaping them a second time
+        printed every paragraph and link on these pages as visible HTML source. Anything
+        inside a section that interpolates a string escapes it where it is written. */}
+    <div class="space-y-3 leading-relaxed text-ink-body">{children}</div>
   </section>
 );
 
@@ -217,10 +225,14 @@ export const legal = new Elysia()
 
       <Section title="9. Open source">
         <p>
-          The Service is based on ConvertX, free software licensed under the GNU Affero General
-          Public License v3. The source code of the software running the Service is available at{" "}
+          The Service runs a modified version of ConvertX, free software licensed under the GNU
+          Affero General Public License v3. The source of the version running here is available at{" "}
           <a href={SOURCE_CODE_URL} class="text-link underline">
             {SOURCE_CODE_URL}
+          </a>
+          , and the original project is at{" "}
+          <a href={UPSTREAM_URL} class="text-link underline">
+            {UPSTREAM_URL}
           </a>
           .
         </p>

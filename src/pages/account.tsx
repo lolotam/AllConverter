@@ -132,7 +132,7 @@ export const account = new Elysia()
               {...headerAccount(user.id)}
             />
             <main class="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
-              <h1 class="display-lg mb-6 text-ink">{safeTr(locale, "account.title")}</h1>
+              <h1 class="mb-6 display-lg text-ink">{safeTr(locale, "account.title")}</h1>
               <Notices
                 locale={locale}
                 notice={typeof notice === "string" ? notice : undefined}

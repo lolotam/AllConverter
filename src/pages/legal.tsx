@@ -99,7 +99,7 @@ const LegalPage = ({
         sm:px-6
       "
       >
-        <h1 class="display-lg mb-2 text-ink" safe>
+        <h1 class="mb-2 display-lg text-ink" safe>
           {title}
         </h1>
         <p class="mb-10 text-caption text-ink-muted">

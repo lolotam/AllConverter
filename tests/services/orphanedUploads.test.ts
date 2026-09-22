@@ -1,5 +1,5 @@
 import { afterAll, expect, test } from "bun:test";
-import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, utimesSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { uploadsDir } from "../../src/helpers/paths";
 
@@ -46,11 +46,18 @@ test("a folder with no job row at all is removed on age alone", () => {
   mkdirSync(directory, { recursive: true });
   writeFileSync(path.join(directory, "stray.pdf"), "x");
 
-  // Its own timestamp is now, so the grace period protects it...
+  // Back-dated an hour, so this is a test about age rather than about whether the folder
+  // happened to be created in the same millisecond as the cutoff. A zero grace period puts
+  // the cutoff at exactly now, and a folder stamped "now" on a fast machine sat right on
+  // the boundary — kept or removed depending on the clock, which made this test flaky.
+  const anHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  utimesSync(directory, anHourAgo, anHourAgo);
+
+  // An hour old, so a two-hour grace period still protects it...
   deleteOrphanedUploads(2);
   expect(existsSync(directory)).toBe(true);
 
-  // ...and a zero grace period takes it
+  // ...and no grace period at all takes it
   deleteOrphanedUploads(0);
   expect(existsSync(directory)).toBe(false);
 });

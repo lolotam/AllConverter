@@ -11,7 +11,7 @@ can claim the admin account (phase 0).
 
 ## Phase 0 — Close the open admin slot · BLOCKED (waiting on you)
 
-`https://convertx.walidmohamed.com/setup` currently renders "Create your account".
+`https://allconverter.tech/setup` currently renders "Create your account".
 `FIRST_RUN` in `src/pages/user.tsx` is true while the `users` table is empty, so **the
 first person to submit that form becomes the first account on the production instance**.
 Verified on 2026-09-20: the page returns HTTP 200 with the form, not a redirect.

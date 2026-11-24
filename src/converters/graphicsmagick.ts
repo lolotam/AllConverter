@@ -313,6 +313,25 @@ const DOCUMENT_INPUTS = new Set(["pdf", "epdf", "ps", "eps", "epi", "epsi", "ai"
 const DEFAULT_DENSITY = 150;
 const ALLOWED_DENSITIES = [150, 300];
 
+// Formats that hold every page in one file, so a document converted to them stays whole
+const MULTI_IMAGE_OUTPUTS = new Set(["pdf", "epdf", "ps", "tif", "tiff", "gif", "miff", "mng"]);
+
+/**
+ * Where each page of a multi-page document goes. Unlike ImageMagick, GraphicsMagick does
+ * not split pages on its own: into a single-image format like JPEG it writes page 1 and
+ * drops the rest. With +adjoin and a %d pattern it writes name-0.jpg, name-1.jpg, ... —
+ * the names `findOutputFiles` in main.ts collects. A literal % in the file name is doubled
+ * so GraphicsMagick does not read it as part of the pattern.
+ */
+function pagedTargetPath(targetPath: string): string {
+  const slash = Math.max(targetPath.lastIndexOf("/"), targetPath.lastIndexOf("\\"));
+  const dot = targetPath.lastIndexOf(".");
+  const hasExtension = dot > slash;
+  const stem = hasExtension ? targetPath.slice(0, dot) : targetPath;
+  const extension = hasExtension ? targetPath.slice(dot) : "";
+  return `${stem.replaceAll("%", "%%")}-%d${extension.replaceAll("%", "%%")}`;
+}
+
 export function convert(
   filePath: string,
   fileType: string,
@@ -323,12 +342,18 @@ export function convert(
 ): Promise<string> {
   const inputArgs: string[] = [];
   const outputArgs: string[] = [];
+  let outputPath = targetPath;
 
   if (DOCUMENT_INPUTS.has(fileType.toLowerCase())) {
     const requested = (options as { density?: number } | undefined)?.density;
     const density = ALLOWED_DENSITIES.includes(requested ?? 0) ? requested : DEFAULT_DENSITY;
     inputArgs.push("-density", String(density));
     outputArgs.push("-background", "white");
+
+    if (!MULTI_IMAGE_OUTPUTS.has(convertTo.toLowerCase())) {
+      outputArgs.push("+adjoin");
+      outputPath = pagedTargetPath(targetPath);
+    }
   }
 
   // Apply EXIF orientation so photos (e.g. from phones) don't end up sideways
@@ -338,7 +363,7 @@ export function convert(
   return new Promise((resolve, reject) => {
     execFile(
       "gm",
-      ["convert", ...inputArgs, filePath, ...outputArgs, targetPath],
+      ["convert", ...inputArgs, filePath, ...outputArgs, outputPath],
       (error, stdout, stderr) => {
         if (error) {
           reject(`error: ${error}`);

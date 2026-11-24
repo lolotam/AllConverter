@@ -113,13 +113,8 @@ export function convert(
   //     .toFormat(convertTo)
   //     .toFile(targetPath);
   // }
-  let action = "copy";
-  if (fileType === "pdf") {
-    action = "pdfload";
-  }
-
   return new Promise((resolve, reject) => {
-    execFile("vips", [action, filePath, targetPath], (error, stdout, stderr) => {
+    execFile("vips", ["copy", filePath, targetPath], (error, stdout, stderr) => {
       if (error) {
         reject(`error: ${error}`);
       }

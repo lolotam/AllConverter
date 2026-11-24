@@ -12,33 +12,7 @@ beforeEach(() => {
 
 runCommonTests(convert);
 
-test("convert uses action pdfload with filetype being pdf", async () => {
-  const originalConsoleLog = console.log;
-
-  let loggedMessage = "";
-  console.log = (msg) => {
-    loggedMessage = msg;
-  };
-
-  const mockExecFile: ExecFileFn = (
-    _cmd: string,
-    _args: string[],
-    callback: (err: ExecFileException | null, stdout: string, stderr: string) => void,
-  ) => {
-    calls.push(_args);
-    callback(null, "Fake stdout", "");
-  };
-
-  const result = await convert("input.pdf", "pdf", "obj", "output.obj", undefined, mockExecFile);
-
-  console.log = originalConsoleLog;
-
-  expect(result).toBe("Done");
-  expect(calls[0]).toEqual(expect.arrayContaining(["pdfload"]));
-  expect(loggedMessage).toBe("stdout: Fake stdout");
-});
-
-test("convert uses action copy with filetype being anything but pdf", async () => {
+test("convert uses action copy", async () => {
   const originalConsoleLog = console.log;
 
   let loggedMessage = "";

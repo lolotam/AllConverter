@@ -54,7 +54,41 @@ test("convert applies density and white background for document inputs", async (
     "doc.pdf",
     "-background",
     "white",
+    "+adjoin",
     "-auto-orient",
-    "doc.jpg",
+    "doc-%d.jpg",
   ]);
+});
+
+test("convert splits document pages into name-N files for single-image formats", async () => {
+  const mockExecFile: ExecFileFn = (_cmd, args, callback) => {
+    calls.push(args);
+    callback(null, "", "");
+  };
+
+  await convert("in/doc.pdf", "pdf", "png", "out/50%.v1/doc.png", undefined, mockExecFile);
+
+  expect(calls[0]).toEqual([
+    "convert",
+    "-density",
+    "150",
+    "in/doc.pdf",
+    "-background",
+    "white",
+    "+adjoin",
+    "-auto-orient",
+    "out/50%%.v1/doc-%d.png",
+  ]);
+});
+
+test("convert keeps a document whole when the target holds many pages", async () => {
+  const mockExecFile: ExecFileFn = (_cmd, args, callback) => {
+    calls.push(args);
+    callback(null, "", "");
+  };
+
+  await convert("doc.pdf", "pdf", "tiff", "doc.tiff", undefined, mockExecFile);
+
+  expect(calls[0]).not.toContain("+adjoin");
+  expect(calls[0]?.at(-1)).toBe("doc.tiff");
 });

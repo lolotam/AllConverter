@@ -123,7 +123,11 @@ export const chooseConverter = new Elysia().use(userService).post(
           ))}
         </article>
 
-        <select name="convert_to" aria-label="Convert to" required hidden>
+        {/* Not "required": this select replaces the one on the home page once a file is
+            added, and it is hidden, so the browser could neither show nor focus its
+            validation message and would silently refuse to submit. script.js checks the
+            choice before submitting, and the server checks it again. */}
+        <select name="convert_to" aria-label="Convert to" hidden>
           <option selected disabled value="">
             Convert to
           </option>

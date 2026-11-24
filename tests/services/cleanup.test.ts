@@ -5,7 +5,8 @@ import { outputDir, uploadsDir } from "../../src/helpers/paths";
 process.env.DB_PATH ??= "./data/test-cleanup.sqlite";
 
 const { default: db } = await import("../../src/db/db");
-const { deleteExpiredJobs } = await import("../../src/services/cleanup");
+const { deleteExpiredJobs, setCleanupEnabled, setCleanupOverrideHours } =
+  await import("../../src/services/cleanup");
 
 const freeUserId = 810_000 + Math.floor(Math.random() * 10_000);
 const proUserId = 820_000 + Math.floor(Math.random() * 10_000);
@@ -52,6 +53,9 @@ function insertJob(userId: number, hoursAgo: number): number {
 }
 
 test("per-tier cleanup deletes jobs according to each user's tier retention", () => {
+  setCleanupEnabled(true);
+  setCleanupOverrideHours(null);
+
   // Free tier has 2 hours retention
   const freeRecent = insertJob(freeUserId, 1); // 1h ago -> KEEP
   const freeExpired = insertJob(freeUserId, 3); // 3h ago -> DELETE (> 2h)

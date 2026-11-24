@@ -30,3 +30,31 @@ test("convert applies EXIF auto-orient", async () => {
   expect(command).toBe("gm");
   expect(calls[0]).toEqual(["convert", "input.jpg", "-auto-orient", "output.pdf"]);
 });
+
+test("convert applies density and white background for document inputs", async () => {
+  let command = "";
+  const mockExecFile: ExecFileFn = (
+    cmd: string,
+    args: string[],
+    callback: (err: ExecFileException | null, stdout: string, stderr: string) => void,
+  ) => {
+    command = cmd;
+    calls.push(args);
+    callback(null, "", "");
+  };
+
+  const result = await convert("doc.pdf", "pdf", "jpg", "doc.jpg", { density: 300 }, mockExecFile);
+
+  expect(result).toBe("Done");
+  expect(command).toBe("gm");
+  expect(calls[0]).toEqual([
+    "convert",
+    "-density",
+    "300",
+    "doc.pdf",
+    "-background",
+    "white",
+    "-auto-orient",
+    "doc.jpg",
+  ]);
+});

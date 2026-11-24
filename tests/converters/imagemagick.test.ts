@@ -179,3 +179,59 @@ test("convert applies EXIF auto-orient", async () => {
   expect(result).toBe("Done");
   expect(calls[0]).toEqual(expect.arrayContaining(["input.jpg", "-auto-orient", "output.png"]));
 });
+
+test("convert rasterises PDF at default 150 DPI with white background", async () => {
+  const mockExecFile: ExecFileFn = (
+    _cmd: string,
+    _args: string[],
+    callback: (err: ExecFileException | null, stdout: string, stderr: string) => void,
+  ) => {
+    calls.push(_args);
+    callback(null, "", "");
+  };
+
+  const result = await convert("doc.pdf", "pdf", "jpg", "doc.jpg", undefined, mockExecFile);
+
+  expect(result).toBe("Done");
+  expect(calls[0]).toEqual([
+    "-density",
+    "150",
+    "doc.pdf",
+    "-background",
+    "white",
+    "-alpha",
+    "remove",
+    "-alpha",
+    "off",
+    "-auto-orient",
+    "doc.jpg",
+  ]);
+});
+
+test("convert rasterises PDF at 300 DPI when requested", async () => {
+  const mockExecFile: ExecFileFn = (
+    _cmd: string,
+    _args: string[],
+    callback: (err: ExecFileException | null, stdout: string, stderr: string) => void,
+  ) => {
+    calls.push(_args);
+    callback(null, "", "");
+  };
+
+  const result = await convert("doc.pdf", "pdf", "png", "doc.png", { density: 300 }, mockExecFile);
+
+  expect(result).toBe("Done");
+  expect(calls[0]).toEqual([
+    "-density",
+    "300",
+    "doc.pdf",
+    "-background",
+    "white",
+    "-alpha",
+    "remove",
+    "-alpha",
+    "off",
+    "-auto-orient",
+    "doc.png",
+  ]);
+});

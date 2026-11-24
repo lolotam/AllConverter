@@ -309,6 +309,10 @@ export const properties = {
   },
 };
 
+const DOCUMENT_INPUTS = new Set(["pdf", "epdf", "ps", "eps", "epi", "epsi", "ai"]);
+const DEFAULT_DENSITY = 150;
+const ALLOWED_DENSITIES = [150, 300];
+
 export function convert(
   filePath: string,
   fileType: string,
@@ -317,23 +321,39 @@ export function convert(
   options?: unknown,
   execFile: ExecFileFn = execFileOriginal, // to make it mockable
 ): Promise<string> {
+  const inputArgs: string[] = [];
+  const outputArgs: string[] = [];
+
+  if (DOCUMENT_INPUTS.has(fileType.toLowerCase())) {
+    const requested = (options as { density?: number } | undefined)?.density;
+    const density = ALLOWED_DENSITIES.includes(requested ?? 0) ? requested : DEFAULT_DENSITY;
+    inputArgs.push("-density", String(density));
+    outputArgs.push("-background", "white");
+  }
+
   // Apply EXIF orientation so photos (e.g. from phones) don't end up sideways
   // when converted to formats where the orientation tag is lost or ignored
+  outputArgs.push("-auto-orient");
+
   return new Promise((resolve, reject) => {
-    execFile("gm", ["convert", filePath, "-auto-orient", targetPath], (error, stdout, stderr) => {
-      if (error) {
-        reject(`error: ${error}`);
-      }
+    execFile(
+      "gm",
+      ["convert", ...inputArgs, filePath, ...outputArgs, targetPath],
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(`error: ${error}`);
+        }
 
-      if (stdout) {
-        console.log(`stdout: ${stdout}`);
-      }
+        if (stdout) {
+          console.log(`stdout: ${stdout}`);
+        }
 
-      if (stderr) {
-        console.error(`stderr: ${stderr}`);
-      }
+        if (stderr) {
+          console.error(`stderr: ${stderr}`);
+        }
 
-      resolve("Done");
-    });
+        resolve("Done");
+      },
+    );
   });
 }

@@ -477,7 +477,7 @@ export function convert(
 
   // Documents are rasterised by Ghostscript: the default 72 DPI is blurry, and the
   // transparent page background turns black in formats without alpha, like JPG
-  if (DOCUMENT_INPUTS.has(fileType)) {
+  if (DOCUMENT_INPUTS.has(fileType.toLowerCase())) {
     const requested = (options as { density?: number } | undefined)?.density;
     const density = ALLOWED_DENSITIES.includes(requested ?? 0) ? requested : DEFAULT_DENSITY;
     inputArgs.push("-density", String(density));

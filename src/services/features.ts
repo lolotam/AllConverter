@@ -239,22 +239,46 @@ export function formatCatalogue(): FormatRow[] {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
+const DOCUMENT_RASTER_INPUTS = new Set(["pdf", "epdf", "ps", "eps", "epi", "epsi", "ai"]);
+const DOCUMENT_RASTER_CONVERTERS = ["imagemagick", "graphicsmagick"];
+
 /**
  * The converter that should run for this conversion, or null when nothing can do it.
  *
  * The admin's preference wins whenever it can accept the input. Otherwise the first
  * converter that can — the order in `main.ts` is a deliberate priority list, which is why
  * Inkscape sits at the top of it.
+ *
+ * Exception: rasterising documents (PDF, PostScript, EPS, AI) into images requires a tool
+ * that can handle multi-page output and honour resolution settings (DPI). ImageMagick
+ * (with GraphicsMagick as fallback) owns these conversions; tools like Inkscape or Vips
+ * would otherwise only export the first page and ignore DPI options.
  */
-export function resolveConverter(from: string, to: string): string | null {
+export function resolveConverter(
+  from: string,
+  to: string,
+  targetsFn: (from: string) => Record<string, string[]> = getPossibleTargets,
+  availableFn: <T>(byConverter: Record<string, T>) => Record<string, T> = onlyAvailable,
+): string | null {
   const target = canonical(to);
   if (hiddenOutputFormats().includes(target)) {
     return null;
   }
 
-  const capable = Object.entries(onlyAvailable(getPossibleTargets(from)))
+  const fromCanonical = canonical(from);
+  const isDocumentToImage =
+    DOCUMENT_RASTER_INPUTS.has(fromCanonical) && categoryOf(target) === "Image";
+
+  let capable = Object.entries(availableFn(targetsFn(from)))
     .filter(([, targets]) => targets.some((format) => canonical(format) === target))
     .map(([converter]) => converter);
+
+  if (isDocumentToImage) {
+    capable = capable.filter((converter) => DOCUMENT_RASTER_CONVERTERS.includes(converter));
+    capable.sort(
+      (a, b) => DOCUMENT_RASTER_CONVERTERS.indexOf(a) - DOCUMENT_RASTER_CONVERTERS.indexOf(b),
+    );
+  }
 
   return pickConverter(capable, preferredConverters()[target] ?? [], new Set(excludedFor(target)));
 }

@@ -30,7 +30,6 @@ export const properties = {
       "nia",
       "nii.gz",
       "nii",
-      "pdf",
       "pfm",
       "pgm",
       "pic",

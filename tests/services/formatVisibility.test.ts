@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { pickConverter } from "../../src/services/features";
+import { pickConverter, resolveConverter } from "../../src/services/features";
 
 // The fallback rule on its own. resolveConverter wraps this with the real converter tables,
 // which only answer usefully on an image that has the tools installed.
@@ -93,5 +93,57 @@ describe("the converter chain", () => {
     expect(
       pickConverter(["graphicsmagick", "vips"], ["graphicsmagick"], new Set(["graphicsmagick"])),
     ).toBe("graphicsmagick");
+  });
+});
+
+describe("document-to-image rasterisation converter resolution", () => {
+  const fakeTargets: Record<string, Record<string, string[]>> = {
+    pdf: {
+      inkscape: ["png", "svg"],
+      vips: ["jpeg", "png"],
+      imagemagick: ["jpeg", "jpg", "png", "webp"],
+      graphicsmagick: ["jpeg", "png"],
+    },
+    svg: {
+      inkscape: ["png", "pdf"],
+      resvg: ["png"],
+      imagemagick: ["png", "jpg"],
+    },
+    png: {
+      vips: ["jpeg", "webp"],
+      imagemagick: ["jpeg", "jpg", "webp"],
+    },
+  };
+
+  const allAvailable = <T>(byConverter: Record<string, T>) => byConverter;
+  const mockTargets = (from: string) => fakeTargets[from] ?? {};
+
+  it("routes PDF to JPG to imagemagick", () => {
+    expect(resolveConverter("pdf", "jpg", mockTargets, allAvailable)).toBe("imagemagick");
+  });
+
+  it("routes PDF to PNG to imagemagick even though inkscape is in possible targets", () => {
+    expect(resolveConverter("pdf", "png", mockTargets, allAvailable)).toBe("imagemagick");
+  });
+
+  it("routes PDF to SVG to inkscape (vector target)", () => {
+    expect(resolveConverter("pdf", "svg", mockTargets, allAvailable)).toBe("inkscape");
+  });
+
+  it("routes SVG to PNG to inkscape (not a document raster input)", () => {
+    expect(resolveConverter("svg", "png", mockTargets, allAvailable)).toBe("inkscape");
+  });
+
+  it("routes PNG to JPG to vips (regular image conversion)", () => {
+    expect(resolveConverter("png", "jpg", mockTargets, allAvailable)).toBe("vips");
+  });
+
+  it("falls back to graphicsmagick when imagemagick is unavailable", () => {
+    const withoutMagick = <T>(byConverter: Record<string, T>) => {
+      const copy = { ...byConverter };
+      delete copy.imagemagick;
+      return copy;
+    };
+    expect(resolveConverter("pdf", "png", mockTargets, withoutMagick)).toBe("graphicsmagick");
   });
 });
